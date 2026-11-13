@@ -1,0 +1,24 @@
+{
+  "release": "2.0.1",
+  "source_basis": "user-provided v1.9.1 Native QR Picker ZIP",
+  "files": [
+    "README.md",
+    "styles.css",
+    "config.js",
+    "player.html",
+    "payment-result.html",
+    "app.js",
+    "admin.html",
+    "player.js",
+    "index.html",
+    "payment-result.js",
+    "admin-v2.0.1.js",
+    "SOURCE_RELEASE.json"
+  ],
+  "notes": [
+    "frontend-only diagnostic hotfix package",
+    "admin entrypoint renamed to admin-v2.0.1.js to prevent stale admin.js cache reuse",
+    "admin.html loads the entrypoint explicitly as an ES module",
+    "Supabase project credentials unchanged; no backend migrations or payment webhooks included"
+  ]
+}
