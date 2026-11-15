@@ -21,16 +21,36 @@ let cache = { dramas: [], episodes: [], ads: [], promos: [] };
 
 $("loginForm").addEventListener("submit", async (event) => {
   event.preventDefault();
-  setMessage("loginMsg", "正在验证账号……");
-  const { data, error } = await db.auth.signInWithPassword({
-    email: $("email").value.trim(),
-    password: $("password").value
-  });
-  if (error) {
-    setMessage("loginMsg", error.message, true);
-    return;
+  const submitButton = event.submitter || $("loginForm").querySelector('button[type="submit"], button:not([type])');
+  const originalLabel = submitButton?.textContent || "登录后台";
+  if (submitButton) {
+    submitButton.disabled = true;
+    submitButton.textContent = "正在验证…";
   }
-  await checkStaff(data.user);
+  setMessage("loginMsg", "正在验证账号……");
+  try {
+    const { data, error } = await db.auth.signInWithPassword({
+      email: $("email").value.trim(),
+      password: $("password").value
+    });
+    if (error) {
+      setMessage("loginMsg", error.message || "登录失败，请检查账号和密码。", true);
+      return;
+    }
+    if (!data?.user) {
+      setMessage("loginMsg", "登录服务未返回有效用户，请重试。", true);
+      return;
+    }
+    await checkStaff(data.user);
+  } catch (error) {
+    console.error("[CCWU Admin] Login failed", error);
+    setMessage("loginMsg", error?.message || "登录请求失败，请检查网络后重试。", true);
+  } finally {
+    if (submitButton) {
+      submitButton.disabled = false;
+      submitButton.textContent = originalLabel;
+    }
+  }
 });
 
 $("logout").addEventListener("click", async () => {
