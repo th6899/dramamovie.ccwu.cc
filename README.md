@@ -40,3 +40,11 @@ Deploy the complete package contents together to an isolated test project first.
 
 
 The v2.0.2 branch also corrects the malformed literal newline before the `createClient` import and updates the module cache-busting query so browsers request the corrected module. This remains a Preview-only candidate until Cloudflare deployment and browser login checks pass.
+
+
+### Additional v2.0.2 verification work
+
+- The admin login form now disables its submit button while authenticating and catches network/runtime failures so the user receives a visible error instead of a silent rejected promise.
+- The database exposes `public.is_staff()` for authenticated staff checks; the existing frontend RPC name is valid. Its private helper is not called directly from the browser.
+- The player now requests the existing `get-episode-playback` Edge Function. That service enforces free/member access and returns short-lived signed video and subtitle URLs, plus server-filtered promotions and ad slots.
+- Preview deployment and interactive browser checks remain pending.
