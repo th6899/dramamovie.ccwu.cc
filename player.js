@@ -145,10 +145,8 @@ function requestAd(slot) {
 }
 
 function pickAd(type) {
-  const slots = playback?.ad_slots || [];
-  return slots.find((item) => item.ad_type === type && item.episode_id === episodeId) ||
-    slots.find((item) => item.ad_type === type && !item.episode_id) ||
-    slots.find((item) => item.ad_type === type);
+  // The Edge Function already filters slots to this episode or site-wide defaults.
+  return (playback?.ad_slots || []).find((item) => item.ad_type === type) || null;
 }
 
 async function loadPlayback() {
