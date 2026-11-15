@@ -1,13 +1,211 @@
-import{createClient}from"https://esm.sh/@supabase/supabase-js@2";import{SUPABASE_URL,SUPABASE_ANON_KEY}from"./config.js";
-const db=createClient(SUPABASE_URL,SUPABASE_ANON_KEY),$=id=>document.getElementById(id),params=new URLSearchParams(location.search),dramaId=params.get("drama"),episodeId=params.get("episode");let episode=null,ads=[],ima=null,adsManager=null,midrollDone=new Set(),postrollDone=false;
-async function init(){if(!episodeId){$("playerStatus").textContent="请从影视详情中选择具体剧集。";if(dramaId){const{data}=await db.from("episodes").select("id,title,episode_number,is_free,status").eq("drama_id",dramaId).eq("status","published").order("episode_number");$("episodeList").innerHTML=(data||[]).map(e=>`<p><a class="text-link" href="player.html?episode=${e.id}">第 ${e.episode_number} 集 · ${e.title} ${e.is_free?"（免费）":"（会员）"}</a></p>`).join("")||"暂无已发布剧集"}return}
-const{data,error}=await db.from("episodes").select("*,dramas(title,status)").eq("id",episodeId).single();if(error||!data){$("playerStatus").textContent="剧集不存在或当前账户无权访问。";return}episode=data;$("episodeTitle").textContent=`${data.dramas?.title||"影视"} · ${data.title}`;$("playerStatus").textContent=data.is_free?"免费剧集":"会员专享剧集";if(!data.video_path){$("playerStatus").textContent+="；视频文件尚未配置。";return}
-const{data:{user}}=await db.auth.getUser();let member=false;if(user){const r=await db.rpc("has_active_membership");member=r.data===true}
-$("contentVideo").src=data.video_path;
-const{data:cfg}=await db.from("video_ad_configs").select("*").eq("is_active",true).or(`episode_id.eq.${episodeId},episode_id.is.null`).order("episode_id",{ascending:true});ads=cfg||[];const{data:promos}=await db.from("episode_promotions").select("*").eq("episode_id",episodeId).eq("is_active",true);$("promotions").innerHTML=(promos||[]).map(p=>`<article class="promo"><b>${p.title}</b><p>${p.description||""}</p><small>${p.disclosure_text||"此内容包含推广链接"}</small><p><a href="${p.target_url}" target="_blank" rel="sponsored noopener">${p.button_label||"立即了解"} ↗</a></p></article>`).join("");
-if(data.is_free||member){$("adStatus").textContent=member?"会员免广告":"免费内容";}else $("adStatus").textContent="会员内容：请登录并确认会员权限";if(window.google?.ima){setupAds(member)}else $("adStatus").textContent+=" · IMA SDK 加载后可播放广告"}
-function setupAds(member){const video=$("contentVideo"),container=$("adContainer");try{const display=new google.ima.AdDisplayContainer(container,video);ima=new google.ima.AdsLoader(display);ima.addEventListener(google.ima.AdsManagerLoadedEvent.Type.ADS_MANAGER_LOADED,e=>{adsManager=e.getAdsManager(video);adsManager.addEventListener(google.ima.AdErrorEvent.Type.AD_ERROR,()=>{try{adsManager.destroy()}catch{}video.play()});adsManager.addEventListener(google.ima.AdEvent.Type.ALL_ADS_COMPLETED,()=>{container.innerHTML=""});});ima.addEventListener(google.ima.AdErrorEvent.Type.AD_ERROR,()=>{container.innerHTML="";video.play()});window.__imaDisplay=display;}catch(e){console.warn(e)}}
-$("startPlayback").onclick=()=>{const video=$("contentVideo");const isMember=$("adStatus").textContent.includes("会员免广告")||episode?.is_free;if(!isMember&&window.google?.ima&&ads.length){const pick=type=>ads.find(a=>a.ad_type===type&&a.episode_id===episodeId)||ads.find(a=>a.ad_type===type&&!a.episode_id);const pre=pick("preroll");if(pre&&window.__imaDisplay){try{window.__imaDisplay.initialize();const req=new google.ima.AdsRequest();req.adTagUrl=pre.ad_tag_url;req.linearAdSlotWidth=video.clientWidth;req.linearAdSlotHeight=video.clientHeight;ima.requestAds(req);video.pause()}catch{video.play()}}else video.play()}else video.play()};
-$("contentVideo").addEventListener("timeupdate",()=>{if(!adsManager)return;for(const a of ads.filter(x=>x.ad_type==="midroll"&&x.midroll_offset_seconds&&!midrollDone.has(x.id))){if($("contentVideo").currentTime>=a.midroll_offset_seconds){midrollDone.add(a.id);/* midroll request queued for later SDK lifecycle implementation */$("adStatus").textContent="已到达中插广告时间点"}}});
-$("contentVideo").addEventListener("ended",()=>{const post=ads.find(a=>a.ad_type==="postroll");if(post&&!postrollDone){postrollDone=true;$("adStatus").textContent="正片播放结束"}})}
-init();
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js";
+
+const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const $ = (id) => document.getElementById(id);
+const params = new URLSearchParams(location.search);
+const dramaId = params.get("drama");
+const episodeId = params.get("episode");
+const video = $("contentVideo");
+let playback = null;
+let adsLoader = null;
+let adsManager = null;
+let imaDisplay = null;
+let activeAdRequest = false;
+let midrollDone = new Set();
+let postrollDone = false;
+
+const esc = (value) => String(value ?? "").replace(/[&<>"']/g, (char) => ({
+  "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+}[char]));
+
+function setStatus(message, isError = false) {
+  $("playerStatus").textContent = message;
+  $("playerStatus").classList.toggle("error-message", isError);
+}
+
+async function showEpisodeList() {
+  setStatus("请从下方选择已发布剧集。");
+  if (!dramaId) return;
+  const { data, error } = await db.from("episodes")
+    .select("id,title,episode_number,is_free,status")
+    .eq("drama_id", dramaId)
+    .eq("status", "published")
+    .order("episode_number");
+  if (error) {
+    $("episodeList").textContent = "暂时无法读取剧集列表。";
+    return;
+  }
+  $("episodeList").innerHTML = (data || []).map((item) =>
+    '<p><a class="text-link" href="player.html?episode=' + encodeURIComponent(item.id) +
+    '">第 ' + esc(item.episode_number) + " 集 · " + esc(item.title) +
+    (item.is_free ? "（免费）" : "（会员）") + "</a></p>"
+  ).join("") || "暂无已发布剧集";
+}
+
+function renderSubtitles(rows) {
+  video.querySelectorAll("track[data-ccwu]").forEach((node) => node.remove());
+  (rows || []).forEach((item, index) => {
+    if (!item.url || !item.language_code) return;
+    const track = document.createElement("track");
+    track.dataset.ccwu = "true";
+    track.kind = "subtitles";
+    track.src = item.url;
+    track.srclang = item.language_code;
+    track.label = item.label || item.language_code;
+    if (index === 0) track.default = true;
+    video.appendChild(track);
+  });
+}
+
+function renderPromotions(rows) {
+  const root = $("promotions");
+  root.replaceChildren();
+  (rows || []).forEach((item) => {
+    if (!item.target_url) return;
+    const article = document.createElement("article");
+    article.className = "promo";
+    const title = document.createElement("b");
+    title.textContent = item.title || "合作推荐";
+    const description = document.createElement("p");
+    description.textContent = item.description || "";
+    const disclosure = document.createElement("small");
+    disclosure.textContent = item.disclosure_text || "此内容包含推广链接";
+    const link = document.createElement("a");
+    link.href = item.tracking_url || item.target_url;
+    link.target = "_blank";
+    link.rel = "sponsored noopener noreferrer";
+    link.textContent = item.button_label || "立即了解";
+    article.append(title, description, disclosure, document.createElement("br"), link);
+    root.appendChild(article);
+  });
+}
+
+function resumeContent() {
+  activeAdRequest = false;
+  if (adsManager) {
+    try { adsManager.destroy(); } catch {}
+    adsManager = null;
+  }
+  $("adContainer").replaceChildren();
+  video.play().catch(() => {});
+}
+
+function setupIma() {
+  if (!window.google?.ima) return false;
+  if (adsLoader) return true;
+  try {
+    imaDisplay = new google.ima.AdDisplayContainer($("adContainer"), video);
+    adsLoader = new google.ima.AdsLoader(imaDisplay);
+    adsLoader.addEventListener(
+      google.ima.AdsManagerLoadedEvent.Type.ADS_MANAGER_LOADED,
+      (event) => {
+        try {
+          adsManager = event.getAdsManager(video);
+          adsManager.addEventListener(google.ima.AdErrorEvent.Type.AD_ERROR, resumeContent);
+          adsManager.addEventListener(google.ima.AdEvent.Type.ALL_ADS_COMPLETED, resumeContent);
+          adsManager.addEventListener(google.ima.AdEvent.Type.CONTENT_RESUME_REQUESTED, resumeContent);
+          adsManager.init(video.clientWidth || 640, video.clientHeight || 360, google.ima.ViewMode.NORMAL);
+          adsManager.start();
+        } catch {
+          resumeContent();
+        }
+      }
+    );
+    adsLoader.addEventListener(google.ima.AdErrorEvent.Type.AD_ERROR, resumeContent);
+    return true;
+  } catch (error) {
+    console.warn("[CCWU Player] IMA initialization failed", error);
+    return false;
+  }
+}
+
+function requestAd(slot) {
+  if (!slot?.ad_tag_url || !setupIma()) {
+    $("adStatus").textContent = "广告暂不可用，继续播放正片。";
+    video.play().catch(() => {});
+    return;
+  }
+  if (activeAdRequest) return;
+  activeAdRequest = true;
+  video.pause();
+  $("adStatus").textContent = "正在加载广告…";
+  try {
+    imaDisplay.initialize();
+    const request = new google.ima.AdsRequest();
+    request.adTagUrl = slot.ad_tag_url;
+    request.linearAdSlotWidth = video.clientWidth || 640;
+    request.linearAdSlotHeight = video.clientHeight || 360;
+    request.nonLinearAdSlotWidth = video.clientWidth || 640;
+    request.nonLinearAdSlotHeight = Math.max(90, Math.round((video.clientHeight || 360) / 3));
+    adsLoader.requestAds(request);
+  } catch {
+    resumeContent();
+  }
+}
+
+function pickAd(type) {
+  const slots = playback?.ad_slots || [];
+  return slots.find((item) => item.ad_type === type && item.episode_id === episodeId) ||
+    slots.find((item) => item.ad_type === type && !item.episode_id) ||
+    slots.find((item) => item.ad_type === type);
+}
+
+async function loadPlayback() {
+  if (!episodeId) return showEpisodeList();
+  setStatus("正在验证观看权限并获取安全播放链接…");
+  const { data, error } = await db.functions.invoke("get-episode-playback", {
+    body: { episode_id: episodeId }
+  });
+  if (error || !data?.ok) {
+    const status = error?.context?.status;
+    if (status === 401 || status === 403 || data?.error === "MEMBERSHIP_REQUIRED") {
+      setStatus("此剧集需要有效会员。请登录购买账户并确认会员状态后重试。", true);
+    } else if (data?.error === "MEDIA_NOT_CONFIGURED") {
+      setStatus("剧集已发布，但尚未配置视频文件。", true);
+    } else {
+      setStatus("暂时无法取得播放权限或视频链接，请稍后重试。", true);
+    }
+    return;
+  }
+  playback = data;
+  $("episodeTitle").textContent = (data.drama?.title || "影视") + " · " +
+    (data.episode?.title || "剧集");
+  setStatus(data.access === "free" ? "免费剧集" : "会员专享剧集");
+  $("adStatus").textContent = data.ad_slots?.length ? "广告配置已读取" : "当前无可用广告";
+  video.src = data.video_url;
+  renderSubtitles(data.subtitles);
+  renderPromotions(data.promotions);
+  video.load();
+}
+
+$("startPlayback").addEventListener("click", () => {
+  if (!playback) return;
+  const pre = pickAd("preroll");
+  if (pre) requestAd(pre);
+  else video.play().catch(() => setStatus("请点击播放器播放按钮。"));
+});
+
+video.addEventListener("timeupdate", () => {
+  if (!playback || activeAdRequest) return;
+  const slot = pickAd("midroll");
+  if (!slot || !Number.isFinite(Number(slot.midroll_offset_seconds))) return;
+  if (video.currentTime >= Number(slot.midroll_offset_seconds) && !midrollDone.has(slot.id)) {
+    midrollDone.add(slot.id);
+    requestAd(slot);
+  }
+});
+
+video.addEventListener("ended", () => {
+  if (postrollDone) return;
+  const slot = pickAd("postroll");
+  if (slot) {
+    postrollDone = true;
+    requestAd(slot);
+  }
+});
+
+loadPlayback().catch((error) => {
+  console.error("[CCWU Player] Playback initialization failed", error);
+  setStatus("播放器初始化失败，请刷新页面后重试。", true);
+});
