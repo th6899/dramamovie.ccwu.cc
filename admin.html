@@ -16,6 +16,12 @@
   </div>
   <div class="notice"><strong>安全规则</strong><ul><li>商户密钥只保存在 Supabase Edge Function Secrets，不写入网页、Git 或数据库明文字段。</li><li>浏览器只能发起结账请求，不能自行把订单改成 paid。</li><li>回调必须验签、核对金额/币种/商户订单号，并使用幂等键防止重复入账。</li><li>USDT 必须核对指定网络、代币合约、收款地址、确认数和交易哈希；不能仅凭用户截图认定到账。</li><li>Stripe 测试流程已编写：创建 Checkout Session、验签 Webhook、幂等处理并在确认付款后开通会员/VPN；必须先应用数据库脚本并部署函数才能测试。不能只依赖浏览器返回成功页。</li><li>PayPal 使用 Orders v2 服务端创建订单与捕获付款；必须验证订单金额、币种、商户订单号，并验签 Webhook（如 PAYMENT.CAPTURE.COMPLETED）后才能开通权益。PayPal Client Secret 只能存放在 Supabase Edge Function Secrets，不能放进前端或普通设置表。</li><li>OKX Pay 与 Binance Pay 是商户支付产品；普通交易所 API 不等于商户收款接口。</li><li>PayPal Sandbox 与 Live 使用不同的 REST App 凭据；先完成 Sandbox 测试，再切换 Live。仅填写 PayPal 收款邮箱不代表 API 通道已接通。</li></ul></div>
   <p class="form-message" id="paymentReadinessMsg">v1.7 规划新增 PayPal 国际收款通道。当前此处为接入准备状态，PayPal 后端适配器、Sandbox/Live 凭据和 Webhook 验签尚未部署；在完成端到端测试前保持关闭。支付宝/微信二维码仍需管理员上传真实收款码。</p>
+  <h3>自动二维码收款通道（CNY）</h3>
+  <p class="muted">自动通道与下方人工收款码分开管理。支付宝可先使用沙箱测试；微信支付 API v3 没有独立的零资金沙箱，因此测试项目禁止启用微信 Native 自动扣款。商户密钥只配置在 Supabase Edge Function Secrets。</p>
+  <button class="btn btn-outline" id="refreshNativePaymentMethods" type="button">刷新自动通道状态</button>
+  <p class="form-message" id="nativePaymentStatus" role="status" aria-live="polite">正在读取通道与密钥配置状态…</p>
+  <div class="table-wrap"><table><thead><tr><th>通道</th><th>币种</th><th>环境</th><th>凭据就绪</th><th>状态</th><th>操作</th></tr></thead><tbody id="nativePaymentRows"><tr><td colspan="6">等待加载</td></tr></tbody></table></div>
+  <div class="notice"><strong>启用规则</strong><ul><li>支付宝测试通道必须先配置沙箱 APP ID、商户私钥、支付宝公钥和沙箱网关，才允许启用。</li><li>微信 Native API v3 在此测试项目中保持关闭；正式收款必须另行配置商户证书、API v3 密钥和平台公钥，并显式打开 Live gate。</li><li>任何通道启用后仍需真实的回调验签、金额核对和幂等入账；不能仅凭前端返回结果开通权益。</li></ul></div>
   <h3>PayPal 国际收款接入准备</h3>
   <p class="muted">PayPal 已加入通道清单，但当前尚未启用。正式接入采用 PayPal Checkout Orders v2：服务端创建订单、用户在 PayPal 完成授权、服务端捕获付款，并通过 Webhook 核实最终到账状态。</p>
   <div class="notice"><strong>待配置项目</strong><ul><li>PayPal Business 收款账户及账户邮箱</li><li>PayPal Developer Dashboard 创建 Sandbox REST App，取得 Client ID / Secret</li><li>部署 PayPal 创建订单、捕获订单及 Webhook Edge Functions</li><li>配置 Webhook ID，并验证 PAYMENT.CAPTURE.COMPLETED 等事件</li><li>完成 Sandbox 付款、金额/币种核对和重复通知测试后，再配置 Live 凭据</li></ul><p>Client Secret 不会提供网页输入框，也不会写入数据库；必须通过 Supabase Edge Function Secrets 安全配置。</p></div>
