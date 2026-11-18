@@ -94,13 +94,22 @@ async function sha256Hex(value: string): Promise<string> {
 }
 function serviceClient() {
   const url = Deno.env.get("SUPABASE_URL");
-  const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  const secretKeys = Deno.env.get("SUPABASE_SECRET_KEYS");
+  let key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+  if (secretKeys) {
+    try {
+      const parsed = JSON.parse(secretKeys);
+      key = parsed.service_role || parsed.serviceRole || key;
+    } catch {
+      // Keep the standard service-role environment variable as the fallback.
+    }
+  }
   if (!url || !key) throw new Error("supabase_service_configuration_missing");
   return createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
 }
 function userClient(authorization: string) {
   const url = Deno.env.get("SUPABASE_URL");
-  const key = Deno.env.get("SUPABASE_ANON_KEY");
+  const key = Deno.env.get("SUPABASE_ANON_KEY") || Deno.env.get("SUPABASE_PUBLISHABLE_KEY");
   if (!url || !key) throw new Error("supabase_public_configuration_missing");
   return createClient(url, key, {
     auth: { persistSession: false, autoRefreshToken: false },
@@ -403,6 +412,9 @@ async function handleWeChatNotify(req: Request) {
   }
   let notice: Record<string, unknown>;
   try { notice = JSON.parse(raw); } catch { return json(400, { code: "FAIL", message: "invalid_json" }); }
+  if (notice.event_type !== "TRANSACTION.SUCCESS") {
+    return json(200, { code: "SUCCESS", message: "ignored_event_type" });
+  }
   const resource = notice.resource as Record<string, unknown> | undefined;
   if (!resource) return json(400, { code: "FAIL", message: "missing_resource" });
   let transaction: Record<string, unknown>;
