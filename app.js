@@ -44,11 +44,61 @@ function updateUserUI(user){$("userLabel").textContent=user?user.email:"访客";
 async function refreshUser(){const {data:{user},error}=await db.auth.getUser();if(error)throw error;updateUserUI(user);}
 let activeManualOrder = null;
 let manualPaymentSettings = null;
+let nativePaymentMethods = [];
 let pendingCheckout = null;
+let activeNativeOrder = null;
+let nativePaymentPoll = null;
+let nativePollingInFlight = false;
 const manualModal = $("manualPayModal");
 const checkoutModal = $("checkoutModal");
+const nativeModal = $("nativePayModal");
 $("closeManualPay").addEventListener("click",()=>manualModal.classList.add("hidden"));
 $("closeCheckout").addEventListener("click",()=>checkoutModal.classList.add("hidden"));
+function stopNativePaymentPolling(){if(nativePaymentPoll){clearInterval(nativePaymentPoll);nativePaymentPoll=null;}nativePollingInFlight=false;}
+$("closeNativePay").addEventListener("click",()=>{stopNativePaymentPolling();activeNativeOrder=null;nativeModal.classList.add("hidden");});
+async function pollNativePayment(){
+ if(!activeNativeOrder||nativePollingInFlight)return;
+ nativePollingInFlight=true;
+ try{
+  const {data,error}=await db.rpc("get_my_cn_payment_order",{p_order_no:activeNativeOrder.order_no});
+  if(error||!data)return;
+  const status=String(data.status||"pending").toLowerCase();
+  const expired=data.payment_expires_at&&Date.now()>=new Date(data.payment_expires_at).getTime();
+  if(status==="paid"){
+   stopNativePaymentPolling();
+   $("nativePayStatus").textContent="支付已确认，服务权益正在刷新…";
+   await refreshUser();await render();
+   $("nativePayStatus").textContent="支付成功！您的订单已确认。";
+  }else if(["failed","cancelled","canceled","expired"].includes(status)||expired){
+   stopNativePaymentPolling();
+   $("nativePayStatus").textContent="订单已失效，请关闭窗口后重新创建订单。";
+  }else{
+   $("nativePayStatus").textContent="等待支付确认…请勿重复付款。";
+  }
+ }catch(error){console.warn("[CCWU Portal] payment status poll failed",error);}
+ finally{nativePollingInFlight=false;}
+}
+async function startNativePayment(methodButton){
+ const method=methodButton.dataset.paymentMethod;
+ const provider=method==="alipay"?"alipay":"wechat_pay";
+ const {data,error}=await db.functions.invoke("cn-payment",{body:{
+  provider,item_type:pendingCheckout.itemType,item_id:pendingCheckout.itemId,request_key:crypto.randomUUID()
+ }});
+ if(error)throw new Error("自动扫码支付暂不可用，请检查测试商户配置后重试。");
+ if(!data||!data.ok||!data.qr_code)throw new Error(data?.error||"支付通道未返回有效二维码。");
+ activeNativeOrder={order_no:data.order_no,provider};
+ $("nativePayTitle").textContent=provider==="alipay"?"支付宝扫码支付":"微信支付";
+ $("nativePayDetails").textContent="订单 "+data.order_no+"｜应付 "+formatPrice(data.amount,data.currency);
+ $("nativePayQr").innerHTML="";
+ if(window.QRCode){
+  new window.QRCode($("nativePayQr"),{text:data.qr_code,width:240,height:240,correctLevel:window.QRCode.CorrectLevel.M});
+ }else{
+  const link=document.createElement("a");link.href=data.qr_code;link.textContent="打开支付二维码链接";link.target="_blank";link.rel="noopener noreferrer";$("nativePayQr").append(link);
+ }
+ $("nativePayStatus").textContent="请使用对应支付 App 扫码，系统将自动确认到账。";
+ checkoutModal.classList.add("hidden");nativeModal.classList.remove("hidden");
+ stopNativePaymentPolling();nativePaymentPoll=setInterval(()=>{void pollNativePayment();},3000);await pollNativePayment();
+}
 $("manualPayMethod").addEventListener("change",renderManualQr);
 function renderManualQr(){
  const method=$("manualPayMethod").value; const enabled=method==="alipay"?manualPaymentSettings?.alipay_enabled:manualPaymentSettings?.wechat_enabled;
@@ -66,12 +116,21 @@ async function openCheckout(itemType,itemId,button){
  const {data:plan,error:planError}=await db.from(table).select(fields).eq("id",itemId).eq("is_active",true).single();if(planError)throw planError;
  const {data:settings,error:settingsError}=await db.from("manual_payment_settings").select("alipay_qr_path,wechat_qr_path,alipay_enabled,wechat_enabled,instructions").eq("id",true).single();
  manualPaymentSettings=settingsError?{alipay_qr_path:null,wechat_qr_path:null,alipay_enabled:false,wechat_enabled:false,instructions:""}:settings;
+ const {data:methods,error:methodsError}=await db.from("payment_methods").select("provider,asset,environment,is_enabled").eq("asset","CNY").eq("is_enabled",true);
+ nativePaymentMethods=methodsError?[]:(methods||[]);
  pendingCheckout={itemType,itemId,plan};
- $("checkoutSummary").textContent=`${plan.name}｜${plan.duration_days} 天｜应付 ${formatPrice(plan.price_amount,plan.currency)}`;
- $("alipayState").textContent=manualPaymentSettings.alipay_enabled&&manualPaymentSettings.alipay_qr_path?"二维码已配置，可选择":"待上传二维码";
- $("wechatState").textContent=manualPaymentSettings.wechat_enabled&&manualPaymentSettings.wechat_qr_path?"二维码已配置，可选择":"待上传二维码";
+ $("checkoutSummary").textContent=plan.name+"｜"+plan.duration_days+" 天｜应付 "+formatPrice(plan.price_amount,plan.currency);
  const isCny=String(plan.currency).toUpperCase()==="CNY";
- document.querySelectorAll('[data-payment-method="alipay"],[data-payment-method="wechat"]').forEach(b=>{const m=b.dataset.paymentMethod;const configured=m==="alipay"?manualPaymentSettings.alipay_enabled&&manualPaymentSettings.alipay_qr_path:manualPaymentSettings.wechat_enabled&&manualPaymentSettings.wechat_qr_path;b.disabled=!(isCny&&configured);});
+ document.querySelectorAll('[data-payment-method="alipay"],[data-payment-method="wechat"]').forEach(b=>{
+  const m=b.dataset.paymentMethod,provider=m==="alipay"?"alipay":"wechat_pay";
+  const native=nativePaymentMethods.find(x=>x.provider===provider&&x.asset==="CNY"&&x.is_enabled);
+  const nativeAllowed=!!native&&!(provider==="wechat_pay"&&native.environment==="test");
+  const manual=m==="alipay"?!!(manualPaymentSettings.alipay_enabled&&manualPaymentSettings.alipay_qr_path):!!(manualPaymentSettings.wechat_enabled&&manualPaymentSettings.wechat_qr_path);
+  b.dataset.paymentMode=nativeAllowed?"native":manual?"manual":"disabled";
+  b.disabled=!(isCny&&(nativeAllowed||manual));
+  const state=m==="alipay"?$("alipayState"):$("wechatState");
+  state.textContent=nativeAllowed?(native.environment==="test"?"自动扫码（沙箱）":"自动扫码支付"):manual?"人工扫码，提交付款凭证":(provider==="wechat_pay"&&native?.environment==="test"?"API v3 无独立沙箱，暂不开放":"待商户配置");
+ });
  const stripeButton=$("stripeCheckoutButton");
  if(stripeButton){stripeButton.disabled=String(plan.currency).toUpperCase()!=="USD";$("stripeState").textContent=String(plan.currency).toUpperCase()==="USD"?"可使用 Stripe 测试结账":"此套餐为人民币计价；Stripe 仅支持美元套餐";}
  $("checkoutMessage").textContent="";checkoutModal.classList.remove("hidden");
@@ -94,6 +153,7 @@ document.addEventListener("click",async e=>{
   }
   methodButton.setAttribute("aria-busy","true");$("checkoutMessage").textContent="正在创建订单…";
   try{
+   if(methodButton.dataset.paymentMode==="native"){await startNativePayment(methodButton);return;}
    const {data:order,error}=await db.rpc("create_manual_payment_order",{p_item_type:pendingCheckout.itemType,p_item_id:pendingCheckout.itemId});if(error)throw error;activeManualOrder=order;
    const method=methodButton.dataset.paymentMethod;$("manualPayMethod").innerHTML=`<option value="${method}">${method==="alipay"?"支付宝":"微信支付"}</option>`;
    $("manualPayDetails").textContent=`订单 ${order.order_no}｜${order.title}｜应付 ${formatPrice(order.amount,order.currency)}`;$("manualPayInstructions").textContent=manualPaymentSettings.instructions||"请扫码付款，并提交付款单号。";
