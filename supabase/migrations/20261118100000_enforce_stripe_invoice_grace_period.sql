@@ -15,6 +15,21 @@ begin
     return new;
   end if;
 
+  -- An invoice event must never reactivate an already canceled or expired
+  -- provider subscription. Stripe may deliver invoice events after deletion.
+  if not exists (
+    select 1
+      from private.provider_subscriptions p
+     where p.provider = 'stripe'
+       and p.provider_subscription_id = new.provider_subscription_id
+       and p.user_id = new.user_id
+       and p.item_type = new.item_type
+       and p.entitlement_id = new.entitlement_id
+       and p.status not in ('canceled', 'expired')
+  ) then
+    return new;
+  end if;
+
   if new.status = 'payment_failed' and new.grace_until is not null then
     if new.item_type = 'membership' then
       update public.membership_subscriptions
