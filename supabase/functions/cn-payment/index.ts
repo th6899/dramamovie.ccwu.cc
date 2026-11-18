@@ -125,12 +125,19 @@ function validUuid(v: unknown): v is string {
   return typeof v === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(v);
 }
 function alipayTimestamp(): string {
-  const d = new Date();
+  const d = new Date(Date.now() + 8 * 60 * 60 * 1000);
   return d.getUTCFullYear() + "-" + String(d.getUTCMonth() + 1).padStart(2, "0") + "-" +
     String(d.getUTCDate()).padStart(2, "0") + " " + String(d.getUTCHours()).padStart(2, "0") + ":" +
     String(d.getUTCMinutes()).padStart(2, "0") + ":" + String(d.getUTCSeconds()).padStart(2, "0");
 }
-function alipaySignContent(params: Record<string, string>): string {
+function alipayRequestSignContent(params: Record<string, string>): string {
+  return Object.entries(params)
+    .filter(([k, v]) => k !== "sign" && v !== "")
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([k, v]) => k + "=" + v)
+    .join("&");
+}
+function alipayNotifySignContent(params: Record<string, string>): string {
   return Object.entries(params)
     .filter(([k, v]) => k !== "sign" && k !== "sign_type" && v !== "")
     .sort(([a], [b]) => a.localeCompare(b))
@@ -185,7 +192,7 @@ async function createAlipayQr(order: Record<string, unknown>, expiry: string): P
     notify_url: notifyUrl("alipay"),
     biz_content: JSON.stringify(biz),
   };
-  params.sign = await rsaSign(privateKey, alipaySignContent(params));
+  params.sign = await rsaSign(privateKey, alipayRequestSignContent(params));
   const response = await fetch(gateway, {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded; charset=utf-8", "Accept": "application/json" },
@@ -200,7 +207,7 @@ async function createAlipayQr(order: Record<string, unknown>, expiry: string): P
     throw new Error("alipay_precreate_rejected_" + String(result?.sub_code || result?.code || "unknown"));
   }
   if (typeof parsed.sign === "string") {
-    const signed = "alipay_trade_precreate_response=" + JSON.stringify(result);
+    const signed = JSON.stringify(result);
     if (!await rsaVerify(publicKey, signed, parsed.sign)) throw new Error("alipay_response_signature_invalid");
   } else {
     throw new Error("alipay_response_signature_missing");
@@ -360,7 +367,7 @@ async function handleAlipayNotify(req: Request) {
   if (params.get("sign_type") !== "RSA2" || !sign) return plain(400, "failure");
   const values: Record<string, string> = {};
   for (const [k, v] of params.entries()) values[k] = v;
-  if (!await rsaVerify(publicKey, alipaySignContent(values), sign)) return plain(400, "failure");
+  if (!await rsaVerify(publicKey, alipayNotifySignContent(values), sign)) return plain(400, "failure");
   if (params.get("app_id") !== appId) return plain(400, "failure");
   const seller = Deno.env.get("ALIPAY_SELLER_ID");
   if (seller && params.get("seller_id") !== seller) return plain(400, "failure");
