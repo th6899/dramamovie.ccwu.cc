@@ -106,3 +106,13 @@ It preserves the existing test-specific fields and adds portal-compatible fields
 Post-migration checks confirmed the expected new columns and constraints are present. The existing drama row now has a non-null title. The test membership-plans table was empty at migration time, so no plan rows or Stripe price IDs were created. `episodes.video_path` and `subtitle_tracks.storage_path` were deliberately left NULL because a provider asset ID or arbitrary file URL cannot safely be assumed to be a Supabase Storage path.
 
 This is only a compatibility layer; missing public/private tables, RPCs, triggers, grants, Edge Functions and storage dependencies still need to be reconstructed.
+
+
+## Test SECURITY DEFINER RPC exposure hardening
+
+The test-project security advisor initially reported that the two auth-trigger functions and `is_ccwu_admin()` were executable by anon and authenticated users. A test-only migration, `restrict_test_security_definer_rpcs`, was applied and committed as `supabase/migrations/20261118160000_restrict_test_security_definer_rpcs.sql`.
+
+- Revoked RPC execution on `handle_new_user()` and `handle_new_ccwu_profile()` from PUBLIC, anon, authenticated and service_role. They remain trigger-only.
+- Restricted `is_ccwu_admin()` to authenticated/service_role. Authenticated execution is still needed by the admin-only RLS policies and the `is_staff()` compatibility RPC.
+- Removed calls to the admin helper from anon-facing published-content read policies. Authenticated admins retain full access through the separate admin-management policies.
+- Re-ran the Supabase security advisor: the anon-executable SECURITY DEFINER findings are gone. One warning remains for authenticated execution of `is_ccwu_admin()`, which is intentional for admin RLS evaluation. Leaked-password protection remains disabled and requires an Auth dashboard setting change.
