@@ -1,0 +1,1 @@
+alter table public.membership_subscriptions drop constraint if exists membership_subscriptions_check;
