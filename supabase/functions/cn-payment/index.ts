@@ -1,4 +1,9 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.0";
+import QRCode from "npm:qrcode@1.5.4";
+
+async function makeQrSvg(value: string): Promise<string> {
+  return await QRCode.toString(value, { type: "svg", width: 240, margin: 2 });
+}
 
 const encoder = new TextEncoder();
 const corsHeaders = {
@@ -306,6 +311,7 @@ async function handleCreate(req: Request) {
       return json(200, {
         ok: true, duplicate: true, provider, order_no: existing.order_no, amount: existing.amount,
         currency: existing.currency, status: existing.status, qr_code: existing.provider_qr_code,
+        qr_svg: await makeQrSvg(existing.provider_qr_code),
         expires_at: existing.payment_expires_at,
       });
     }
@@ -341,7 +347,7 @@ async function handleCreate(req: Request) {
   return json(200, {
     ok: true, duplicate: false, provider, order_id: order.order_id, order_no: order.order_no,
     amount: order.amount, currency: order.currency, title: order.title, status: "pending",
-    qr_code: session.qr, expires_at: orderRow.payment_expires_at,
+    qr_code: session.qr, qr_svg: await makeQrSvg(session.qr), expires_at: orderRow.payment_expires_at,
   });
 }
 async function handleAlipayNotify(req: Request) {
