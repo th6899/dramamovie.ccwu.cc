@@ -64,13 +64,13 @@ async function openCheckout(itemType,itemId,button){
  const fields=itemType==="membership"?"id,name,price_amount,currency,duration_days":"id,name,price_amount,currency,duration_days,device_limit";
  const {data:plan,error:planError}=await db.from(table).select(fields).eq("id",itemId).eq("is_active",true).single();if(planError)throw planError;
  const {data:settings,error:settingsError}=await db.from("manual_payment_settings").select("alipay_qr_path,wechat_qr_path,alipay_enabled,wechat_enabled,instructions").eq("id",true).single();
- if(settingsError)throw new Error("支付配置暂不可读取，请管理员检查数据库迁移和权限。");
- manualPaymentSettings=settings;pendingCheckout={itemType,itemId,plan};
+ manualPaymentSettings=settingsError?{alipay_qr_path:null,wechat_qr_path:null,alipay_enabled:false,wechat_enabled:false,instructions:""}:settings;
+ pendingCheckout={itemType,itemId,plan};
  $("checkoutSummary").textContent=`${plan.name}｜${plan.duration_days} 天｜应付 ${formatPrice(plan.price_amount,plan.currency)}`;
- $("alipayState").textContent=settings.alipay_enabled&&settings.alipay_qr_path?"二维码已配置，可选择":"待上传二维码";
- $("wechatState").textContent=settings.wechat_enabled&&settings.wechat_qr_path?"二维码已配置，可选择":"待上传二维码";
+ $("alipayState").textContent=manualPaymentSettings.alipay_enabled&&manualPaymentSettings.alipay_qr_path?"二维码已配置，可选择":"待上传二维码";
+ $("wechatState").textContent=manualPaymentSettings.wechat_enabled&&manualPaymentSettings.wechat_qr_path?"二维码已配置，可选择":"待上传二维码";
  const isCny=String(plan.currency).toUpperCase()==="CNY";
- document.querySelectorAll('[data-payment-method="alipay"],[data-payment-method="wechat"]').forEach(b=>{const m=b.dataset.paymentMethod;const configured=m==="alipay"?settings.alipay_enabled&&settings.alipay_qr_path:settings.wechat_enabled&&settings.wechat_qr_path;b.disabled=!(isCny&&configured);});
+ document.querySelectorAll('[data-payment-method="alipay"],[data-payment-method="wechat"]').forEach(b=>{const m=b.dataset.paymentMethod;const configured=m==="alipay"?manualPaymentSettings.alipay_enabled&&manualPaymentSettings.alipay_qr_path:manualPaymentSettings.wechat_enabled&&manualPaymentSettings.wechat_qr_path;b.disabled=!(isCny&&configured);});
  const stripeButton=$("stripeCheckoutButton");
  if(stripeButton){stripeButton.disabled=String(plan.currency).toUpperCase()!=="USD";$("stripeState").textContent=String(plan.currency).toUpperCase()==="USD"?"可使用 Stripe 测试结账":"此套餐为人民币计价；Stripe 仅支持美元套餐";}
  $("checkoutMessage").textContent="";checkoutModal.classList.remove("hidden");
