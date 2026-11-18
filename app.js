@@ -49,13 +49,14 @@ let pendingCheckout = null;
 let activeNativeOrder = null;
 let nativePaymentPoll = null;
 let nativePollingInFlight = false;
+let nativeQrObjectUrl = null;
 const manualModal = $("manualPayModal");
 const checkoutModal = $("checkoutModal");
 const nativeModal = $("nativePayModal");
 $("closeManualPay").addEventListener("click",()=>manualModal.classList.add("hidden"));
 $("closeCheckout").addEventListener("click",()=>checkoutModal.classList.add("hidden"));
 function stopNativePaymentPolling(){if(nativePaymentPoll){clearInterval(nativePaymentPoll);nativePaymentPoll=null;}nativePollingInFlight=false;}
-$("closeNativePay").addEventListener("click",()=>{stopNativePaymentPolling();activeNativeOrder=null;nativeModal.classList.add("hidden");});
+$("closeNativePay").addEventListener("click",()=>{stopNativePaymentPolling();activeNativeOrder=null;if(nativeQrObjectUrl){URL.revokeObjectURL(nativeQrObjectUrl);nativeQrObjectUrl=null;}nativeModal.classList.add("hidden");});
 async function pollNativePayment(){
  if(!activeNativeOrder||nativePollingInFlight)return;
  nativePollingInFlight=true;
@@ -90,8 +91,10 @@ async function startNativePayment(methodButton){
  $("nativePayTitle").textContent=provider==="alipay"?"支付宝扫码支付":"微信支付";
  $("nativePayDetails").textContent="订单 "+data.order_no+"｜应付 "+formatPrice(data.amount,data.currency);
  $("nativePayQr").innerHTML="";
- if(window.QRCode){
-  new window.QRCode($("nativePayQr"),{text:data.qr_code,width:240,height:240,correctLevel:window.QRCode.CorrectLevel.M});
+ if(nativeQrObjectUrl){URL.revokeObjectURL(nativeQrObjectUrl);nativeQrObjectUrl=null;}
+ if(typeof data.qr_svg==="string"){
+  nativeQrObjectUrl=URL.createObjectURL(new Blob([data.qr_svg],{type:"image/svg+xml"}));
+  const image=document.createElement("img");image.src=nativeQrObjectUrl;image.alt="支付二维码";image.style.width="240px";image.style.maxWidth="80%";image.style.height="auto";$("nativePayQr").append(image);
  }else{
   const link=document.createElement("a");link.href=data.qr_code;link.textContent="打开支付二维码链接";link.target="_blank";link.rel="noopener noreferrer";$("nativePayQr").append(link);
  }
