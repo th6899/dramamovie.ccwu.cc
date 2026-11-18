@@ -63,3 +63,15 @@ These are semantic differences, not just missing columns. A blind `CREATE TABLE 
 ## Current blocker
 
 The repository has no authoritative full-history Supabase migration baseline. The production catalog is therefore the current reference for schema extraction, but it must be converted into reviewed, deterministic migrations before any test schema changes are applied.
+
+
+## Existing test-project RLS baseline
+
+All nine existing public test tables currently have RLS enabled. The catalog lists 17 policies:
+- `dramas`, `episodes`, `homepage_sections`, `membership_plans`, and `subtitle_tracks` each have admin-management and public-read policies.
+- `profiles` has own-row insert/update/read policies plus an admin-read policy.
+- `email_service_orders` has an owner-only SELECT policy.
+- `email_service_products` has a public SELECT policy restricted to active products.
+- `site_settings` has an admin-management policy.
+
+This is a useful baseline but not yet a security sign-off. The referenced `is_ccwu_admin()` function, grants, and policy dependencies still need review. The test policies must be preserved and reconciled rather than blindly overwritten by production policy definitions.
