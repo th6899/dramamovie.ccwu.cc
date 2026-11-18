@@ -123,3 +123,17 @@ The test-project security advisor initially reported that the two auth-trigger f
 The four test-only migrations were applied through Supabase's migration tool. Their committed filenames have been aligned to the exact versions recorded in the CCWU-Drama migration history (`20261118093537`, `20261118093725`, `20261118093813`, `20261118093900`). This avoids duplicate re-application of those four changes by the CLI.
 
 Do not run a blanket `supabase db push` from this branch yet: the older Stripe RPC, grace-period and provider-ledger RLS migrations are intentionally staged source-only and depend on the full production schema baseline, which is not present in CCWU-Drama. They must not be applied ahead of that baseline.
+
+
+## Production SECURITY DEFINER review
+
+The production security advisor reports 22 public SECURITY DEFINER RPCs executable by `authenticated`. A catalog/source review of all 22 definitions found:
+- All 13 `admin_*` functions and the manual-payment approval/admin billing functions contain explicit authenticated admin-role checks (via `private.user_roles` or `public.current_staff_role()`).
+- Customer-facing order creation functions require `auth.uid()` and derive the order owner from that identity rather than accepting a caller-supplied owner.
+- Customer billing/order lookup functions scope records to the current user's identity.
+- Refund submission locks and verifies an order belonging to `auth.uid()`, then derives the payment transaction from that order.
+- The inspected definitions use an empty search_path.
+
+This static review did not find a missing top-level authentication/authorization check among the 22 functions. It does not replace role-based integration tests, and the advisor warning remains because the functions are intentionally callable through RPC by authenticated users. No production permissions or function definitions were changed.
+
+The test project's remaining authenticated `is_ccwu_admin()` advisor warning is also intentional for its authenticated admin policies; anon execution has been revoked. Leaked-password protection is an Auth dashboard setting and remains disabled pending configuration.
