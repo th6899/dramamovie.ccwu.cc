@@ -116,3 +116,10 @@ The test-project security advisor initially reported that the two auth-trigger f
 - Restricted `is_ccwu_admin()` to authenticated/service_role. Authenticated execution is still needed by the admin-only RLS policies and the `is_staff()` compatibility RPC.
 - Removed calls to the admin helper from anon-facing published-content read policies. Authenticated admins retain full access through the separate admin-management policies.
 - Re-ran the Supabase security advisor: the anon-executable SECURITY DEFINER findings are gone. One warning remains for authenticated execution of `is_ccwu_admin()`, which is intentional for admin RLS evaluation. Leaked-password protection remains disabled and requires an Auth dashboard setting change.
+
+
+## Migration-history alignment
+
+The four test-only migrations were applied through Supabase's migration tool. Their committed filenames have been aligned to the exact versions recorded in the CCWU-Drama migration history (`20261118093537`, `20261118093725`, `20261118093813`, `20261118093900`). This avoids duplicate re-application of those four changes by the CLI.
+
+Do not run a blanket `supabase db push` from this branch yet: the older Stripe RPC, grace-period and provider-ledger RLS migrations are intentionally staged source-only and depend on the full production schema baseline, which is not present in CCWU-Drama. They must not be applied ahead of that baseline.
