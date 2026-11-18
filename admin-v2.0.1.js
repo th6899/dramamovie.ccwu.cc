@@ -334,6 +334,7 @@ loadAll = async function () {
   await loadOperations();
   await loadPlans();
   await loadManualPaymentSettings();
+  await loadNativePaymentMethods();
   await loadManualPaymentSubmissions();
 };
 
@@ -415,6 +416,49 @@ $("manualQrForm")?.addEventListener("submit",async event=>{
   for(const [inputId,previewId] of [["alipayQrFile","alipayQrPreview"],["wechatQrFile","wechatQrPreview"]]){const url=qrPreviewUrls.get(inputId);if(url)URL.revokeObjectURL(url);qrPreviewUrls.delete(inputId);$(previewId).textContent="已保存；未选择新图片时将继续使用当前二维码。";}
   await loadManualPaymentSettings();
  }catch(err){setMessage("manualQrMsg",err.message||"保存失败",true);}
+});
+async function loadNativePaymentMethods(){
+ const body=$("nativePaymentRows");
+ if(!body)return;
+ body.innerHTML='<tr><td colspan="6">正在读取…</td></tr>';
+ const [methodsResult,statusResult]=await Promise.all([
+  db.from("payment_methods").select("code,provider,display_name,asset,environment,is_enabled,checkout_type,sort_order").eq("asset","CNY").order("sort_order",{ascending:true}),
+  db.functions.invoke("cn-payment",{body:{action:"status"}})
+ ]);
+ if(methodsResult.error){body.innerHTML='<tr><td colspan="6">'+esc(methodsResult.error.message)+'</td></tr>';setMessage("nativePaymentStatus","读取支付通道失败。",true);return;}
+ const readiness=statusResult.data||{};
+ if(statusResult.error)setMessage("nativePaymentStatus","无法读取商户凭据就绪状态；请确认 Edge Function Secrets 和管理员权限。",true);
+ const rows=methodsResult.data||[];
+ body.innerHTML=rows.map(row=>{
+  const name=row.provider==="alipay"?"支付宝":row.provider==="wechat_pay"?"微信支付":row.provider;
+  let ready=false,readyText="";
+  if(row.provider==="alipay"){
+   ready=row.environment==="test"?!!readiness.alipay_sandbox_ready:!!readiness.alipay_live_ready;
+   readyText=ready?(row.environment==="test"?"沙箱凭据已配置":"正式凭据与 Live gate 已配置"):(row.environment==="test"?"等待沙箱凭据":"正式通道未获 Live 授权");
+  }else if(row.provider==="wechat_pay"){
+   ready=row.environment==="live"&&!!readiness.wechat_live_ready;
+   readyText=row.environment==="test"?"API v3 无独立沙箱":ready?"正式凭据与 Live gate 已配置":"正式凭据 / Live gate 未就绪";
+  }else{
+   ready=false;readyText="尚未接入";
+  }
+  const action=row.is_enabled
+   ?'<button class="btn btn-outline" type="button" data-toggle-native-payment="'+esc(row.code)+'" data-enable="false">停用</button>'
+   :'<button class="btn btn-primary" type="button" data-toggle-native-payment="'+esc(row.code)+'" data-enable="true"'+(ready?"":" disabled")+'>启用</button>';
+  return '<tr><td>'+esc(name)+'</td><td>'+esc(row.asset)+'</td><td>'+esc(row.environment)+'</td><td>'+esc(readyText)+'</td><td>'+(row.is_enabled?'<span class="status-pill">已启用</span>':'<span class="muted">关闭</span>')+'</td><td>'+action+'</td></tr>';
+ }).join("")||'<tr><td colspan="6">暂无自动收款通道记录</td></tr>';
+ if(!statusResult.error)setMessage("nativePaymentStatus","通道状态已刷新。凭据状态只显示是否存在配置，不会读取或展示密钥。");
+}
+$("refreshNativePaymentMethods")?.addEventListener("click",loadNativePaymentMethods);
+document.addEventListener("click",async event=>{
+ const button=event.target.closest("[data-toggle-native-payment]");
+ if(!button)return;
+ const enable=button.dataset.enable==="true",code=button.dataset.toggleNativePayment;
+ if(enable&&!confirm("请确认该支付通道的测试/正式凭据已经核实。启用后客户可能创建真实支付订单。继续？"))return;
+ button.disabled=true;
+ const {error}=await db.from("payment_methods").update({is_enabled:enable}).eq("code",code);
+ if(error)setMessage("nativePaymentStatus","保存通道状态失败："+error.message,true);
+ else setMessage("nativePaymentStatus",enable?"支付通道已启用。":"支付通道已停用。");
+ await loadNativePaymentMethods();
 });
 async function loadManualPaymentSubmissions(){
  const body=$("manualPaymentRows");body.innerHTML='<tr><td colspan="7">正在读取…</td></tr>';
