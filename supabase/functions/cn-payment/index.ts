@@ -286,6 +286,36 @@ async function markCreationFailed(service: ReturnType<typeof serviceClient>, ord
   await service.from("service_orders").update({ status: "failed", payment_closed_at: new Date().toISOString() })
     .eq("id", orderId).eq("status", "pending");
 }
+async function handleStatus(req: Request) {
+  const authorization = req.headers.get("Authorization") || "";
+  const match = authorization.match(/^Bearer\\s+(.+)$/i);
+  if (!match) return json(401, { error: "authentication_required" });
+  const user = userClient(authorization);
+  const { data: authData, error: authError } = await user.auth.getUser(match[1]);
+  if (authError || !authData.user) return json(401, { error: "authentication_required" });
+  const { data: staff, error: staffError } = await user.rpc("is_staff");
+  if (staffError || staff !== true) return json(403, { error: "staff_required" });
+  const alipayGateway = Deno.env.get("ALIPAY_GATEWAY") || "https://openapi-sandbox.dl.alipaydev.com/gateway.do";
+  let alipayHost = "";
+  try { alipayHost = new URL(alipayGateway).hostname; } catch { /* invalid gateway */ }
+  const alipayBaseReady = !!(Deno.env.get("ALIPAY_APP_ID") &&
+    Deno.env.get("ALIPAY_MERCHANT_PRIVATE_KEY") && Deno.env.get("ALIPAY_PUBLIC_KEY"));
+  const alipaySandboxReady = alipayBaseReady &&
+    ["openapi-sandbox.dl.alipaydev.com", "openapi.alipaydev.com", "mapi.alipaydev.com"].includes(alipayHost);
+  const alipayLiveReady = alipayBaseReady && alipayHost === "openapi.alipay.com" &&
+    Deno.env.get("ALIPAY_LIVE_PAYMENTS_ENABLED") === "true";
+  const wechatBaseReady = !!(Deno.env.get("WECHATPAY_APP_ID") && Deno.env.get("WECHATPAY_MCHID") &&
+    Deno.env.get("WECHATPAY_MERCHANT_SERIAL_NO") && Deno.env.get("WECHATPAY_MERCHANT_PRIVATE_KEY") &&
+    Deno.env.get("WECHATPAY_PLATFORM_SERIAL") && Deno.env.get("WECHATPAY_PLATFORM_PUBLIC_KEY") &&
+    Deno.env.get("WECHATPAY_API_V3_KEY"));
+  return json(200, {
+    ok: true,
+    alipay_sandbox_ready: alipaySandboxReady,
+    alipay_live_ready: alipayLiveReady,
+    wechat_sandbox_available: false,
+    wechat_live_ready: wechatBaseReady && Deno.env.get("WECHATPAY_LIVE_PAYMENTS_ENABLED") === "true",
+  });
+}
 async function handleCreate(req: Request) {
   const authorization = req.headers.get("Authorization") || "";
   const match = authorization.match(/^Bearer\s+(.+)$/i);
@@ -475,6 +505,10 @@ Deno.serve(async (req) => {
     if (req.headers.has("Wechatpay-Signature")) return await handleWeChatNotify(req);
     const contentType = req.headers.get("content-type") || "";
     if (contentType.includes("application/x-www-form-urlencoded")) return await handleAlipayNotify(req);
+    if (contentType.includes("application/json")) {
+      const body = await req.clone().json().catch(() => null);
+      if (body && body.action === "status") return await handleStatus(req);
+    }
     return await handleCreate(req);
   } catch (e) {
     const message = e instanceof Error ? e.message : "internal_error";
