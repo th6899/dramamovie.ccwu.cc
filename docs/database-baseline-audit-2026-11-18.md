@@ -187,7 +187,7 @@ The catalog counts in the opening section describe the initial state before reco
 
 ### Test/production site separation
 
-- Browser inspection of the existing `ccwu-global-test.pages.dev` deployment showed a ¥19.90 membership plan, while the CCWU-Drama test database currently has zero membership plans. The branch preview URL returned “Nothing is here yet”. This is evidence that the existing Pages deployment is stale or still points at production data; no sign-in, order, or payment action was performed.
+- Browser inspection of the existing `ccwu-global-test.pages.dev` deployment showed a ¥19.90 membership plan. A read-only database check confirmed CCWU-Global production has two membership plans while CCWU-Drama test has zero. The old branch `config.js` also hard-coded the production project. The existing Pages deployment is therefore connected to production data, not the intended CCWU-Drama test database. The branch preview URL returned “Nothing is here yet”; no sign-in, order, or payment action was performed.
 - The repository's prior `config.js` hard-coded the CCWU-Global production Supabase project. The branch now selects CCWU-Drama test Supabase for `*.ccwu-global-test.pages.dev` and local development, selects CCWU-Global production only for the known production hostnames, and fails closed on unknown hostnames.
 - Do not use the currently deployed `ccwu-global-test.pages.dev` page for testing until Cloudflare Pages has deployed this branch and its runtime config has been verified against the test project.
 - TinyFish's saved browser profile is signed in to GitHub only, not Cloudflare. Cloudflare dashboard settings were not changed.
