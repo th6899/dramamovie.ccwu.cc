@@ -141,28 +141,33 @@ The test project's remaining authenticated `is_ccwu_admin()` advisor warning is 
 
 ## Follow-up test reconstruction status — 2026-11-18
 
-The catalog counts in the opening section describe the initial state before reconstruction. The current CCWU-Drama test database now contains 27 public tables and 28 private tables, 33 public/private functions, and 12 non-internal triggers. The original CCWU-Global production project remains unchanged.
+The catalog counts in the opening section describe the initial state before reconstruction. Current CCWU-Drama test state: 27 public tables, 28 private tables, 34 public/private functions, and 12 non-internal triggers. CCWU-Global production remains unchanged.
 
 ### Verified parity for the portal/payment surface
 
-- All 244 production public-table columns are present in the test project with matching data types, nullability and defaults. The test project retains additional legacy/test-only columns and tables; these were not removed.
-- The 86 production public RLS policies have been recreated in the test project and compared field-by-field (roles, commands, USING and WITH CHECK expressions). Eight policies for test-only tables remain in place.
+- All 244 production public-table columns are present in test with matching data types, nullability and defaults. Test retains additional legacy/test-only columns and tables; these were not removed.
+- All 86 production public RLS policies match in test field-by-field (roles, commands, USING and WITH CHECK expressions). Eight additional policies remain for test-only tables.
 - The 141 columns across the payment, provider-subscription, webhook and Stripe invoice ledgers match production in type, nullability and defaults.
-- The relevant payment/invoice constraints and indexes were compared. Missing amount/status/provider checks, foreign keys, unique keys and idempotency/performance indexes were added. Remaining index/constraint name differences are semantically equivalent test-only duplicates, not missing access controls.
+- Relevant payment/invoice constraints and indexes were compared. Missing amount/status/provider checks, foreign keys, unique keys and idempotency/performance indexes were added. Remaining name differences are semantically equivalent test-only duplicates.
+- Provider subscription ledgers have RLS enabled and no direct table grants to anon, authenticated or service_role; trusted operations use reviewed SECURITY DEFINER RPCs.
 - Payment orders, payment transactions, payment/refund/dispute ledgers, provider-subscription ledgers, invoice ledgers, notifications and delivery queues remain empty. No production rows or credentials were copied.
 
 ### Stripe and payment RPC reconstruction
 
-- Rebuilt the private CNY payment-success handler, Stripe subscription-event handlers, payment-entitlement synchronization, CNY expiry trigger, business-notification triggers and Stripe webhook-event mirror in the test database.
+- Rebuilt the private CNY payment-success handler, Stripe subscription-event handlers, payment-entitlement synchronization, CNY expiry trigger, business-notification triggers and Stripe webhook-event mirror.
 - Restored the public Stripe Checkout/order, subscription mapping, invoice, refund and dispute RPCs required by the deployed production webhook code.
-- The public create_stripe_subscription_order RPC is executable by authenticated users and derives the owner from auth.uid(). Provider event handlers and checkout state transitions are restricted to service_role; anonymous execution is denied.
-- Applied the Stripe invoice grace-period synchronization to the test project. A follow-up guard prevents a late invoice.paid event from reactivating a provider subscription already marked canceled or expired.
-- The test-only security advisor currently reports 27 private tables with RLS enabled and no policies (INFO; direct client access remains denied), an authenticated SECURITY DEFINER warning for the intentionally user-facing order-creation RPC and the legacy admin helper, and disabled leaked-password protection. The latter still requires an Auth dashboard setting change.
+- The public create_stripe_subscription_order RPC is callable by authenticated users and derives the owner from auth.uid(); it validates USD-only plans, active status, amount, duration and Stripe recurring Price ID. Provider event handlers and checkout state transitions are restricted to service_role; anonymous execution is denied.
+- Applied Stripe invoice grace-period synchronization to the test project. A follow-up guard prevents a late invoice.paid event from reactivating a provider subscription already marked canceled or expired.
+- The legacy public admin helper is now a SECURITY INVOKER wrapper over a private SECURITY DEFINER role check; the old public SECURITY DEFINER warning has been removed.
 
-### Deployment and migration-source boundary
+### Security and deployment boundary
 
+- Security advisor currently reports 27 private tables with RLS enabled and no policies (INFO; direct client access is denied), one intentional authenticated SECURITY DEFINER warning for the user-facing order-creation RPC, and disabled leaked-password protection. Enable leaked-password protection in the Supabase Auth dashboard before production release.
 - The test project still has zero deployed Edge Functions. Production Edge Function source has been inspected, but no production or test Edge Function was deployed in this round.
 - No Stripe secrets, webhook secrets, Alipay/WeChat credentials, live payments, production writes, production deployments, paid Supabase resources or paid branches were used.
-- The CCWU-Drama migration history now contains 34 applied migrations. The branch contains source files for 17 of those applied versions. The earlier 17 applied migrations (20261118105215 through 20261118111258) still need their SQL source reconstructed and committed before a clean rebuild can be reproduced from GitHub.
-- Two additional source-only migrations remain staged in the branch and are not in the test migration history: the minimal Stripe RPC signature fix and private provider-ledger RLS hardening. They must be reviewed against the complete migration baseline before any deployment.
-- Do not run supabase db push, merge this PR, or deploy production until the missing 17 migration sources are reconciled, test Edge Functions are deployed with test-only secrets, and end-to-end authenticated checkout/webhook lifecycle tests pass.
+
+### Migration-source status
+
+- The CCWU-Drama migration history now contains 37 applied migrations, and the branch contains a matching SQL source file for all 37 versions.
+- The 17 early migration files (20261118105215 through 20261118111258) were reconstructed from the current test database catalog and object definitions to restore a complete migration history. Their source versions are committed, but a clean-room rebuild on a separate project has not yet been run; treat that as the next verification gate.
+- No source-only migration remains in the branch. Do not run a production migration push, merge this PR, or deploy production until the reconstructed migration chain is validated on a disposable free test environment, test Edge Functions are deployed with test-only secrets, and authenticated checkout/webhook lifecycle tests pass.
