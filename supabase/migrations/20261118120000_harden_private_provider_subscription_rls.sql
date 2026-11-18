@@ -1,13 +1,12 @@
 -- Harden provider subscription ledgers against accidental future API grants.
--- These tables currently have no anon/authenticated/service_role table ACL grants.
--- Stripe webhook processing uses SECURITY DEFINER RPC functions owned by postgres;
--- keep access mediated by those RPCs rather than granting direct table access.
--- Do not use FORCE ROW LEVEL SECURITY: the trusted SECURITY DEFINER routines must
--- continue to operate as the table owner.
-ALTER TABLE private.provider_subscriptions ENABLE ROW LEVEL SECURITY;
-ALTER TABLE private.provider_subscription_events ENABLE ROW LEVEL SECURITY;
-
-COMMENT ON TABLE private.provider_subscriptions IS
+-- Trusted Stripe processing runs through reviewed SECURITY DEFINER RPC functions.
+begin;
+alter table private.provider_subscriptions enable row level security;
+alter table private.provider_subscription_events enable row level security;
+revoke all on table private.provider_subscriptions from public,anon,authenticated,service_role;
+revoke all on table private.provider_subscription_events from public,anon,authenticated,service_role;
+comment on table private.provider_subscriptions is
   'Private Stripe provider-subscription mapping. Access only through reviewed SECURITY DEFINER RPC functions; no direct client grants.';
-COMMENT ON TABLE private.provider_subscription_events IS
+comment on table private.provider_subscription_events is
   'Private Stripe provider-subscription event ledger. Access only through reviewed SECURITY DEFINER RPC functions; no direct client grants.';
+commit;
