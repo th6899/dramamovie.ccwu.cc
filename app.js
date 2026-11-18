@@ -40,7 +40,8 @@ $("authForm").onsubmit=async e=>{
   submit.disabled=false;
  }
 };
-async function refreshUser(){const {data:{user}}=await db.auth.getUser();$("userLabel").textContent=user?user.email:"访客";$("authButton").textContent=user?"账户 / 退出":"登录 / 注册";$("authButton").onclick=async()=>{if(user){await db.auth.signOut();await refreshUser()}else showAuth()}}
+function updateUserUI(user){$("userLabel").textContent=user?user.email:"访客";$("authButton").textContent=user?"账户 / 退出":"登录 / 注册";$("authButton").onclick=async()=>{if(user){const {error}=await db.auth.signOut();if(error){$("authMessage").textContent=error.message||"退出登录失败。";return;}updateUserUI(null);}else showAuth();}}
+async function refreshUser(){const {data:{user},error}=await db.auth.getUser();if(error)throw error;updateUserUI(user);}
 let activeManualOrder = null;
 let manualPaymentSettings = null;
 let pendingCheckout = null;
@@ -115,4 +116,5 @@ $("manualPayForm").addEventListener("submit",async e=>{
  }catch(err){$("manualPayMessage").textContent=err.message||"提交失败，请重试。";}finally{submit.disabled=!activeManualOrder;}
 });
 $("menuBtn").onclick=()=>{const n=document.querySelector(".topbar nav");n.style.display=n.style.display==="flex"?"none":"flex";n.style.position="absolute";n.style.top="76px";n.style.left="0";n.style.right="0";n.style.padding="20px";n.style.background="white";n.style.flexDirection="column"};
-await render();await refreshUser();db.auth.onAuthStateChange(()=>refreshUser());
+db.auth.onAuthStateChange((_event,session)=>{updateUserUI(session?.user??null);});
+await render();await refreshUser();
