@@ -63,7 +63,6 @@ alter table public."episode_watch_progress" add constraint "episode_watch_progre
 alter table public."manual_payment_settings" add constraint "manual_payment_settings_id_check" CHECK (id = true);
 alter table public."manual_payment_submissions" add constraint "manual_payment_submissions_method_check" CHECK (method = ANY (ARRAY['alipay'::text, 'wechat'::text]));
 alter table public."manual_payment_submissions" add constraint "manual_payment_submissions_status_check" CHECK (status = ANY (ARRAY['submitted'::text, 'approved'::text, 'rejected'::text]));
-alter table public."membership_subscriptions" add constraint "membership_subscriptions_check" CHECK (ends_at IS NULL OR starts_at IS NULL OR ends_at > starts_at);
 alter table public."membership_subscriptions" add constraint "membership_subscriptions_status_check" CHECK (status = ANY (ARRAY['pending'::text, 'active'::text, 'expired'::text, 'cancelled'::text, 'suspended'::text]));
 alter table public."payment_methods" add constraint "payment_methods_checkout_type_check" CHECK (checkout_type = ANY (ARRAY['hosted'::text, 'qr'::text, 'onchain'::text]));
 alter table public."payment_methods" add constraint "payment_methods_code_check" CHECK (code ~ '^[a-z0-9_]{2,48}$'::text);
