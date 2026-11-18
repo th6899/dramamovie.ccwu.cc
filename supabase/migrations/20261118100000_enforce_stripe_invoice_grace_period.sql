@@ -50,11 +50,14 @@ begin
 end;
 $function$;
 
+revoke all on function private.sync_stripe_invoice_entitlement_grace()
+  from public, anon, authenticated;
+
 drop trigger if exists trg_sync_stripe_invoice_entitlement_grace
   on private.stripe_subscription_invoices;
 
 create trigger trg_sync_stripe_invoice_entitlement_grace
-after insert or update of status, grace_until, period_end, last_event_created_at
+after insert or update
 on private.stripe_subscription_invoices
 for each row
 execute function private.sync_stripe_invoice_entitlement_grace();
