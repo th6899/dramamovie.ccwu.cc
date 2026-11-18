@@ -17,7 +17,29 @@ let mode="login";
 function setMode(v){mode=v;$("authTitle").textContent=v==="login"?"登录账户":"创建账户";$("authSubmit").textContent=v==="login"?"登录":"注册";$("nameField").classList.toggle("hidden",v!=="signup");document.querySelectorAll(".tab").forEach(b=>b.classList.toggle("active",b.dataset.mode===v));$("authMessage").textContent=""}
 function showAuth(){ $("authModal").classList.remove("hidden");}
 $("authButton").onclick=showAuth;$("ctaAuth").onclick=showAuth;$("closeAuth").onclick=()=>$("authModal").classList.add("hidden");document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>setMode(b.dataset.mode));
-$("authForm").onsubmit=async e=>{e.preventDefault();$("authSubmit").disabled=true;$("authMessage").textContent="正在处理…";const email=$("authEmail").value.trim(),password=$("authPassword").value;let result;if(mode==="login")result=await db.auth.signInWithPassword({email,password});else result=await db.auth.signUp({email,password,options:{data:{name:$("displayName").value.trim()}}});$("authSubmit").disabled=false;$("authMessage").textContent=result.error?result.error.message:(mode==="signup"?"注册请求已提交，请按邮件提示完成验证。":"登录成功。");if(!result.error&&mode==="login"){$("authModal").classList.add("hidden");await refreshUser()}};
+$("authForm").onsubmit=async e=>{
+ e.preventDefault();
+ const submit=$("authSubmit");
+ submit.disabled=true;
+ $("authMessage").textContent="正在处理…";
+ try{
+  const email=$("authEmail").value.trim(),password=$("authPassword").value;
+  const result=mode==="login"
+   ? await db.auth.signInWithPassword({email,password})
+   : await db.auth.signUp({email,password,options:{data:{name:$("displayName").value.trim()}}});
+  if(result.error)throw result.error;
+  $("authMessage").textContent=mode==="signup"?"注册请求已提交，请按邮件提示完成验证。":"登录成功。";
+  if(mode==="login"){
+   $("authModal").classList.add("hidden");
+   await refreshUser();
+  }
+ }catch(error){
+  console.error("[CCWU Portal] Authentication failed",error);
+  $("authMessage").textContent=error?.message||"认证请求失败，请检查网络后重试。";
+ }finally{
+  submit.disabled=false;
+ }
+};
 async function refreshUser(){const {data:{user}}=await db.auth.getUser();$("userLabel").textContent=user?user.email:"访客";$("authButton").textContent=user?"账户 / 退出":"登录 / 注册";$("authButton").onclick=async()=>{if(user){await db.auth.signOut();await refreshUser()}else showAuth()}}
 let activeManualOrder = null;
 let manualPaymentSettings = null;
