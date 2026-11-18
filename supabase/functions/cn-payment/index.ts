@@ -288,7 +288,7 @@ async function markCreationFailed(service: ReturnType<typeof serviceClient>, ord
 }
 async function handleStatus(req: Request) {
   const authorization = req.headers.get("Authorization") || "";
-  const match = authorization.match(/^Bearer\\s+(.+)$/i);
+  const match = authorization.match(/^Bearer\s+(.+)$/i);
   if (!match) return json(401, { error: "authentication_required" });
   const user = userClient(authorization);
   const { data: authData, error: authError } = await user.auth.getUser(match[1]);
