@@ -81,7 +81,7 @@ This is a useful baseline but not yet a security sign-off. The referenced `is_cc
 
 A review of the test project's `profiles` policies and grants found a privilege-escalation path: authenticated users had table-level INSERT and UPDATE on `profiles`, while the own-row policies allowed them to write their own row. Since `is_ccwu_admin()` derives admin status from `profiles.role = 'admin'`, a user could potentially self-assign the admin role.
 
-Mitigation was applied only to the CCWU-Drama test database in migration `prevent_profile_role_self_escalation` and committed as `supabase/migrations/20261118130000_prevent_profile_role_self_escalation.sql`:
+Mitigation was applied only to the CCWU-Drama test database in migration `prevent_profile_role_self_escalation` and committed as `supabase/migrations/20261118093537_prevent_profile_role_self_escalation.sql`:
 - Revoke table-level INSERT and UPDATE from `anon` and `authenticated`.
 - Grant authenticated users column-level INSERT only on `id, username, avatar_url`.
 - Grant authenticated users column-level UPDATE only on `username, avatar_url`.
@@ -99,7 +99,7 @@ This closes the direct self-service role-write route in the test project. The sa
 
 ## Additive portal compatibility migration applied to test
 
-A second test-only migration, `portal_schema_compatibility_columns`, was applied to CCWU-Drama and committed as `supabase/migrations/20261118140000_portal_schema_compatibility_columns.sql`.
+A second test-only migration, `portal_schema_compatibility_columns`, was applied to CCWU-Drama and committed as `supabase/migrations/20261118093725_portal_schema_compatibility_columns.sql`.
 
 It preserves the existing test-specific fields and adds portal-compatible fields to the five shared tables. Existing drama title text is backfilled from the Chinese title (or English title fallback); the poster path is copied only when a poster URL exists. Membership pricing is mapped from minor units to major units, and the monthly/yearly interval is mapped to 30/365 days. No production records were copied.
 
@@ -110,7 +110,7 @@ This is only a compatibility layer; missing public/private tables, RPCs, trigger
 
 ## Test SECURITY DEFINER RPC exposure hardening
 
-The test-project security advisor initially reported that the two auth-trigger functions and `is_ccwu_admin()` were executable by anon and authenticated users. A test-only migration, `restrict_test_security_definer_rpcs`, was applied and committed as `supabase/migrations/20261118160000_restrict_test_security_definer_rpcs.sql`.
+The test-project security advisor initially reported that the two auth-trigger functions and `is_ccwu_admin()` were executable by anon and authenticated users. A test-only migration, `restrict_test_security_definer_rpcs`, was applied and committed as `supabase/migrations/20261118093900_restrict_test_security_definer_rpcs.sql`.
 
 - Revoked RPC execution on `handle_new_user()` and `handle_new_ccwu_profile()` from PUBLIC, anon, authenticated and service_role. They remain trigger-only.
 - Restricted `is_ccwu_admin()` to authenticated/service_role. Authenticated execution is still needed by the admin-only RLS policies and the `is_staff()` compatibility RPC.
