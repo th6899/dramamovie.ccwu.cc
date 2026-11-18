@@ -75,3 +75,23 @@ All nine existing public test tables currently have RLS enabled. The catalog lis
 - `site_settings` has an admin-management policy.
 
 This is a useful baseline but not yet a security sign-off. The referenced `is_ccwu_admin()` function, grants, and policy dependencies still need review. The test policies must be preserved and reconciled rather than blindly overwritten by production policy definitions.
+
+
+## Test-project authorization finding and mitigation
+
+A review of the test project's `profiles` policies and grants found a privilege-escalation path: authenticated users had table-level INSERT and UPDATE on `profiles`, while the own-row policies allowed them to write their own row. Since `is_ccwu_admin()` derives admin status from `profiles.role = 'admin'`, a user could potentially self-assign the admin role.
+
+Mitigation was applied only to the CCWU-Drama test database in migration `prevent_profile_role_self_escalation` and committed as `supabase/migrations/20261118130000_prevent_profile_role_self_escalation.sql`:
+- Revoke table-level INSERT and UPDATE from `anon` and `authenticated`.
+- Grant authenticated users column-level INSERT only on `id, username, avatar_url`.
+- Grant authenticated users column-level UPDATE only on `username, avatar_url`.
+- Leave privileged role changes to trusted database/service-role administration. The existing auth-user trigger creates profiles with the default `viewer` role.
+
+Post-migration catalog verification confirms:
+- `authenticated` has no table-level INSERT or UPDATE.
+- `authenticated` cannot INSERT or UPDATE `role`.
+- `authenticated` retains INSERT on `id, username, avatar_url` and UPDATE on `username, avatar_url`.
+- `anon` has no INSERT/UPDATE rights.
+- `postgres` and `service_role` retain their existing privileged access.
+
+This closes the direct self-service role-write route in the test project. The same grant/policy pattern must be audited in production separately; no production change was made.
