@@ -95,3 +95,14 @@ Post-migration catalog verification confirms:
 - `postgres` and `service_role` retain their existing privileged access.
 
 This closes the direct self-service role-write route in the test project. The same grant/policy pattern must be audited in production separately; no production change was made.
+
+
+## Additive portal compatibility migration applied to test
+
+A second test-only migration, `portal_schema_compatibility_columns`, was applied to CCWU-Drama and committed as `supabase/migrations/20261118140000_portal_schema_compatibility_columns.sql`.
+
+It preserves the existing test-specific fields and adds portal-compatible fields to the five shared tables. Existing drama title text is backfilled from the Chinese title (or English title fallback); the poster path is copied only when a poster URL exists. Membership pricing is mapped from minor units to major units, and the monthly/yearly interval is mapped to 30/365 days. No production records were copied.
+
+Post-migration checks confirmed the expected new columns and constraints are present. The existing drama row now has a non-null title. The test membership-plans table was empty at migration time, so no plan rows or Stripe price IDs were created. `episodes.video_path` and `subtitle_tracks.storage_path` were deliberately left NULL because a provider asset ID or arbitrary file URL cannot safely be assumed to be a Supabase Storage path.
+
+This is only a compatibility layer; missing public/private tables, RPCs, triggers, grants, Edge Functions and storage dependencies still need to be reconstructed.
