@@ -18,17 +18,19 @@ begin
   if new.status = 'payment_failed' and new.grace_until is not null then
     if new.item_type = 'membership' then
       update public.membership_subscriptions
-         set ends_at = greatest(coalesce(ends_at, new.grace_until), new.grace_until),
+         set status = 'active',
+             ends_at = greatest(coalesce(ends_at, new.grace_until), new.grace_until),
              updated_at = now()
        where id = new.entitlement_id
          and user_id = new.user_id
-         and status in ('active','past_due');
+         and status in ('active','past_due','expired');
     elsif new.item_type = 'vpn' then
       update public.vpn_subscriptions
-         set ends_at = greatest(coalesce(ends_at, new.grace_until), new.grace_until)
+         set status = 'active',
+             ends_at = greatest(coalesce(ends_at, new.grace_until), new.grace_until)
        where id = new.entitlement_id
          and user_id = new.user_id
-         and status in ('active','past_due');
+         and status in ('active','past_due','expired');
     end if;
   elsif new.status = 'paid' and new.period_end is not null then
     if new.item_type = 'membership' then
