@@ -171,3 +171,31 @@ The catalog counts in the opening section describe the initial state before reco
 - The CCWU-Drama migration history now contains 37 applied migrations, and the branch contains a matching SQL source file for all 37 versions.
 - The 17 early migration files (20261118105215 through 20261118111258) were reconstructed from the current test database catalog and object definitions to restore a complete migration history. Their source versions are committed, but a clean-room rebuild on a separate project has not yet been run; treat that as the next verification gate.
 - No source-only migration remains in the branch. Do not run a production migration push, merge this PR, or deploy production until the reconstructed migration chain is validated on a disposable free test environment, test Edge Functions are deployed with test-only secrets, and authenticated checkout/webhook lifecycle tests pass.
+
+## Additional payment and deployment findings — 2026-11-18
+
+### Native CNY QR payment
+
+- Restored the production CNY payment RPC surface in test: `create_cn_payment_order`, `attach_cn_payment_session`, `get_my_cn_payment_order`, `process_cn_payment_success`, and `record_cn_payment_reconciliation`.
+- Extended the test `get_my_cn_payment_order` result to return the stored QR code and provider session ID so a customer can recover a pending payment after refreshing.
+- Seeded two test-only payment method rows: Alipay/CNY/test and WeChat Pay/CNY/test. Both are disabled; no credentials were copied.
+- Added and deployed test Edge Function `cn-payment`. It creates authenticated CNY orders, signs Alipay RSA2 sandbox requests, verifies Alipay response/notification signatures, verifies WeChat Pay API v3 RSA-SHA256 response/callback signatures, decrypts callback resources with AES-256-GCM, and calls the idempotent settlement RPC.
+- The function generates QR SVG on the server; payment tokens are not sent to a third-party QR service.
+- Alipay production gateway use requires the explicit `ALIPAY_LIVE_PAYMENTS_ENABLED=true` gate. WeChat API v3 Native has no independent zero-funds sandbox in this integration; test environment calls are rejected. Live WeChat Native requires `WECHATPAY_LIVE_PAYMENTS_ENABLED=true`.
+- Added a staff-only payment-secret readiness response and admin controls. These expose only boolean readiness, never secret values.
+- No payment method is enabled and no payment credentials were configured or tested. No payment was created or settled.
+
+### Test/production site separation
+
+- Browser inspection of the existing `ccwu-global-test.pages.dev` deployment showed a ¥19.90 membership plan, while the CCWU-Drama test database currently has zero membership plans. The branch preview URL returned “Nothing is here yet”. This is evidence that the existing Pages deployment is stale or still points at production data; no sign-in, order, or payment action was performed.
+- The repository's prior `config.js` hard-coded the CCWU-Global production Supabase project. The branch now selects CCWU-Drama test Supabase for `*.ccwu-global-test.pages.dev` and local development, selects CCWU-Global production only for the known production hostnames, and fails closed on unknown hostnames.
+- Do not use the currently deployed `ccwu-global-test.pages.dev` page for testing until Cloudflare Pages has deployed this branch and its runtime config has been verified against the test project.
+- TinyFish's saved browser profile is signed in to GitHub only, not Cloudflare. Cloudflare dashboard settings were not changed.
+
+### Current verification boundary
+
+- Current test migration history: 42 applied versions, with 42 matching migration SQL files in the branch; no missing or extra migration files.
+- Current test Edge Functions: `create-checkout`, `stripe-webhook`, `get-episode-playback`, and `cn-payment`.
+- Test payment methods remain disabled; test membership_plans and vpn_plans remain empty. The test project has one Auth user, no staff-role rows, and that user is not an admin. The admin payment approval workflow therefore remains correctly inaccessible to that account.
+- No Alipay sandbox checkout, WeChat payment, callback, refund, or end-to-end entitlement test has been run.
+- The 17 reconstructed early migration files still require a clean-room rebuild on a disposable free test environment. Do not reset the current test database to attempt this; it contains existing test content.
