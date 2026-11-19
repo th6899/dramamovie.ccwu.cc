@@ -50,7 +50,7 @@ $("githubLogin").addEventListener("click", async () => {
   try {
     const { error } = await db.auth.signInWithOAuth({
       provider: "github",
-      options: { redirectTo: new URL("./admin.html", location.href).toString() }
+      options: { redirectTo: new URL("/admin", location.origin).toString() }
     });
     if (error) throw error;
   } catch (error) {
@@ -60,17 +60,6 @@ $("githubLogin").addEventListener("click", async () => {
     button.textContent = "使用 GitHub 登录管理员账户";
   }
 });
-
-(async () => {
-  try {
-    const { data, error } = await db.auth.getSession();
-    if (error) throw error;
-    if (data?.session?.user) await checkStaff(data.session.user);
-  } catch (error) {
-    console.error("[CCWU Admin] Session restore failed", error);
-    setMessage("loginMsg", error?.message || "恢复登录状态失败，请重新登录。", true);
-  }
-})();
 
 $("loginForm").addEventListener("submit", async (event) => {
   event.preventDefault();
