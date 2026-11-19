@@ -233,7 +233,7 @@ $("episodeForm").addEventListener("submit", async (event) => {
   const file = $("videoFile").files?.[0];
   let videoPath = $("videoPath").value.trim() || null;
   if (file) {
-    if (!["video/mp4", "video/webm"].includes(file.type) || file.size > 2 * 1024 * 1024 * 1024) throw new Error("视频仅支持 MP4/WebM，且不能超过 2GB。");
+    if (!["video/mp4", "video/webm"].includes(file.type) || file.size > 50 * 1024 * 1024) throw new Error("免费 Supabase 项目单文件上限为 50MB；视频仅支持 MP4/WebM。");
     if (videoPath) throw new Error("已选择视频文件，请清空手动 Storage 路径，避免路径冲突。");
     const dramaId = $("dramaSelect").value;
     const ext = file.type === "video/mp4" ? "mp4" : "webm";
