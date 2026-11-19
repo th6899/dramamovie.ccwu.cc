@@ -1,6 +1,6 @@
-window.CCWU_ADMIN_MODULE_VERSION = "2.0.5";
-console.info("[CCWU Admin] ES module 2.0.5 loaded");
-// CCWU Global Admin module 2.0.5 — explicit ES module entrypoint
+window.CCWU_ADMIN_MODULE_VERSION = "2.0.6";
+console.info("[CCWU Admin] ES module 2.0.6 loaded");
+// CCWU Global Admin module 2.0.6 — explicit ES module entrypoint
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { Upload } from "https://esm.sh/tus-js-client@4";
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js";
@@ -10,7 +10,7 @@ const isTestProject = (() => {
   try { return new URL(SUPABASE_URL).hostname === "uvtzhzgirgwjzsmcdgej.supabase.co"; }
   catch { return false; }
 })();
-window.CCWU_BUILD_VERSION = "2.0.5";
+window.CCWU_BUILD_VERSION = "2.0.6";
 const $ = (id) => document.getElementById(id);
 const esc = (value) => String(value ?? "").replace(/[&<>"']/g, (char) => ({
   "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
@@ -50,7 +50,7 @@ $("githubLogin").addEventListener("click", async () => {
   try {
     const { error } = await db.auth.signInWithOAuth({
       provider: "github",
-      options: { redirectTo: new URL("/admin", location.origin).toString() }
+      options: { redirectTo: new URL("/admin.html", location.origin).toString() }
     });
     if (error) throw error;
   } catch (error) {
