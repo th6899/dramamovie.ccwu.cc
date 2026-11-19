@@ -49,7 +49,6 @@ The following are live-merchant configuration names only and must not be populat
 - `WECHATPAY_PLATFORM_SERIAL`
 - `WECHATPAY_PLATFORM_PUBLIC_KEY`
 - `WECHATPAY_API_V3_KEY`
-- `WECHATPAY_NOTIFY_URL` (optional)
 - `WECHATPAY_LIVE_PAYMENTS_ENABLED` (must remain unset or false outside a separately approved live release)
 
 ## Dashboard procedure
