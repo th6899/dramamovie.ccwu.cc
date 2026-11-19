@@ -5,6 +5,7 @@ from pathlib import Path
 page = Path("account.html").read_text(encoding="utf-8")
 module = Path("account.js").read_text(encoding="utf-8")
 home = Path("app.js").read_text(encoding="utf-8")
+profile_migration = Path("supabase/migrations/20261119083006_grant_profile_display_name_update.sql").read_text(encoding="utf-8")
 
 checks = {
     "account dashboard loads as ES module": '<script type="module" src="./account.js?v=2.0.3"></script>' in page,
@@ -18,6 +19,7 @@ checks = {
     "login return query redirects to account": 'get("return")==="account"' in home,
     "no role or privilege update in account module": '.update({ role:' not in module and 'service_role' not in module,
 }
+checks["display name update has a column-only database grant"] = "GRANT UPDATE (display_name)" in profile_migration and "GRANT UPDATE (role" not in profile_migration
 checks["login prompt remains visible without JavaScript"] = 'id="accountLoginPrompt" class="account-card"' in page
 
 checks["login modal opens before async homepage data loading"] = home.index('get("auth")==="login"') < home.index("await render();await refreshUser();")
