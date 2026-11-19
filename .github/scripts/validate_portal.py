@@ -23,3 +23,15 @@ for path in public_assets:
         raise SystemExit(f"Service-role credential assignment found in public asset: {path}")
 
 print("Deployment isolation and public asset secret checks passed.")
+
+# Cloudflare Pages response headers must retain the baseline browser protections.
+headers = (root / "_headers").read_text(encoding="utf-8")
+for marker in (
+    "X-Content-Type-Options: nosniff",
+    "Referrer-Policy: strict-origin-when-cross-origin",
+    "X-Frame-Options: DENY",
+    "Content-Security-Policy: frame-ancestors 'none'",
+    "Permissions-Policy: camera=(), microphone=(), geolocation=()",
+):
+    if marker not in headers:
+        raise SystemExit(f"Static response header check failed: missing {marker}")
