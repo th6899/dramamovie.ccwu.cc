@@ -22,6 +22,7 @@
     ".github/scripts/validate_migrations.py",
     ".github/scripts/validate_database_types.py",
     ".github/scripts/validate_dom_contract.py",
+    ".github/scripts/validate_admin_contract.py",
     "supabase/migrations/",
     "supabase/functions/create-checkout/",
     "supabase/functions/stripe-webhook/",
