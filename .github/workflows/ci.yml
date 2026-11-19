@@ -44,6 +44,8 @@ jobs:
         run: python3 .github/scripts/validate_cn_payment_contract.py
       - name: Check frontend database table and RPC contracts
         run: python3 .github/scripts/validate_frontend_db_contract.py
+      - name: Check account dashboard auth and ownership contracts
+        run: python3 .github/scripts/validate_account_contract.py
 
   edge-functions:
     name: Supabase Edge Function type checks
