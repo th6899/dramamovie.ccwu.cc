@@ -120,7 +120,7 @@ async function checkStaff(user) {
       `is_staff() 返回：${error ? "调用错误" : String(data)}`,
       error ? `权限接口错误：${error.message}` : "请核对该 UID 是否拥有 private.user_roles 中的 admin/editor/support 角色。"
     ];
-    setMessage("loginMsg", details.join("\\n"), true);
+    setMessage("loginMsg", details.join(" | "), true);
     console.warn("[CCWU Admin] Staff check failed", {
       userId: user?.id, email: user?.email, provider, projectRef,
       isStaff: data, error: error?.message || null
