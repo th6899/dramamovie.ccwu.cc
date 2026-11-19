@@ -253,10 +253,16 @@ function validPlanCode(value) { return /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value);
 $("membershipPlanForm").addEventListener("submit", async (event) => {
   event.preventDefault();
   const code = $("memberPlanCode").value.trim().toLowerCase();
+  const currency = $("memberPlanCurrency").value;
+  const stripePriceId = $("memberPlanStripePrice").value.trim();
   if (!validPlanCode(code)) { setMessage("memberPlanMsg", "套餐代码只可使用小写英文字母、数字和连字符。", true); return; }
+  if (currency === "USD" && !/^price_[A-Za-z0-9]+$/.test(stripePriceId)) {
+    setMessage("memberPlanMsg", "美元套餐必须填写有效的 Stripe Price ID（price_...）；人民币套餐无需填写。", true); return;
+  }
   const { error } = await db.from("membership_plans").insert({
     code, name: $("memberPlanName").value.trim(), description: $("memberPlanDescription").value.trim() || null,
-    price_amount: $("memberPlanPrice").value, currency: $("memberPlanCurrency").value,
+    price_amount: $("memberPlanPrice").value, currency, stripe_price_id: currency === "USD" ? stripePriceId : null,
+    billing_interval: $("memberPlanInterval").value,
     duration_days: Number($("memberPlanDays").value), is_active: $("memberPlanActive").checked
   });
   setMessage("memberPlanMsg", error ? error.message : "会员套餐已保存。", !!error);
@@ -265,10 +271,16 @@ $("membershipPlanForm").addEventListener("submit", async (event) => {
 $("vpnPlanForm").addEventListener("submit", async (event) => {
   event.preventDefault();
   const code = $("vpnPlanCode").value.trim().toLowerCase();
+  const currency = $("vpnPlanCurrency").value;
+  const stripePriceId = $("vpnPlanStripePrice").value.trim();
   if (!validPlanCode(code)) { setMessage("vpnPlanMsg", "套餐代码只可使用小写英文字母、数字和连字符。", true); return; }
+  if (currency === "USD" && !/^price_[A-Za-z0-9]+$/.test(stripePriceId)) {
+    setMessage("vpnPlanMsg", "美元套餐必须填写有效的 Stripe Price ID（price_...）；人民币套餐无需填写。", true); return;
+  }
   const { error } = await db.from("vpn_plans").insert({
     code, name: $("vpnPlanName").value.trim(), description: $("vpnPlanDescription").value.trim() || null,
-    price_amount: $("vpnPlanPrice").value, currency: $("vpnPlanCurrency").value,
+    price_amount: $("vpnPlanPrice").value, currency, stripe_price_id: currency === "USD" ? stripePriceId : null,
+    billing_interval: $("vpnPlanInterval").value,
     duration_days: Number($("vpnPlanDays").value), device_limit: Number($("vpnPlanDevices").value),
     is_active: $("vpnPlanActive").checked
   });
