@@ -9,11 +9,11 @@ playback = Path("supabase/functions/get-episode-playback/index.ts").read_text(en
 
 required_html = (
     'id="dramaPosterFile"', 'id="videoFile"', 'id="episodeRows"',
-    'id="subtitleForm"', 'id="subtitleEpisode"', 'id="subtitleFile"', '最大 50MB',
+    'id="subtitleForm"', 'id="subtitleEpisode"', 'id="subtitleFile"', '最大 50MB', 'SRT 自动转换为 WebVTT'
 )
 required_admin = (
     'new Upload(file', 'file.size > 50 * 1024 * 1024', '"ccwu-cinema-posters"', '"ccwu-cinema-videos"',
-    '"ccwu-cinema-subtitles"', 'data-toggle-drama=', 'data-toggle-episode=',
+    '"ccwu-cinema-subtitles"', 'new Blob([webVttText + "\\n"], { type: "text/vtt" })', 'contentType: "text/vtt"', 'WEBVTT', 'data-toggle-drama=' 'data-toggle-episode=',
     'published_at:', 'status: "published"', 'reviewed_by: currentUser.id',
 )
 for token in required_html:
