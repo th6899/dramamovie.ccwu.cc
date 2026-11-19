@@ -1,6 +1,6 @@
-window.CCWU_ADMIN_MODULE_VERSION = "2.0.4";
-console.info("[CCWU Admin] ES module 2.0.4 loaded");
-// CCWU Global Admin module 2.0.4 — explicit ES module entrypoint
+window.CCWU_ADMIN_MODULE_VERSION = "2.0.5";
+console.info("[CCWU Admin] ES module 2.0.5 loaded");
+// CCWU Global Admin module 2.0.5 — explicit ES module entrypoint
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { Upload } from "https://esm.sh/tus-js-client@4";
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js";
@@ -10,7 +10,7 @@ const isTestProject = (() => {
   try { return new URL(SUPABASE_URL).hostname === "uvtzhzgirgwjzsmcdgej.supabase.co"; }
   catch { return false; }
 })();
-window.CCWU_BUILD_VERSION = "2.0.4";
+window.CCWU_BUILD_VERSION = "2.0.5";
 const $ = (id) => document.getElementById(id);
 const esc = (value) => String(value ?? "").replace(/[&<>"']/g, (char) => ({
   "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
@@ -272,11 +272,21 @@ $("subtitleForm").addEventListener("submit", async (event) => {
     const language = $("subtitleLanguage").value;
     if (!episodeId || !file) throw new Error("请选择剧集和字幕文件。");
     const lowerName = file.name.toLowerCase();
-    const ext = lowerName.endsWith(".srt") ? "srt" : lowerName.endsWith(".txt") ? "txt" : lowerName.endsWith(".vtt") ? "vtt" : "";
-    if (!ext || file.size > 2 * 1024 * 1024) throw new Error("字幕仅支持 VTT/SRT/TXT，且不能超过 2MB。");
-    const contentType = ext === "vtt" ? "text/vtt" : ext === "srt" ? "application/x-subrip" : "text/plain";
-    uploadedPath = `episodes/${episodeId}/subtitles/${language}-${crypto.randomUUID()}.${ext}`;
-    const { error: uploadError } = await db.storage.from("ccwu-cinema-subtitles").upload(uploadedPath, file, { cacheControl: "3600", upsert: false, contentType });
+    const ext = lowerName.endsWith(".srt") ? "srt" : lowerName.endsWith(".vtt") ? "vtt" : "";
+    if (!ext || file.size > 2 * 1024 * 1024) throw new Error("字幕仅支持 VTT/SRT，原文件不能超过 2MB。");
+    const rawText = (await file.text()).replace(/^\\uFEFF/, "").replace(/\\r\\n?/g, "\\n").trim();
+    let webVttText = rawText;
+    if (ext === "srt") {
+      const cuePattern = /\\d{2}:\\d{2}:\\d{2},\\d{3}\\s+-->\\s+\\d{2}:\\d{2}:\\d{2},\\d{3}/g;
+      if (!cuePattern.test(rawText)) throw new Error("SRT 字幕格式无效，未找到有效时间轴。");
+      webVttText = "WEBVTT\\n\\n" + rawText.replace(/(\\d{2}:\\d{2}:\\d{2}),(\\d{3})\\s+-->\\s+(\\d{2}:\\d{2}:\\d{2}),(\\d{3})/g, "$1.$2 --> $3.$4");
+    } else if (!/^WEBVTT(?:\\s|$)/.test(rawText)) {
+      throw new Error("VTT 文件必须以 WEBVTT 标头开头。");
+    }
+    const subtitleBlob = new Blob([webVttText + "\\n"], { type: "text/vtt" });
+    if (subtitleBlob.size > 2 * 1024 * 1024) throw new Error("转换后的 WebVTT 字幕不能超过 2MB。");
+    uploadedPath = `episodes/${episodeId}/subtitles/${language}-${crypto.randomUUID()}.vtt`;
+    const { error: uploadError } = await db.storage.from("ccwu-cinema-subtitles").upload(uploadedPath, subtitleBlob, { cacheControl: "3600", upsert: false, contentType: "text/vtt" });
     if (uploadError) throw uploadError;
     const { error } = await db.from("subtitle_tracks").insert({ episode_id: episodeId, language_code: language, label: $("subtitleLabel").value.trim(), file_url: uploadedPath, storage_path: uploadedPath, status: "published", reviewed_by: currentUser.id });
     if (error) {
