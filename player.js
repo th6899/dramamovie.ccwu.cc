@@ -103,7 +103,7 @@ async function flushAdEvents() {
 function queueAdEvent(slot, eventType, errorCode = "") {
   if (!playback?.ad_event_token || !slot?.id) return;
   adEventQueue.push({ config_id: slot.id, event_type: eventType, session_fingerprint: adSessionFingerprint, error_code: errorCode });
-  if (adEventQueue.length >= 10 || ["complete","error","skip"].includes(eventType)) void flushAdEvents();
+  void flushAdEvents();
 }
 function attachImaTracking(manager, slot) {
   const map = [
