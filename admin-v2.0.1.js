@@ -405,10 +405,13 @@ bindQrPicker("alipayQrFile", "alipayQrPreview", "支付宝二维码");
 bindQrPicker("wechatQrFile", "wechatQrPreview", "微信二维码");
 
 async function loadManualPaymentSettings(){
- const {data,error}=await db.from("manual_payment_settings").select("alipay_qr_path,wechat_qr_path,alipay_enabled,wechat_enabled,instructions").eq("id",true).single();
- if(error){setMessage("manualQrMsg",`请先应用 supabase/manual_qr_payments_v1_6.sql：${error.message}`,true);return;}
- currentQrPaths={alipay_qr_path:data.alipay_qr_path||null,wechat_qr_path:data.wechat_qr_path||null};
- $("alipayQrEnabled").checked=!!data.alipay_enabled;$("wechatQrEnabled").checked=!!data.wechat_enabled;$("manualPayInstructions").value=data.instructions||"";
+ const {data,error}=await db.from("manual_payment_settings").select("alipay_qr_path,wechat_qr_path,alipay_enabled,wechat_enabled,instructions").eq("id",true).maybeSingle();
+ if(error){setMessage("manualQrMsg",`读取人工收款设置失败：${error.message}`,true);return;}
+ const settings=data||{};
+ currentQrPaths={alipay_qr_path:settings.alipay_qr_path||null,wechat_qr_path:settings.wechat_qr_path||null};
+ $("alipayQrEnabled").checked=!!settings.alipay_enabled;
+ $("wechatQrEnabled").checked=!!settings.wechat_enabled;
+ $("manualPayInstructions").value=settings.instructions||"请扫码付款，并提交付款单号；管理员核实到账后开通服务。";
  await Promise.all([showSavedQr(currentQrPaths.alipay_qr_path,"alipayQrPreview","支付宝二维码"),showSavedQr(currentQrPaths.wechat_qr_path,"wechatQrPreview","微信二维码")]);
 }
 $("manualQrForm")?.addEventListener("submit",async event=>{
