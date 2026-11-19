@@ -32,3 +32,10 @@ for token in (
         raise SystemExit(f"CN payment retry path missing: {token}")
 
 print("CN payment owner-scoped QR recovery contract checks passed.")
+
+if 'new URL(supabaseUrl).hostname === "uvtzhzgirgwjzsmcdgej.supabase.co"' not in function:
+    raise SystemExit("CNY payment Edge Function is missing the test-project identity fence.")
+if 'enabledMethod.environment !== "test"' not in function or "live_payment_blocked_in_test_project" not in function:
+    raise SystemExit("CNY payment Edge Function must reject live methods in the independent test project.")
+if function.index("live_payment_blocked_in_test_project") > function.index('user.rpc("create_cn_payment_order"'):
+    raise SystemExit("Live-payment test fence must run before creating the payment order.")
