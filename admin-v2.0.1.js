@@ -285,7 +285,7 @@ $("subtitleForm").addEventListener("submit", async (event) => {
     }
     const subtitleBlob = new Blob([webVttText + "\n"], { type: "text/vtt" });
     if (subtitleBlob.size > 2 * 1024 * 1024) throw new Error("转换后的 WebVTT 字幕不能超过 2MB。");
-    uploadedPath = \`episodes/\${episodeId}/subtitles/\${language}-\${crypto.randomUUID()}.vtt\`;
+    uploadedPath = "episodes/" + episodeId + "/subtitles/" + language + "-" + crypto.randomUUID() + ".vtt";
     const { error: uploadError } = await db.storage.from("ccwu-cinema-subtitles").upload(uploadedPath, subtitleBlob, { cacheControl: "3600", upsert: false, contentType: "text/vtt" });
     if (uploadError) throw uploadError;
     const { error } = await db.from("subtitle_tracks").insert({ episode_id: episodeId, language_code: language, label: $("subtitleLabel").value.trim(), file_url: uploadedPath, storage_path: uploadedPath, status: "published", reviewed_by: currentUser.id });
