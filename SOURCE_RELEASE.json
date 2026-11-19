@@ -54,13 +54,9 @@
     "Production merge and deployment are separate release gates requiring explicit authorization.",
     "The admin video uploader enforces Supabase Free's 50 MB per-file upload limit and uses TUS resumable uploads.",
     "The test project's private video Storage bucket now enforces a 50 MB per-file maximum server-side, matching the admin uploader and Supabase Free plan.",
-    "Direct browser DML on service_orders is revoked; VPN plan write policies require admin/editor. CI guards financial write permissions and frontend order mutation paths.",
-    "Direct browser DML on service_orders is revoked; VPN plan write policies require admin/editor. CI guards financial write permissions and frontend order mutation paths.",
-    "Version 2.0.5 converts SRT subtitle uploads to WebVTT and restricts the private subtitle bucket to text/vtt objects.",
-    "Direct browser DML on service_orders is revoked; VPN plan writes require admin/editor; subtitle Storage accepts only private WebVTT objects.",
     "Version 2.0.5 converts SRT subtitle uploads to WebVTT and restricts the private subtitle bucket to text/vtt objects.",
     "The source tree contains 58 migrations, matching all 58 applied migration versions in the independent test database.",
     "Direct browser DML on service_orders is revoked; VPN plan writes require admin/editor; subtitle Storage accepts only private WebVTT objects.",
-    "Latest CI run #310 (`44493704412`) passed all three jobs, including financial write-permission, playback authorization, and private storage security contracts."
+    "Latest CI run #315 (`44493973041`) passed all three jobs, including financial write-permission, playback authorization, WebVTT, and private storage security contracts."
   ]
 }
