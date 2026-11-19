@@ -45,17 +45,17 @@ All development, schema changes, function deployments, and test data belong in t
 - Payment approval is restricted to the admin role. Customer order and subscription reads are ownership-scoped.
 - Private video and subtitle objects require staff access for upload; playback is issued through the server-side playback function.
 - Admin content workflow uploads posters to the public poster bucket, videos to private storage using TUS resumable uploads, and VTT/SRT/TXT subtitles to private storage. Publishing is explicit; database guards require the poster/video object to exist and the parent drama to be published first.
-- Free Supabase projects cap each file at 50 MB and include 1 GB total Storage. The admin video uploader enforces the 50 MB per-file limit; use short test clips and monitor total storage/egress.
+- Free Supabase projects cap each file at 50 MB and include 1 GB total Storage. Both the admin uploader and the private Storage bucket enforce the 50 MB per-file limit; use short test clips and monitor total storage/egress.
 - The CI workflow checks browser JavaScript syntax, environment isolation, public bundle secret patterns, plan/Stripe checkout contracts, Deno types, admin media upload/publish contracts, and migration naming/version integrity.
 
 ## Current test-preview verification
 
 The following are verified for the current test branch snapshot:
 
-- 55 migration files exist in source and all 55 corresponding versions are applied to the test database.
+- 56 migration files exist in source and all 56 corresponding versions are applied to the test database.
 - All six tracked Edge Functions are active in the test project and their deployed source matches the branch source.
 - The test Pages preview deployment for commit `9528a2bbaa007812867520dae1c96bf664606400` completed successfully.
-- Latest GitHub Actions run #250 (`44489977689`) for commit `1c1c854e787a1a09ab8b339ed49b46b168764cae` passed all three jobs.
+- Latest GitHub Actions run #259 (`44490875213`) for commit `1c1c854e787a1a09ab8b339ed49b46b168764cae` passed all three jobs.
 - The public homepage, membership route, account page, admin login shell, player page, and payment-result page rendered in a read-only browser smoke test without visible JavaScript errors.
 - The latest public test preview serves the v2.0.4 admin page and its cache-busted ES module, including TUS video upload, the Free-plan 50 MB limit, and explicit drama/episode publish controls; no admin sign-in or write test was performed.
 - The independent test preview resolves to the test Supabase project. No active plans, staff test account, published media, or payment methods are configured yet.
