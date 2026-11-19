@@ -41,7 +41,7 @@
     "Version 2.0.3 is a static portal plus Supabase backend source release; it is not a frontend-only diagnostic package.",
     "Admin entrypoint is loaded as an ES module from admin-v2.0.1.js with an explicit cache-busting version.",
     "Test and production Supabase host mappings are isolated; unknown hosts fail closed.",
-    "Six tracked Edge Functions and 54 database migrations are included in source.",
+    "Six tracked Edge Functions and 55 database migrations are included in source.",
     "types/database.types.ts is generated from the independent test project's exposed public schema and RPC contracts; private schema internals are not exposed.",
     "CI validates frontend syntax, deployment isolation, public bundle secret patterns, plan/Stripe checkout contracts, generated database types, literal HTML/JS DOM references, Deno Edge Function types, and migration source integrity.",
     "USD recurring membership and VPN plans require configured Stripe Price IDs.",
