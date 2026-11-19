@@ -9,6 +9,7 @@ This repository contains the CCWU Global static portal, administration interface
 - `player.html`, `player.js`: episode player and signed playback flow
 - `payment-result.html`, `payment-result.js`: checkout return/status page
 - `config.js`: host-based Supabase project selection and browser-safe publishable key
+- `_headers`: baseline security headers for Cloudflare Pages static hosting
 - `supabase/migrations/`: versioned database schema, RLS, storage policies, payment and entitlement functions
 - `types/database.types.ts`: generated TypeScript contract snapshot from the independent test database's exposed public schema and RPCs
 - `supabase/functions/`: six server-side functions: `create-checkout`, `stripe-webhook`, `get-episode-playback`, `cn-payment`, `track-episode-promotion`, and `record-video-ad-events`
