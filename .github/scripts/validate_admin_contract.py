@@ -20,3 +20,7 @@ for label, ok in checks.items():
     print(f"{'OK' if ok else 'FAIL'}: {label}")
 if failed:
     raise SystemExit("Admin contract validation failed: " + ", ".join(failed))
+
+checks["test project identity guard"] = 'new URL(SUPABASE_URL).hostname === "uvtzhzgirgwjzsmcdgej.supabase.co"' in source
+checks["admin disables live CNY channels in test"] = 'if(isTestProject&&row.environment!=="test")' in source
+checks["admin click handler blocks live CNY enablement"] = 'enable&&isTestProject&&button.dataset.environment!=="test"' in source
