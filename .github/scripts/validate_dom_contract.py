@@ -9,6 +9,7 @@ pairs = [
     ("index.html", "app.js"),
     ("player.html", "player.js"),
     ("payment-result.html", "payment-result.js"),
+    ("account.html", "account.js"),
 ]
 failed = False
 for html_name, js_name in pairs:
