@@ -45,7 +45,7 @@
     "Test and production Supabase host mappings are isolated; unknown hosts fail closed.",
     "Six tracked Edge Functions and 55 database migrations are included in source.",
     "types/database.types.ts is generated from the independent test project's exposed public schema and RPC contracts; private schema internals are not exposed.",
-    "CI validates frontend syntax, deployment isolation, public bundle secret patterns, plan/Stripe checkout contracts, generated database types, literal HTML/JS DOM references, Deno Edge Function types, and migration source integrity.",
+    "CI validates frontend syntax, deployment isolation, public bundle secret patterns, plan/Stripe checkout contracts, generated database types, literal HTML/JS DOM references, admin/account/media workflows, Deno Edge Function types, and migration source integrity.",
     "USD recurring membership and VPN plans require configured Stripe Price IDs.",
     "CNY payment integrations remain disabled until merchant credentials and callback tests are completed.",
     "No provider secrets or service-role keys belong in public source files.",
