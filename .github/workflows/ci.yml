@@ -2,7 +2,7 @@ name: CCWU portal validation
 
 on:
   pull_request:
-    branches: [main, master]
+    branches: [fix/admin-esm-import-v2.0.2]
   push:
     branches: [fix/portal-auth-errors-v2.0.3]
 
