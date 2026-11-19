@@ -12,7 +12,7 @@ async function verifyToken(token: string, secret: string) {
   if (parts.length !== 2) return null;
   try {
     const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["verify"]);
-    if (!await crypto.subtle.verify("HMAC", key, decode(parts[1]), new TextEncoder().encode(parts[0]))) return null;
+    if (!await crypto.subtle.verify("HMAC", key, decode(parts[1]).buffer.slice(decode(parts[1]).byteOffset, decode(parts[1]).byteOffset + decode(parts[1]).byteLength) as ArrayBuffer, new TextEncoder().encode(parts[0]).buffer as ArrayBuffer)) return null;
     const payload = JSON.parse(new TextDecoder().decode(decode(parts[0])));
     if (!payload || payload.type !== "promotion_click" || !Number.isInteger(payload.exp) ||
         payload.exp < Math.floor(Date.now() / 1000) ||
