@@ -15,6 +15,7 @@ checks = {
     "manual QR settings upsert": 'db.from("manual_payment_settings").upsert' in source,
     "admin uses ES module entrypoint": '<script type="module" src="admin-v2.0.1.js?v=2.0.4"></script>' in html,
 }
+checks["admin build marker matches release"] = 'window.CCWU_BUILD_VERSION = "2.0.4";' in source
 checks["test project identity guard"] = 'new URL(SUPABASE_URL).hostname === "uvtzhzgirgwjzsmcdgej.supabase.co"' in source
 checks["admin disables live CNY channels in test"] = 'if(isTestProject&&row.environment!=="test")' in source
 checks["admin click handler blocks live CNY enablement"] = 'enable&&isTestProject&&button.dataset.environment!=="test"' in source
