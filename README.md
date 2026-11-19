@@ -1,11 +1,11 @@
-# CCWU Global Portal — source release 2.0.3
+# CCWU Global Portal — source release 2.0.4
 
 This repository contains the CCWU Global static portal, administration interface, video player, payment-result page, Supabase database migrations, and server-side Edge Functions.
 
 ## Application components
 
 - `index.html`, `app.js`: public portal and membership catalogue
-- `admin.html`, `admin-v2.0.1.js`: staff administration interface (ES module; cache-busted versioned entrypoint)
+- `admin.html`, `admin-v2.0.1.js`: staff administration interface (ES module; cache-busted v2.0.4 entrypoint with resumable video upload, poster/subtitle upload, and explicit publish/unpublish controls)
 - `player.html`, `player.js`: episode player and signed playback flow
 - `payment-result.html`, `payment-result.js`: checkout return/status page
 - `account.html`, `account.js`: authenticated customer dashboard for profile, subscriptions, and order history
@@ -44,6 +44,8 @@ All development, schema changes, function deployments, and test data belong in t
 - Staff roles are stored server-side in the private role table; browser profile metadata is not an authorization source.
 - Payment approval is restricted to the admin role. Customer order and subscription reads are ownership-scoped.
 - Private video and subtitle objects require staff access for upload; playback is issued through the server-side playback function.
+- Admin content workflow uploads posters to the public poster bucket, videos to private storage using TUS resumable uploads, and VTT/SRT/TXT subtitles to private storage. Publishing is explicit; database guards require the poster/video object to exist and the parent drama to be published first.
+- Free Supabase projects cap each file at 50 MB and include 1 GB total Storage. The admin video uploader enforces the 50 MB per-file limit; use short test clips and monitor total storage/egress.
 - The CI workflow checks browser JavaScript syntax, environment isolation, public bundle secret patterns, plan/Stripe checkout contracts, Deno types, and migration naming/version integrity.
 
 ## Current test-preview verification
@@ -54,7 +56,8 @@ The following are verified for the current test branch snapshot:
 - All six tracked Edge Functions are active in the test project and their deployed source matches the branch source.
 - The test Pages preview deployment for commit `9528a2bbaa007812867520dae1c96bf664606400` completed successfully.
 - GitHub Actions run `44464896752` passed all three jobs.
-- The public homepage, membership route, admin login shell, and player route rendered in a read-only browser smoke test without visible JavaScript errors.
+- The public homepage, membership route, account page, admin login shell, player page, and payment-result page rendered in a read-only browser smoke test without visible JavaScript errors.
+- The independent test preview resolves to the test Supabase project. No active plans, staff test account, published media, or payment methods are configured yet.
 
 These checks do not constitute full end-to-end acceptance. The test database currently has no active membership/VPN plans, no staff test account, no published media asset, and no enabled payment methods. Authenticated admin workflows, two-user ownership/IDOR cases, media playback, and provider sandbox callbacks therefore remain unverified.
 
@@ -97,6 +100,7 @@ python3 .github/scripts/validate_admin_contract.py
 python3 .github/scripts/validate_cn_payment_contract.py
 python3 .github/scripts/validate_frontend_db_contract.py
 python3 .github/scripts/validate_account_contract.py
+python3 .github/scripts/validate_media_admin_contract.py
 ```
 
 The Edge Function checks use Deno 2:
