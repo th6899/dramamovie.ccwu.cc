@@ -14,6 +14,9 @@ let imaDisplay = null;
 let activeAdRequest = false;
 let midrollDone = new Set();
 let postrollDone = false;
+const adSessionFingerprint = crypto.randomUUID();
+let adEventQueue = [];
+let activeSlot = null;
 
 const esc = (value) => String(value ?? "").replace(/[&<>"']/g, (char) => ({
   "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
@@ -91,6 +94,31 @@ function resumeContent() {
   video.play().catch(() => {});
 }
 
+async function flushAdEvents() {
+  if (!playback?.ad_event_token || !adEventQueue.length) return;
+  const batch = adEventQueue.splice(0, 30);
+  const { error } = await db.functions.invoke("record-video-ad-events", { body: { token: playback.ad_event_token, events: batch } });
+  if (error) console.warn("[CCWU Player] Ad event ingestion failed", error);
+}
+function queueAdEvent(slot, eventType, errorCode = "") {
+  if (!playback?.ad_event_token || !slot?.id) return;
+  adEventQueue.push({ config_id: slot.id, event_type: eventType, session_fingerprint: adSessionFingerprint, error_code: errorCode });
+  if (adEventQueue.length >= 10 || ["complete","error","skip"].includes(eventType)) void flushAdEvents();
+}
+function attachImaTracking(manager, slot) {
+  const map = [
+    [google.ima.AdEvent.Type.IMPRESSION, "impression"],
+    [google.ima.AdEvent.Type.STARTED, "start"],
+    [google.ima.AdEvent.Type.FIRST_QUARTILE, "first_quartile"],
+    [google.ima.AdEvent.Type.MIDPOINT, "midpoint"],
+    [google.ima.AdEvent.Type.THIRD_QUARTILE, "third_quartile"],
+    [google.ima.AdEvent.Type.COMPLETE, "complete"],
+    [google.ima.AdEvent.Type.SKIPPED, "skip"],
+    [google.ima.AdEvent.Type.CLICK, "click"]
+  ];
+  map.forEach(([imaType, eventType]) => manager.addEventListener(imaType, () => queueAdEvent(slot, eventType)));
+}
+
 function setupIma() {
   if (!window.google?.ima) return false;
   if (adsLoader) return true;
@@ -102,7 +130,11 @@ function setupIma() {
       (event) => {
         try {
           adsManager = event.getAdsManager(video);
-          adsManager.addEventListener(google.ima.AdErrorEvent.Type.AD_ERROR, resumeContent);
+          attachImaTracking(adsManager, activeSlot);
+          adsManager.addEventListener(google.ima.AdErrorEvent.Type.AD_ERROR, (error) => {
+            queueAdEvent(activeSlot, "error", error?.getError?.()?.getErrorCode?.()?.toString?.() || "IMA_ERROR");
+            resumeContent();
+          });
           adsManager.addEventListener(google.ima.AdEvent.Type.ALL_ADS_COMPLETED, resumeContent);
           adsManager.addEventListener(google.ima.AdEvent.Type.CONTENT_RESUME_REQUESTED, resumeContent);
           adsManager.init(video.clientWidth || 640, video.clientHeight || 360, google.ima.ViewMode.NORMAL);
@@ -128,6 +160,8 @@ function requestAd(slot) {
   }
   if (activeAdRequest) return;
   activeAdRequest = true;
+  activeSlot = slot;
+  queueAdEvent(slot, "ad_request");
   video.pause();
   $("adStatus").textContent = "正在加载广告…";
   try {
