@@ -5,26 +5,27 @@
 <section class="panel" id="payments" style="margin-top:20px">
   <span class="eyebrow">PAYMENT INFRASTRUCTURE</span>
   <h2>支付通道接入中心</h2>
-  <p class="muted">此页面展示接入准备状态。未完成商户认证、密钥配置、服务端适配器和回调验签的通道一律保持关闭，不会创建虚假付款或自动开通服务。</p>
+  <p class="muted">这里只列出当前代码中确实存在的支付流程。测试环境与生产环境严格隔离；所有支付通道默认关闭，未完成沙箱验签和对账前不得启用真实收款。</p>
   <div class="admin-kpis payment-channel-grid">
-    <article class="kpi"><span>美元银行卡</span><strong>Stripe（国际）</strong><small>仍需商户审核、服务端密钥与 Webhook 配置</small></article>
-    <article class="kpi"><span>国际账户收款</span><strong>PayPal</strong><small>新增通道；需 PayPal Business 账户、REST App 与 Webhook 验签</small></article>
-    <article class="kpi"><span>支付宝</span><strong>二维码待上传</strong><small>独立接入；请求签名、异步通知验签</small></article>
-    <article class="kpi"><span>微信支付</span><strong>二维码待上传</strong><small>API v3；需开通 H5 等产品权限并配置域名</small></article>
-    <article class="kpi"><span>Binance Pay</span><strong>待商户资格</strong><small>使用 Binance Pay 商户 API，不使用普通交易 API</small></article>
-    <article class="kpi"><span>OKX Pay</span><strong>待资格核实</strong><small>需确认商户接入资格、地区及支持网络</small></article>
+    <article class="kpi"><span>美元订阅</span><strong>Stripe Checkout</strong><small>后端结账与 Webhook 已实现；测试密钥、价格 ID 和端到端沙箱验收尚未完成。</small></article>
+    <article class="kpi"><span>人民币自动收款</span><strong>支付宝沙箱</strong><small>RSA2 请求/回调验签已实现；需配置真实沙箱商户凭据，当前保持关闭。</small></article>
+    <article class="kpi"><span>人民币自动收款</span><strong>微信支付 API v3</strong><small>Native 接口已实现；没有独立零资金沙箱，测试环境禁止启用。</small></article>
   </div>
-  <div class="notice"><strong>安全规则</strong><ul><li>商户密钥只保存在 Supabase Edge Function Secrets，不写入网页、Git 或数据库明文字段。</li><li>浏览器只能发起结账请求，不能自行把订单改成 paid。</li><li>回调必须验签、核对金额/币种/商户订单号，并使用幂等键防止重复入账。</li><li>USDT 必须核对指定网络、代币合约、收款地址、确认数和交易哈希；不能仅凭用户截图认定到账。</li><li>Stripe 测试流程已编写：创建 Checkout Session、验签 Webhook、幂等处理并在确认付款后开通会员/VPN；必须先应用数据库脚本并部署函数才能测试。不能只依赖浏览器返回成功页。</li><li>PayPal 使用 Orders v2 服务端创建订单与捕获付款；必须验证订单金额、币种、商户订单号，并验签 Webhook（如 PAYMENT.CAPTURE.COMPLETED）后才能开通权益。PayPal Client Secret 只能存放在 Supabase Edge Function Secrets，不能放进前端或普通设置表。</li><li>OKX Pay 与 Binance Pay 是商户支付产品；普通交易所 API 不等于商户收款接口。</li><li>PayPal Sandbox 与 Live 使用不同的 REST App 凭据；先完成 Sandbox 测试，再切换 Live。仅填写 PayPal 收款邮箱不代表 API 通道已接通。</li></ul></div>
-  <p class="form-message" id="paymentReadinessMsg">v1.7 规划新增 PayPal 国际收款通道。当前此处为接入准备状态，PayPal 后端适配器、Sandbox/Live 凭据和 Webhook 验签尚未部署；在完成端到端测试前保持关闭。支付宝/微信二维码仍需管理员上传真实收款码。</p>
+  <div class="notice"><strong>支付安全边界</strong><ul>
+    <li>浏览器只能创建结账请求，不能自行把订单标记为已付款或开通权益。</li>
+    <li>Stripe 仅使用测试模式密钥和测试 Price ID 完成验证；正式密钥不配置在测试项目。</li>
+    <li>支付宝自动收款仅使用官方沙箱网关和沙箱密钥；验签、金额/币种核对及重复通知测试通过前保持关闭。</li>
+    <li>微信支付 Native API v3 不具备独立零资金沙箱，当前测试项目保持关闭，不发起真实商户扣款。</li>
+    <li>下方人工二维码是独立流程，必须由商户上传真实收款码，并由管理员核实实际到账后人工审核。</li>
+    <li>PayPal、Binance Pay、OKX Pay 和链上 USDT 当前不属于已完成的支付接入，不显示为可用通道。</li>
+  </ul></div>
+  <p class="form-message" id="paymentReadinessMsg">测试环境尚未完成支付端到端验收。所有支付方法保持关闭；请勿将测试环境用于真实收款。</p>
   <h3>自动二维码收款通道（CNY）</h3>
-  <p class="muted">自动通道与下方人工收款码分开管理。支付宝可先使用沙箱测试；微信支付 API v3 没有独立的零资金沙箱，因此测试项目禁止启用微信 Native 自动扣款。商户密钥只配置在 Supabase Edge Function Secrets。</p>
+  <p class="muted">自动通道与下方人工收款码分开管理。支付宝仅可在配置沙箱凭据后进行沙箱测试；微信支付 API v3 在此测试项目中保持关闭。密钥只能配置在 Supabase 测试项目的 Edge Function Secrets。</p>
   <button class="btn btn-outline" id="refreshNativePaymentMethods" type="button">刷新自动通道状态</button>
   <p class="form-message" id="nativePaymentStatus" role="status" aria-live="polite">正在读取通道与密钥配置状态…</p>
   <div class="table-wrap"><table><thead><tr><th>通道</th><th>币种</th><th>环境</th><th>凭据就绪</th><th>状态</th><th>操作</th></tr></thead><tbody id="nativePaymentRows"><tr><td colspan="6">等待加载</td></tr></tbody></table></div>
-  <div class="notice"><strong>启用规则</strong><ul><li>支付宝测试通道必须先配置沙箱 APP ID、商户私钥、支付宝公钥和沙箱网关，才允许启用。</li><li>微信 Native API v3 在此测试项目中保持关闭；正式收款必须另行配置商户证书、API v3 密钥和平台公钥，并显式打开 Live gate。</li><li>任何通道启用后仍需真实的回调验签、金额核对和幂等入账；不能仅凭前端返回结果开通权益。</li></ul></div>
-  <h3>PayPal 国际收款接入准备</h3>
-  <p class="muted">PayPal 已加入通道清单，但当前尚未启用。正式接入采用 PayPal Checkout Orders v2：服务端创建订单、用户在 PayPal 完成授权、服务端捕获付款，并通过 Webhook 核实最终到账状态。</p>
-  <div class="notice"><strong>待配置项目</strong><ul><li>PayPal Business 收款账户及账户邮箱</li><li>PayPal Developer Dashboard 创建 Sandbox REST App，取得 Client ID / Secret</li><li>部署 PayPal 创建订单、捕获订单及 Webhook Edge Functions</li><li>配置 Webhook ID，并验证 PAYMENT.CAPTURE.COMPLETED 等事件</li><li>完成 Sandbox 付款、金额/币种核对和重复通知测试后，再配置 Live 凭据</li></ul><p>Client Secret 不会提供网页输入框，也不会写入数据库；必须通过 Supabase Edge Function Secrets 安全配置。</p></div>
+  <div class="notice"><strong>启用规则</strong><ul><li>支付宝测试通道必须先配置沙箱 APP ID、商户私钥、支付宝公钥和官方沙箱网关，才允许启用。</li><li>微信 Native API v3 在此测试项目中保持关闭；任何真实商户收款必须另行授权并使用独立生产配置。</li><li>通道启用后仍必须通过服务端验签、金额核对和幂等入账；不能仅凭浏览器返回结果开通权益。</li></ul></div>
   <hr style="border:0;border-top:1px solid #e4ece9;margin:24px 0">
   <h3>支付宝 / 微信收款二维码</h3><p class="muted">仅支持人民币（CNY）套餐的静态二维码收款。图片上传到 Supabase Storage；客户提交付款单号后进入人工审核。</p>
   <form id="manualQrForm" class="form-grid" novalidate>
