@@ -47,6 +47,8 @@ jobs:
           deno check --no-lock supabase/functions/stripe-webhook/index.ts
           deno check --no-lock supabase/functions/get-episode-playback/index.ts
           deno check --no-lock supabase/functions/cn-payment/index.ts
+          deno check --no-lock supabase/functions/track-episode-promotion/index.ts
+          deno check --no-lock supabase/functions/record-video-ad-events/index.ts
 
   migrations:
     name: Migration source integrity
