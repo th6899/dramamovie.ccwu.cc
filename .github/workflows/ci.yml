@@ -38,6 +38,8 @@ jobs:
         run: python3 .github/scripts/validate_database_types.py
       - name: Check HTML and JavaScript DOM contracts
         run: python3 .github/scripts/validate_dom_contract.py
+      - name: Check admin authentication and settings contracts
+        run: python3 .github/scripts/validate_admin_contract.py
 
   edge-functions:
     name: Supabase Edge Function type checks
