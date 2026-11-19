@@ -15,12 +15,12 @@ checks = {
     "manual QR settings upsert": 'db.from("manual_payment_settings").upsert' in source,
     "admin uses ES module entrypoint": '<script type="module" src="admin-v2.0.1.js?v=2.0.3"></script>' in html,
 }
+checks["test project identity guard"] = 'new URL(SUPABASE_URL).hostname === "uvtzhzgirgwjzsmcdgej.supabase.co"' in source
+checks["admin disables live CNY channels in test"] = 'if(isTestProject&&row.environment!=="test")' in source
+checks["admin click handler blocks live CNY enablement"] = 'enable&&isTestProject&&button.dataset.environment!=="test"' in source
+
 failed = [label for label, ok in checks.items() if not ok]
 for label, ok in checks.items():
     print(f"{'OK' if ok else 'FAIL'}: {label}")
 if failed:
     raise SystemExit("Admin contract validation failed: " + ", ".join(failed))
-
-checks["test project identity guard"] = 'new URL(SUPABASE_URL).hostname === "uvtzhzgirgwjzsmcdgej.supabase.co"' in source
-checks["admin disables live CNY channels in test"] = 'if(isTestProject&&row.environment!=="test")' in source
-checks["admin click handler blocks live CNY enablement"] = 'enable&&isTestProject&&button.dataset.environment!=="test"' in source
