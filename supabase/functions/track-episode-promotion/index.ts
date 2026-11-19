@@ -48,10 +48,11 @@ Deno.serve(async (req) => {
     if (error || typeof target !== "string") return new Response("Promotion is no longer available", { status: 404, headers: { "cache-control": "no-store" } });
     let destination: URL;
     try { destination = new URL(target); } catch { return new Response("Invalid destination", { status: 400 }); }
+    const host = destination.hostname.toLowerCase();
+    const isIp = host.startsWith("[") || /^\d{1,3}(?:\.\d{1,3}){3}$/.test(host);
     if (destination.protocol !== "https:" || destination.username || destination.password ||
-        destination.hostname === "localhost" || destination.hostname.endsWith(".localhost") ||
-        destination.hostname.endsWith(".local") || destination.hostname.startsWith("127.") ||
-        destination.hostname.startsWith("10.") || destination.hostname.startsWith("192.168.")) {
+        (destination.port && destination.port !== "443") || host === "localhost" ||
+        host.endsWith(".localhost") || host.endsWith(".local") || isIp) {
       return new Response("Invalid destination", { status: 400 });
     }
     return new Response(null, { status: 302, headers: { location: destination.toString(), "cache-control": "no-store, max-age=0", "referrer-policy": "no-referrer" } });
