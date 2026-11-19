@@ -5,6 +5,7 @@ from pathlib import Path
 playback = Path("supabase/functions/get-episode-playback/index.ts").read_text(encoding="utf-8")
 admin = Path("admin-v2.0.1.js").read_text(encoding="utf-8")
 storage = Path("supabase/migrations/20261118121527_restrict_cinema_storage_staff_to_admin_editor.sql").read_text(encoding="utf-8")
+free_limit = Path("supabase/migrations/20261119181000_enforce_free_video_upload_limit.sql").read_text(encoding="utf-8")
 
 checks = {
     "validates bearer JWT with Supabase Auth": 'admin.auth.getUser(token)' in playback,
@@ -20,6 +21,7 @@ checks = {
     "staff upload restricted to admin/editor": "r.role IN ('admin','editor')" in storage,
     "private media read restricted to admin/editor": "FOR SELECT TO authenticated" in storage and "ccwu-cinema-videos','ccwu-cinema-subtitles" in storage,
     "video uploader enforces free per-file limit": 'file.size > 50 * 1024 * 1024' in admin,
+    "Storage bucket enforces 50 MB server-side limit": "file_size_limit = 52428800" in free_limit and "public = false" in free_limit,
 }
 failed = [name for name, passed in checks.items() if not passed]
 for name, passed in checks.items():
