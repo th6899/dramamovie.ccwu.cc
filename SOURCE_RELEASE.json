@@ -1,5 +1,5 @@
 {
-  "release": "2.0.3",
+  "release": "2.0.4",
   "source_basis": "user-provided v1.9.1 Native QR Picker ZIP, subsequently extended with the CCWU Global portal frontend and Supabase backend",
   "files": [
     "README.md",
@@ -28,6 +28,7 @@
     ".github/scripts/validate_cn_payment_contract.py",
     ".github/scripts/validate_frontend_db_contract.py",
     ".github/scripts/validate_account_contract.py",
+    ".github/scripts/validate_media_admin_contract.py",
     "supabase/migrations/",
     "supabase/functions/create-checkout/",
     "supabase/functions/stripe-webhook/",
@@ -38,7 +39,8 @@
     "docs/"
   ],
   "notes": [
-    "Version 2.0.3 is a static portal plus Supabase backend source release; it is not a frontend-only diagnostic package.",
+    "Version 2.0.4 adds staff media upload, explicit publish/unpublish controls, and published-subtitle-only playback.",
+    "Version 2.0.4 is a static portal plus Supabase backend source release; it is not a frontend-only diagnostic package.",
     "Admin entrypoint is loaded as an ES module from admin-v2.0.1.js with an explicit cache-busting version.",
     "Test and production Supabase host mappings are isolated; unknown hosts fail closed.",
     "Six tracked Edge Functions and 55 database migrations are included in source.",
@@ -47,6 +49,7 @@
     "USD recurring membership and VPN plans require configured Stripe Price IDs.",
     "CNY payment integrations remain disabled until merchant credentials and callback tests are completed.",
     "No provider secrets or service-role keys belong in public source files.",
-    "Production merge and deployment are separate release gates requiring explicit authorization."
+    "Production merge and deployment are separate release gates requiring explicit authorization.",
+    "The admin video uploader enforces Supabase Free's 50 MB per-file upload limit and uses TUS resumable uploads."
   ]
 }
