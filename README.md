@@ -8,6 +8,7 @@ This repository contains the CCWU Global static portal, administration interface
 - `admin.html`, `admin-v2.0.1.js`: staff administration interface (ES module; cache-busted versioned entrypoint)
 - `player.html`, `player.js`: episode player and signed playback flow
 - `payment-result.html`, `payment-result.js`: checkout return/status page
+- `account.html`, `account.js`: authenticated customer dashboard for profile, subscriptions, and order history
 - `config.js`: host-based Supabase project selection and browser-safe publishable key
 - `_headers`: baseline security headers for Cloudflare Pages static hosting
 - `supabase/migrations/`: versioned database schema, RLS, storage policies, payment and entitlement functions
@@ -83,6 +84,8 @@ node --input-type=module --check < app.js
 node --input-type=module --check < admin-v2.0.1.js
 node --input-type=module --check < config.js
 node --input-type=module --check < player.js
+node --input-type=module --check < payment-result.js
+node --input-type=module --check < account.js
 python3 .github/scripts/validate_portal.py
 python3 .github/scripts/validate_plan_checkout.py
 python3 .github/scripts/validate_migrations.py
@@ -91,6 +94,7 @@ python3 .github/scripts/validate_dom_contract.py
 python3 .github/scripts/validate_admin_contract.py
 python3 .github/scripts/validate_cn_payment_contract.py
 python3 .github/scripts/validate_frontend_db_contract.py
+python3 .github/scripts/validate_account_contract.py
 ```
 
 The Edge Function checks use Deno 2:
