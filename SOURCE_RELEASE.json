@@ -53,7 +53,7 @@
     "Production merge and deployment are separate release gates requiring explicit authorization.",
     "The admin video uploader enforces Supabase Free's 50 MB per-file upload limit and uses TUS resumable uploads.",
     "The test project's private video Storage bucket now enforces a 50 MB per-file maximum server-side, matching the admin uploader and Supabase Free plan.",
-    "Latest CI run #270 passed all three jobs, including playback JWT, content entitlement, signed media URL, private storage policy, and server-side file-limit contracts.",
+    "Latest CI run #274 (`44491407035`) passed all three jobs, including playback JWT, content entitlement, signed media URL, private storage policy, and server-side file-limit contracts.",
     "The source tree contains 56 migrations, matching all 56 applied migration versions in the independent test database."
   ]
 }
