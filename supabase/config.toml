@@ -10,3 +10,9 @@ verify_jwt = false
 
 [functions.cn-payment]
 verify_jwt = false
+
+[functions.track-episode-promotion]
+verify_jwt = false
+
+[functions.record-video-ad-events]
+verify_jwt = false
