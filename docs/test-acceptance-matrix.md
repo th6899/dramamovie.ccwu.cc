@@ -14,6 +14,7 @@ This matrix records what has been verified in the independent test environment a
 | DB-03 | Owner reads | Orders, profiles, membership subscriptions, and VPN subscriptions have owner-scoped read policies | PASS |
 | DB-04 | Profile editing | Authenticated users can update only profiles.display_name; role-column UPDATE remains denied | PASS |
 | DB-05 | Financial write isolation | Browser roles cannot INSERT/UPDATE/DELETE service_orders; VPN plan writes require admin/editor | PASS |
+| DB-05 | Financial write isolation | Browser roles cannot INSERT/UPDATE/DELETE service_orders; VPN plan writes require admin/editor | PASS |
 | FN-01 | Edge Function parity | Six deployed test functions match their branch source; get-episode-playback v6, create-checkout v3, and cn-payment v7 | PASS |
 | FN-02 | Function checks | All six Edge Functions pass Deno 2 type checking | PASS |
 | PAY-01 | Stripe mode | Checkout function requires sk_test_ and validates recurring USD Price ID/amount/currency/interval | PASS |
