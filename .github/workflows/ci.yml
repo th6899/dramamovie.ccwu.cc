@@ -1,6 +1,7 @@
 name: CCWU portal validation
 
 on:
+  workflow_dispatch:
   pull_request:
     branches: [fix/admin-esm-import-v2.0.2]
   push:
