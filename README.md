@@ -1,11 +1,11 @@
-# CCWU Global Portal — source release 2.0.4
+# CCWU Global Portal — source release 2.0.5
 
 This repository contains the CCWU Global static portal, administration interface, video player, payment-result page, Supabase database migrations, and server-side Edge Functions.
 
 ## Application components
 
 - `index.html`, `app.js`: public portal and membership catalogue
-- `admin.html`, `admin-v2.0.1.js`: staff administration interface (ES module; cache-busted v2.0.4 entrypoint with resumable video upload, poster/subtitle upload, and explicit publish/unpublish controls)
+- `admin.html`, `admin-v2.0.1.js`: staff administration interface (ES module; cache-busted v2.0.5 entrypoint with resumable video upload, poster/subtitle upload, and explicit publish/unpublish controls)
 - `player.html`, `player.js`: episode player and signed playback flow
 - `payment-result.html`, `payment-result.js`: checkout return/status page
 - `account.html`, `account.js`: authenticated customer dashboard for profile, subscriptions, and order history
@@ -44,7 +44,7 @@ All development, schema changes, function deployments, and test data belong in t
 - Staff roles are stored server-side in the private role table; browser profile metadata is not an authorization source.
 - Payment approval is restricted to the admin role. Customer order and subscription reads are ownership-scoped.
 - Private video and subtitle objects require staff access for upload; playback is issued through the server-side playback function.
-- Admin content workflow uploads posters to the public poster bucket, videos to private storage using TUS resumable uploads, and VTT/SRT/TXT subtitles to private storage. Publishing is explicit; database guards require the poster/video object to exist and the parent drama to be published first.
+- Admin content workflow uploads posters to the public poster bucket, videos to private storage using TUS resumable uploads, and VTT subtitles to private storage. SRT files are converted to WebVTT before upload; arbitrary TXT and raw SRT objects are rejected. Publishing is explicit; database guards require the poster/video object to exist and the parent drama to be published first.
 - Free Supabase projects cap each file at 50 MB and include 1 GB total Storage. Both the admin uploader and the private Storage bucket enforce the 50 MB per-file limit; use short test clips and monitor total storage/egress.
 - The CI workflow checks browser JavaScript syntax, environment isolation, public bundle secret patterns, plan/Stripe checkout contracts, Deno types, admin media upload/publish contracts, and migration naming/version integrity.
 
@@ -52,7 +52,7 @@ All development, schema changes, function deployments, and test data belong in t
 
 The following are verified for the current test branch snapshot:
 
-- 57 migration files exist in source and all 57 corresponding versions are applied to the test database.
+- 58 migration files exist in source and all 58 corresponding versions are applied to the test database.
 - All six tracked Edge Functions are active in the test project and their deployed source matches the branch source.
 - The test Pages preview deployment for commit `9528a2bbaa007812867520dae1c96bf664606400` completed successfully.
 - Latest GitHub Actions run #282 (`44492451783`) for head `d1855417a264454b33ee424ee2d0beea185a4895`. for commit `1c1c854e787a1a09ab8b339ed49b46b168764cae` passed all three jobs.
