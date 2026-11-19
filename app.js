@@ -31,6 +31,10 @@ $("authForm").onsubmit=async e=>{
   $("authMessage").textContent=mode==="signup"?"注册请求已提交，请按邮件提示完成验证。":"登录成功。";
   if(mode==="login"){
    $("authModal").classList.add("hidden");
+   if(new URLSearchParams(location.search).get("return")==="account"){
+    location.href="./account.html";
+    return;
+   }
    await refreshUser();
   }
  }catch(error){
@@ -40,7 +44,7 @@ $("authForm").onsubmit=async e=>{
   submit.disabled=false;
  }
 };
-function updateUserUI(user){$("userLabel").textContent=user?user.email:"访客";$("authButton").textContent=user?"账户 / 退出":"登录 / 注册";$("authButton").onclick=async()=>{if(user){const {error}=await db.auth.signOut();if(error){$("authMessage").textContent=error.message||"退出登录失败。";return;}updateUserUI(null);}else showAuth();}}
+function updateUserUI(user){$("userLabel").textContent=user?user.email:"访客";$("authButton").textContent=user?"账户中心":"登录 / 注册";$("authButton").onclick=()=>{if(user){location.href="./account.html";}else showAuth();};}
 async function refreshUser(){const {data:{user},error}=await db.auth.getUser();if(error)throw error;updateUserUI(user);}
 let activeManualOrder = null;
 let manualPaymentSettings = null;
@@ -181,3 +185,4 @@ $("manualPayForm").addEventListener("submit",async e=>{
 $("menuBtn").onclick=()=>{const n=document.querySelector(".topbar nav");n.style.display=n.style.display==="flex"?"none":"flex";n.style.position="absolute";n.style.top="76px";n.style.left="0";n.style.right="0";n.style.padding="20px";n.style.background="white";n.style.flexDirection="column"};
 db.auth.onAuthStateChange((_event,session)=>{updateUserUI(session?.user??null);});
 await render();await refreshUser();
+if(new URLSearchParams(location.search).get("auth")==="login")showAuth();
