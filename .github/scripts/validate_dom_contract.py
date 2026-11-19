@@ -16,10 +16,10 @@ for html_name, js_name in pairs:
         raise SystemExit(f"Missing DOM audit input: {html_name} or {js_name}")
     html = html_path.read_text(encoding="utf-8")
     js = js_path.read_text(encoding="utf-8")
-    ids = re.findall(r'\\bid=["\\\']([^"\\\']+)["\\\']', html)
+    ids = re.findall(r"\bid=[\"']([^\"']+)[\"']", html)
     counts = Counter(ids)
     duplicates = sorted(key for key, count in counts.items() if count > 1)
-    refs = set(re.findall(r'\\$\\(["\\\']([^"\\\']+)["\\\']\\)', js))
+    refs = set(re.findall(r"\$\([\"']([^\"']+)[\"']\)", js))
     missing = sorted(refs - set(ids))
     if duplicates or missing:
         failed = True
