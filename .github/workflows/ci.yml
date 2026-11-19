@@ -48,6 +48,8 @@ jobs:
         run: python3 .github/scripts/validate_account_contract.py
       - name: Check admin media upload and content publishing workflow
         run: python3 .github/scripts/validate_media_admin_contract.py
+      - name: Check playback authorization and private media storage contracts
+        run: python3 .github/scripts/validate_playback_security_contract.py
 
   edge-functions:
     name: Supabase Edge Function type checks
