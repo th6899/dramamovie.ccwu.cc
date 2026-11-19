@@ -60,6 +60,10 @@ The following are live-merchant configuration names only and must not be populat
 5. Keep all payment methods disabled until the corresponding sandbox flow has been tested.
 6. Never copy test secrets into production or production secrets into test.
 
+## Free-plan storage limits
+
+Supabase Free projects allow a maximum upload size of 50 MB per file and include 1 GB total Storage. The admin uploader therefore caps each video at 50 MB and uses resumable uploads for reliability; this is suitable for short test clips, not a full-length video library. Keep test media small to stay within the free quota.
+
 ## Current verified blockers
 
 At the latest read-only audit, provider credentials were not configured, all payment methods were disabled, and no payment transactions existed. The test project's `cn-payment` Edge Function now rejects any enabled CNY payment method whose environment is not `test`; the admin console also blocks enabling live CNY methods and locks manual real-merchant QR toggles in this test project. The test project also still requires a dedicated staff account, a second ordinary test account, and an authorized media asset before authenticated admin, ownership-isolation, and playback acceptance tests can be completed.
