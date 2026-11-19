@@ -20,6 +20,8 @@ checks = {
 }
 checks["login prompt remains visible without JavaScript"] = 'id="accountLoginPrompt" class="account-card"' in page
 
+checks["login modal opens before async homepage data loading"] = home.index('get("auth")==="login"') < home.index("await render();await refreshUser();")
+
 failed = [label for label, ok in checks.items() if not ok]
 for label, ok in checks.items():
     print(f"{'OK' if ok else 'FAIL'}: {label}")
