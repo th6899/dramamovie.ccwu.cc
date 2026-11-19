@@ -415,12 +415,20 @@ async function loadManualPaymentSettings(){
  currentQrPaths={alipay_qr_path:settings.alipay_qr_path||null,wechat_qr_path:settings.wechat_qr_path||null};
  $("alipayQrEnabled").checked=!!settings.alipay_enabled;
  $("wechatQrEnabled").checked=!!settings.wechat_enabled;
+ $("alipayQrEnabled").disabled=isTestProject;
+ $("wechatQrEnabled").disabled=isTestProject;
+ if(isTestProject){
+  $("alipayQrEnabled").checked=false;
+  $("wechatQrEnabled").checked=false;
+  setMessage("manualQrMsg","测试项目禁止启用人工收款二维码，避免产生真实资金交易。");
+ }
  $("manualPayInstructions").value=settings.instructions||"请扫码付款，并提交付款单号；管理员核实到账后开通服务。";
  await Promise.all([showSavedQr(currentQrPaths.alipay_qr_path,"alipayQrPreview","支付宝二维码"),showSavedQr(currentQrPaths.wechat_qr_path,"wechatQrPreview","微信二维码")]);
 }
 $("manualQrForm")?.addEventListener("submit",async event=>{
  event.preventDefault();setMessage("manualQrMsg","正在上传并保存…");
  try{
+  if(isTestProject&&($("alipayQrEnabled").checked||$("wechatQrEnabled").checked))throw new Error("测试项目禁止启用人工收款二维码，避免产生真实资金交易。");
   if($("alipayQrEnabled").checked&&!$("alipayQrFile").files[0]&&!currentQrPaths.alipay_qr_path)throw new Error("启用支付宝前，请先选择并保存支付宝二维码图片。");
   if($("wechatQrEnabled").checked&&!$("wechatQrFile").files[0]&&!currentQrPaths.wechat_qr_path)throw new Error("启用微信支付前，请先选择并保存微信二维码图片。");
   const payload={alipay_enabled:$("alipayQrEnabled").checked,wechat_enabled:$("wechatQrEnabled").checked,instructions:$("manualPayInstructions").value.trim(),updated_at:new Date().toISOString(),updated_by:currentUser.id};
