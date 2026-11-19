@@ -102,16 +102,35 @@ $("logout").addEventListener("click", async () => {
 
 async function checkStaff(user) {
   currentUser = user;
+  const provider = user?.app_metadata?.provider || user?.identities?.[0]?.provider || "unknown";
   const { data, error } = await db.rpc("is_staff");
   if (error || data !== true) {
-    await db.auth.signOut();
-    currentUser = null;
-    setMessage("loginMsg", error ? `权限验证失败：${error.message}` : "此账户没有后台 staff 权限。", true);
+    // Keep the authenticated session for safe diagnostics. No dashboard data or
+    // write controls are exposed unless the server-side is_staff RPC returns true.
+    const projectRef = (() => {
+      try { return new URL(SUPABASE_URL).hostname.split(".")[0]; }
+      catch { return "unknown"; }
+    })();
+    const details = [
+      "GitHub 身份认证已完成，但管理员权限核验未通过。",
+      `邮箱：${user?.email || "未返回"}`,
+      `Supabase UID：${user?.id || "未返回"}`,
+      `登录提供方：${provider}`,
+      `当前 Supabase 项目：${projectRef}`,
+      `is_staff() 返回：${error ? "调用错误" : String(data)}`,
+      error ? `权限接口错误：${error.message}` : "请核对该 UID 是否拥有 private.user_roles 中的 admin/editor/support 角色。"
+    ];
+    setMessage("loginMsg", details.join("\\n"), true);
+    console.warn("[CCWU Admin] Staff check failed", {
+      userId: user?.id, email: user?.email, provider, projectRef,
+      isStaff: data, error: error?.message || null
+    });
     return;
   }
   $("loginPanel").classList.add("hidden");
   $("dashboard").classList.remove("hidden");
   $("adminUser").textContent = user.email || "管理员";
+  setMessage("loginMsg", "");
   await loadAll();
 }
 
