@@ -46,7 +46,7 @@ All development, schema changes, function deployments, and test data belong in t
 - Private video and subtitle objects require staff access for upload; playback is issued through the server-side playback function.
 - Admin content workflow uploads posters to the public poster bucket, videos to private storage using TUS resumable uploads, and VTT/SRT/TXT subtitles to private storage. Publishing is explicit; database guards require the poster/video object to exist and the parent drama to be published first.
 - Free Supabase projects cap each file at 50 MB and include 1 GB total Storage. The admin video uploader enforces the 50 MB per-file limit; use short test clips and monitor total storage/egress.
-- The CI workflow checks browser JavaScript syntax, environment isolation, public bundle secret patterns, plan/Stripe checkout contracts, Deno types, and migration naming/version integrity.
+- The CI workflow checks browser JavaScript syntax, environment isolation, public bundle secret patterns, plan/Stripe checkout contracts, Deno types, admin media upload/publish contracts, and migration naming/version integrity.
 
 ## Current test-preview verification
 
@@ -57,6 +57,7 @@ The following are verified for the current test branch snapshot:
 - The test Pages preview deployment for commit `9528a2bbaa007812867520dae1c96bf664606400` completed successfully.
 - GitHub Actions run `44464896752` passed all three jobs.
 - The public homepage, membership route, account page, admin login shell, player page, and payment-result page rendered in a read-only browser smoke test without visible JavaScript errors.
+- The latest public test preview serves the v2.0.4 admin page and its cache-busted ES module, including TUS video upload, the Free-plan 50 MB limit, and explicit drama/episode publish controls; no admin sign-in or write test was performed.
 - The independent test preview resolves to the test Supabase project. No active plans, staff test account, published media, or payment methods are configured yet.
 
 These checks do not constitute full end-to-end acceptance. The test database currently has no active membership/VPN plans, no staff test account, no published media asset, and no enabled payment methods. Authenticated admin workflows, two-user ownership/IDOR cases, media playback, and provider sandbox callbacks therefore remain unverified.
