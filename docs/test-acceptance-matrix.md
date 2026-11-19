@@ -8,7 +8,7 @@ This matrix records what has been verified in the independent test environment a
 |---|---|---|---|
 | ENV-01 | Host isolation | Test Pages hosts resolve to test Supabase; known production hosts resolve to production; unknown hosts fail closed | PASS |
 | ENV-02 | Static deployment | Current test branch preview serves the latest source changes | PASS |
-| DB-01 | Schema migrations | 54 source migrations match 54 applied test database versions | PASS |
+| DB-01 | Schema migrations | 55 source migrations match 55 applied test database versions | PASS |
 | DB-02 | RLS baseline | All public tables have RLS enabled; private ledgers are RLS default-deny | PASS |
 | DB-03 | Owner reads | Orders, profiles, membership subscriptions, and VPN subscriptions have owner-scoped read policies | PASS |
 | FN-01 | Edge Function parity | Six deployed test functions match their branch source; create-checkout v3 and cn-payment v7 | PASS |
