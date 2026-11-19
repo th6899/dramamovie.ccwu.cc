@@ -1,50 +1,96 @@
-# CCWU Global Portal — source release 2.0.2
+# CCWU Global Portal — source release 2.0.3
 
-This repository contains the static frontend source recovered from the supplied CCWU Global v1.9.1 package, with a source-level QR picker accessibility/activation hardening and a visible build marker.
+This repository contains the CCWU Global static portal, administration interface, video player, payment-result page, Supabase database migrations, and server-side Edge Functions.
 
-## Files
-- `index.html`, `app.js`: public portal
-- `admin.html`, `admin.js`: administration UI
-- `player.html`, `player.js`: video player
-- `payment-result.html`, `payment-result.js`: payment result page
-- `styles.css`: shared styles
-- `config.js`: Supabase project URL and publishable browser key
+## Application components
 
-## Important deployment boundary
-This repository is frontend source only. It does **not** include Supabase database migrations, Edge Functions, payment-provider secrets, webhook verification, or provider credentials. Do not treat Stripe, PayPal, Alipay, WeChat Pay, Binance Pay, or OKX Pay as live merely because a UI option exists. A real payment channel requires server-side order creation, signature verification/webhooks, idempotency, and reconciliation.
+- `index.html`, `app.js`: public portal and membership catalogue
+- `admin.html`, `admin-v2.0.1.js`: staff administration interface (ES module; cache-busted versioned entrypoint)
+- `player.html`, `player.js`: episode player and signed playback flow
+- `payment-result.html`, `payment-result.js`: checkout return/status page
+- `config.js`: host-based Supabase project selection and browser-safe publishable key
+- `supabase/migrations/`: versioned database schema, RLS, storage policies, payment and entitlement functions
+- `supabase/functions/`: six server-side functions: `create-checkout`, `stripe-webhook`, `get-episode-playback`, `cn-payment`, `track-episode-promotion`, and `record-video-ad-events`
+- `.github/workflows/ci.yml`: frontend, Edge Function, plan/checkout, deployment-isolation, and migration-source checks
 
-## QR picker
-The QR controls are labels containing native `input[type=file]` elements. The file input is intentionally transparent and overlays the visible control; CSS explicitly keeps pointer events enabled on the input. The JS change handler validates PNG/JPEG/WebP and a 5 MB limit and previews the selected file. The existing save flow uploads to Supabase Storage bucket `ccwu-payment-qr` and persists paths in `manual_payment_settings` (the database schema and Storage policies must already exist).
+## Environment isolation
 
-## Configure
-Edit `config.js` only with the Supabase project URL and a browser-safe publishable/anon key. Never put a service-role key or payment secret in frontend files.
+The test and production environments are intentionally separate.
 
-## Local validation
-Serve this directory over HTTP (ES modules do not work reliably from `file://`). Then open `/admin#payments` and inspect the browser console. Confirm the page footer says `Admin Build v2.0.2`. If the deployed footer shows another version, Cloudflare is serving a different artifact than this repository.
+- Test Pages project: `ccwu-global-test`
+- Test Supabase project: `uvtzhzgirgwjzsmcdgej`
+- Production Supabase project: `zkvfsuhlcrafgdbyxevr`
+- Test hostnames under `*.ccwu-global-test.pages.dev` resolve to the test Supabase project.
+- Known production hostnames resolve to the production Supabase project.
+- Unknown hostnames fail closed rather than selecting a backend implicitly.
 
-## Cloudflare Pages
-This is a static site with no build command. The publish directory is the repository root. Connect the GitHub repository to the existing Pages project only after reviewing the branch and deployment environment. Use Preview first. Do not switch the production domain until the Preview artifact and backend flows have been verified.
+All development, schema changes, function deployments, and test data belong in the independent test environment. Do not merge the test branch, deploy to production, or change production data/configuration as part of routine validation.
 
-## Scope / limitations
-The original package did not contain the Supabase SQL migrations or backend functions. Those cannot safely be reconstructed from frontend code alone. Existing payment approvals must remain manual until server-side payment verification is implemented and tested.
+## Payments
 
+- USD recurring membership/VPN plans use Stripe Price IDs and server-side checkout validation.
+- CNY payment order creation is implemented in the `cn-payment` Edge Function and database RPCs.
+- Alipay and WeChat Pay remain disabled until merchant credentials, callback verification, and reconciliation have been configured and tested.
+- Manual QR payments remain disabled until the merchant configures the QR assets and settings.
+- Never treat a visible UI option or a created order as proof that a payment provider is live.
+- Never put Stripe secret keys, webhook signing secrets, Alipay/WeChat merchant private keys, or Supabase service-role credentials in browser-delivered files or chat.
 
-## v2.0.2 admin login initialization hotfix
+## Security and operations
 
-- `admin.html` now loads `admin-v2.0.1.js?v=2.0.2` with `type="module"`.
-- The module imports `createClient` from `@supabase/supabase-js` and imports the public Supabase URL/key from `config.js`.
-- The new entrypoint filename intentionally avoids reusing a potentially stale cached `admin.js`.
-- On successful module evaluation, the browser console shows `[CCWU Admin] ES module 2.0.2 loaded` and `window.CCWU_ADMIN_MODULE_VERSION` is set to `2.0.2`.
+- Public-schema tables have RLS enabled. Private payment ledgers are not exposed as public tables.
+- Staff roles are stored server-side in the private role table; browser profile metadata is not an authorization source.
+- Payment approval is restricted to the admin role. Customer order and subscription reads are ownership-scoped.
+- Private video and subtitle objects require staff access for upload; playback is issued through the server-side playback function.
+- The CI workflow checks browser JavaScript syntax, environment isolation, public bundle secret patterns, plan/Stripe checkout contracts, Deno types, and migration naming/version integrity.
 
-Deploy the complete package contents together to an isolated test project first. Do not upload only the JavaScript file. Verify in DevTools Network that `admin.html`, `admin-v2.0.1.js`, and `config.js` all return HTTP 200, then hard-refresh. This package does not authorize or perform production deployment.
+## Current test-preview verification
 
+The following are verified for the current test branch snapshot:
 
-The v2.0.2 branch also corrects the malformed literal newline before the `createClient` import and updates the module cache-busting query so browsers request the corrected module. This remains a Preview-only candidate until Cloudflare deployment and browser login checks pass.
+- 53 migration files exist in source and all 53 corresponding versions are applied to the test database.
+- All six tracked Edge Functions are active in the test project and their deployed source matches the branch source.
+- The test Pages preview deployment for commit `9528a2bbaa007812867520dae1c96bf664606400` completed successfully.
+- GitHub Actions run `44464896752` passed all three jobs.
+- The public homepage, membership route, admin login shell, and player route rendered in a read-only browser smoke test without visible JavaScript errors.
 
+These checks do not constitute full end-to-end acceptance. The test database currently has no active membership/VPN plans, no staff test account, no published media asset, and no enabled payment methods. Authenticated admin workflows, two-user ownership/IDOR cases, media playback, and provider sandbox callbacks therefore remain unverified.
 
-### Additional v2.0.2 verification work
+## Remaining test release gates
 
-- The admin login form now disables its submit button while authenticating and catches network/runtime failures so the user receives a visible error instead of a silent rejected promise.
-- The database exposes `public.is_staff()` for authenticated staff checks; the existing frontend RPC name is valid. Its private helper is not called directly from the browser.
-- The player now requests the existing `get-episode-playback` Edge Function. That service enforces free/member access and returns short-lived signed video and subtitle URLs, plus server-filtered promotions and ad slots.
-- Preview deployment and interactive browser checks remain pending.
+1. Configure required test-only Edge Function secrets directly in the Supabase test project dashboard. Secret values must never be committed or pasted into chat.
+2. Enable Supabase leaked-password protection in the test Auth settings.
+3. Have the owner create/authorize a dedicated test staff account and a second ordinary test account; do not promote or create staff users automatically.
+4. Upload a real, authorized test media asset and verify signed video/subtitle playback.
+5. Configure Stripe test-mode products/prices and webhook secrets, then complete checkout, renewal/failure, refund, and dispute sandbox tests.
+6. Configure Alipay/WeChat sandbox or merchant test credentials and verify signed callbacks and reconciliation before enabling either channel.
+
+A clean-room database rebuild and all positive-path authorization tests must pass before considering a production release. Production deployment and PR merge require separate explicit authorization.
+
+## Cloudflare Pages deployment
+
+The site is static. Use the repository root as the publish directory and leave the build command empty. Validate the Preview deployment first. Do not attach or switch production domains during test validation.
+
+## Local checks
+
+Run the following checks from the repository root:
+
+```bash
+node --input-type=module --check < app.js
+node --input-type=module --check < admin-v2.0.1.js
+node --input-type=module --check < config.js
+node --input-type=module --check < player.js
+python3 .github/scripts/validate_portal.py
+python3 .github/scripts/validate_plan_checkout.py
+python3 .github/scripts/validate_migrations.py
+```
+
+The Edge Function checks use Deno 2:
+
+```bash
+deno check --no-lock supabase/functions/create-checkout/index.ts
+deno check --no-lock supabase/functions/stripe-webhook/index.ts
+deno check --no-lock supabase/functions/get-episode-playback/index.ts
+deno check --no-lock supabase/functions/cn-payment/index.ts
+deno check --no-lock supabase/functions/track-episode-promotion/index.ts
+deno check --no-lock supabase/functions/record-video-ad-events/index.ts
+```
