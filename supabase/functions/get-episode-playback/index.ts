@@ -3,7 +3,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 const json=(body:unknown,status=200)=>new Response(JSON.stringify(body),{status,headers:{"content-type":"application/json; charset=utf-8","cache-control":"no-store, max-age=0","access-control-allow-origin":"*","access-control-allow-headers":"authorization, apikey, content-type","access-control-allow-methods":"POST, OPTIONS"}});
 const safePath=(value:unknown):value is string=>typeof value==="string"&&value.length>0&&value.length<=500&&!value.startsWith("/")&&!value.includes("\\")&&!value.includes("://")&&!value.includes("?")&&!value.includes("#")&&!value.split("/").some(part=>part==="."||part==="..")&&!/[\u0000-\u001f]/.test(value);
 function base64Url(bytes:Uint8Array){let binary="";for(const byte of bytes)binary+=String.fromCharCode(byte);return btoa(binary).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/g,"");}
-async function createAdEventToken(secret:string,episodeId:string,configIds:string[]){if(!configIds.length)return null;const payload=base64Url(new TextEncoder().encode(JSON.stringify({episode_id:episodeId,config_ids:configIds,exp:Math.floor(Date.now()/1000)+14400,nonce:crypto.randomUUID()})));const key=await crypto.subtle.importKey("raw",new TextEncoder().encode(secret),{name:"HMAC",hash:"SHA-256"},false,["sign"]);const signature=new Uint8Array(await crypto.subtle.sign("HMAC",key,new TextEncoder().encode(payload)));return `${payload}.${base64Url(signature)}`;}
+async function signEventToken(secret:string,payload:Record<string,unknown>){const encoded=base64Url(new TextEncoder().encode(JSON.stringify(payload)));const key=await crypto.subtle.importKey("raw",new TextEncoder().encode(secret),{name:"HMAC",hash:"SHA-256"},false,["sign"]);const signature=new Uint8Array(await crypto.subtle.sign("HMAC",key,new TextEncoder().encode(encoded)));return `${encoded}.${base64Url(signature)}`;}
 const safeHttpsTarget=(value:unknown):string|null=>{if(typeof value!=="string"||value.length>4096)return null;try{const target=new URL(value),host=target.hostname.toLowerCase(),isIp=host.startsWith("[")||/^\d{1,3}(?:\.\d{1,3}){3}$/.test(host);if(target.protocol!=="https:"||target.username||target.password||(target.port&&target.port!=="443")||host==="localhost"||host.endsWith(".localhost")||host.endsWith(".local")||isIp)return null;return target.toString();}catch{return null;}};
 Deno.serve(async(req)=>{
  if(req.method==="OPTIONS")return new Response("ok",{headers:{"access-control-allow-origin":"*","access-control-allow-headers":"authorization, apikey, content-type","access-control-allow-methods":"POST, OPTIONS"}});
@@ -22,7 +22,15 @@ Deno.serve(async(req)=>{
   const promotions=(promotionRows||[]).filter(row=>(!row.starts_at||row.starts_at<=now)&&(!row.ends_at||row.ends_at>now)&&!!safeHttpsTarget(row.target_url)).map(({starts_at:_starts,ends_at:_ends,sort_order:_sort,...row})=>(({id,...rest})=>({...rest,tracking_url:`${url}/functions/v1/track-episode-promotion?id=${id}`,image_url:safeHttpsTarget(rest.image_url)}))(row));
   const {data:adRows}=await admin.from("video_ad_configs").select("id,episode_id,slot_key,ad_type,ad_provider,ad_tag_url,midroll_offset_seconds,skip_after_seconds,frequency_cap_hours,members_exempt,starts_at,ends_at").eq("is_active",true).or(`episode_id.is.null,episode_id.eq.${episodeId}`).order("slot_key",{ascending:true});
   const adSlots=(adRows||[]).filter(row=>(!row.starts_at||row.starts_at<=now)&&(!row.ends_at||row.ends_at>now)&&!(hasMembership&&row.members_exempt)&&!!safeHttpsTarget(row.ad_tag_url)).map(({episode_id:_episode,starts_at:_starts,ends_at:_ends,...row})=>({...row,ad_tag_url:safeHttpsTarget(row.ad_tag_url)!}));
-  const adEventToken=await createAdEventToken(service,episodeId,adSlots.map(row=>row.id));
-  return json({ok:true,drama:{title:drama.title},episode:{id:episode.id,title:episode.title,season_number:episode.season_number,episode_number:episode.episode_number},access:episode.is_free?"free":"membership",video_url:video.signedUrl,expires_in_seconds:300,subtitles,promotions:promotions||[],ad_slots:adSlots,ad_event_token:adEventToken});
+  const eventSecret=Deno.env.get("CCWU_EVENT_SIGNING_SECRET")||"";
+  const eventNonce=crypto.randomUUID();
+  const eventConfigIds=adSlots.map(row=>row.id);
+  const adEventToken=eventSecret.length>=32&&eventConfigIds.length?await signEventToken(eventSecret,{type:"ad_events",episode_id:episodeId,config_ids:eventConfigIds,exp:Math.floor(Date.now()/1000)+14400,nonce:eventNonce}):null;
+  const signedPromotions=await Promise.all(promotions.map(async(row)=>{
+    if(eventSecret.length<32)return {...row,tracking_url:row.target_url};
+    const token=await signEventToken(eventSecret,{type:"promotion_click",promotion_id:row.id,episode_id:episodeId,exp:Math.floor(Date.now()/1000)+86400,nonce:crypto.randomUUID()});
+    return {...row,tracking_url:`${url}/functions/v1/track-episode-promotion?token=${encodeURIComponent(token)}`};
+  }));
+  return json({ok:true,drama:{title:drama.title},episode:{id:episode.id,title:episode.title,season_number:episode.season_number,episode_number:episode.episode_number},access:episode.is_free?"free":"membership",video_url:video.signedUrl,expires_in_seconds:300,subtitles,promotions:signedPromotions||[],ad_slots:adSlots,ad_event_token:adEventToken});
  }catch{return json({error:"PLAYBACK_UNAVAILABLE"},503);}
 });
