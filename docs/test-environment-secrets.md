@@ -19,7 +19,7 @@ Do not copy a service-role key into any browser asset. Do not create duplicate s
 | `STRIPE_SECRET_KEY` | `create-checkout` | Stripe test-mode secret key; must be a test key, never a live key |
 | `STRIPE_WEBHOOK_SECRET` | `stripe-webhook` | Signing secret from the Stripe test-mode webhook endpoint |
 | `CCWU_EVENT_SIGNING_SECRET` | `get-episode-playback`, `track-episode-promotion`, `record-video-ad-events` | High-entropy random secret used to sign short-lived playback/promotion/ad-event tokens |
-| `APP_ORIGIN` | `create-checkout`, `cn-payment` | Optional; set to the exact test Preview origin if explicit CORS/return-origin configuration is needed |
+| `APP_ORIGIN` | `create-checkout` (required); `cn-payment` (optional CORS origin) | Required for Stripe checkout; set to the exact test branch Preview origin, e.g. `https://fix-portal-auth-errors-v2-0.ccwu-global-test.pages.dev`. The function rejects checkout if this value is absent and blocks known production hostnames |
 
 Do not enable real payment methods merely because these secrets exist. Complete the test-mode checkout, webhook signature, duplicate-event, amount/currency mismatch, refund, dispute, and entitlement tests first.
 
