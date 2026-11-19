@@ -274,18 +274,18 @@ $("subtitleForm").addEventListener("submit", async (event) => {
     const lowerName = file.name.toLowerCase();
     const ext = lowerName.endsWith(".srt") ? "srt" : lowerName.endsWith(".vtt") ? "vtt" : "";
     if (!ext || file.size > 2 * 1024 * 1024) throw new Error("字幕仅支持 VTT/SRT，原文件不能超过 2MB。");
-    const rawText = (await file.text()).replace(/^\\uFEFF/, "").replace(/\\r\\n?/g, "\\n").trim();
+    const rawText = (await file.text()).replace(/^\uFEFF/, "").replace(/\r\n?/g, "\n").trim();
     let webVttText = rawText;
     if (ext === "srt") {
-      const cuePattern = /\\d{2}:\\d{2}:\\d{2},\\d{3}\\s+-->\\s+\\d{2}:\\d{2}:\\d{2},\\d{3}/g;
+      const cuePattern = /\d{2}:\d{2}:\d{2},\d{3}\s+-->\s+\d{2}:\d{2}:\d{2},\d{3}/g;
       if (!cuePattern.test(rawText)) throw new Error("SRT 字幕格式无效，未找到有效时间轴。");
-      webVttText = "WEBVTT\\n\\n" + rawText.replace(/(\\d{2}:\\d{2}:\\d{2}),(\\d{3})\\s+-->\\s+(\\d{2}:\\d{2}:\\d{2}),(\\d{3})/g, "$1.$2 --> $3.$4");
-    } else if (!/^WEBVTT(?:\\s|$)/.test(rawText)) {
+      webVttText = "WEBVTT\n\n" + rawText.replace(/(\d{2}:\d{2}:\d{2}),(\d{3})\s+-->\s+(\d{2}:\d{2}:\d{2}),(\d{3})/g, "$1.$2 --> $3.$4");
+    } else if (!/^WEBVTT(?:\s|$)/.test(rawText)) {
       throw new Error("VTT 文件必须以 WEBVTT 标头开头。");
     }
-    const subtitleBlob = new Blob([webVttText + "\\n"], { type: "text/vtt" });
+    const subtitleBlob = new Blob([webVttText + "\n"], { type: "text/vtt" });
     if (subtitleBlob.size > 2 * 1024 * 1024) throw new Error("转换后的 WebVTT 字幕不能超过 2MB。");
-    uploadedPath = `episodes/${episodeId}/subtitles/${language}-${crypto.randomUUID()}.vtt`;
+    uploadedPath = \`episodes/\${episodeId}/subtitles/\${language}-\${crypto.randomUUID()}.vtt\`;
     const { error: uploadError } = await db.storage.from("ccwu-cinema-subtitles").upload(uploadedPath, subtitleBlob, { cacheControl: "3600", upsert: false, contentType: "text/vtt" });
     if (uploadError) throw uploadError;
     const { error } = await db.from("subtitle_tracks").insert({ episode_id: episodeId, language_code: language, label: $("subtitleLabel").value.trim(), file_url: uploadedPath, storage_path: uploadedPath, status: "published", reviewed_by: currentUser.id });
