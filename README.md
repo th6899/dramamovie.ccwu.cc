@@ -60,6 +60,8 @@ These checks do not constitute full end-to-end acceptance. The test database cur
 
 ## Remaining test release gates
 
+See the [test acceptance matrix](docs/test-acceptance-matrix.md) for verified checks and owner-controlled end-to-end blockers.
+
 See [Test environment secret inventory](docs/test-environment-secrets.md) for the exact test-only Edge Function secret names and safe Dashboard configuration procedure. Secret values must never be committed or pasted into chat.
 
 1. Configure only the required test-only Edge Function secrets directly in the Supabase test project dashboard.
