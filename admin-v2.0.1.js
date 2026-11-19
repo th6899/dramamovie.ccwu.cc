@@ -2,6 +2,7 @@ window.CCWU_ADMIN_MODULE_VERSION = "2.0.3";
 console.info("[CCWU Admin] ES module 2.0.3 loaded");
 // CCWU Global Admin module 2.0.3 — explicit ES module entrypoint
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { Upload } from "https://esm.sh/tus-js-client@4";
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js";
 
 const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -20,6 +21,24 @@ const setMessage = (id, value, isError = false) => {
   node.classList.toggle("error-message", isError);
 };
 const showError = (label, error) => `${label}：${error?.message || "读取失败，请检查权限或网络"}`;
+
+async function uploadResumable(bucket, path, file, onProgress = () => {}) {
+  const { data: { session }, error } = await db.auth.getSession();
+  if (error || !session?.access_token) throw new Error("登录状态已失效，请重新登录后台。");
+  return await new Promise((resolve, reject) => {
+    const upload = new Upload(file, {
+      endpoint: `${SUPABASE_URL}/storage/v1/upload/resumable`,
+      retryDelays: [0, 3000, 5000, 10000, 20000],
+      headers: { authorization: `Bearer ${session.access_token}`, apikey: SUPABASE_ANON_KEY },
+      metadata: { bucketName: bucket, objectName: path, contentType: file.type, cacheControl: "3600", upsert: "false" },
+      chunkSize: 6 * 1024 * 1024,
+      onError: reject,
+      onProgress: (uploaded, total) => onProgress(Math.round(uploaded / Math.max(total, 1) * 100)),
+      onSuccess: () => resolve(path)
+    });
+    upload.start();
+  });
+}
 let currentUser = null;
 let cache = { dramas: [], episodes: [], ads: [], promos: [] };
 
@@ -88,8 +107,8 @@ function fillSelect(id, options, emptyText) {
 async function loadAll() {
   $("overviewText").textContent = "正在读取数据库……";
   const results = await Promise.all([
-    db.from("dramas").select("id,slug,title,status,created_at").order("created_at", { ascending: false }),
-    db.from("episodes").select("id,drama_id,title,episode_number,season_number,status").order("created_at", { ascending: false }),
+    db.from("dramas").select("id,slug,title,status,created_at,poster_path").order("created_at", { ascending: false }),
+    db.from("episodes").select("id,drama_id,title,episode_number,season_number,status,video_path,duration_seconds").order("created_at", { ascending: false }),
     db.from("video_ad_configs").select("id,episode_id,slot_key,ad_type,is_active,ad_tag_url,created_at").order("created_at", { ascending: false }),
     db.from("episode_promotions").select("id,episode_id,title,target_url,is_active,created_at").order("created_at", { ascending: false })
   ]);
@@ -110,18 +129,23 @@ async function loadAll() {
     : "数据库连接正常，概览数据已更新。";
 
   $("dramaRows").innerHTML = cache.dramas.map((drama) =>
-    `<tr><td>${esc(drama.title)}</td><td><span class="status">${esc(drama.status)}</span></td><td>${drama.created_at ? new Date(drama.created_at).toLocaleDateString() : "—"}</td></tr>`
+    `<tr><td>${esc(drama.title)}</td><td><span class="status">${esc(drama.status)}</span></td><td>${drama.created_at ? new Date(drama.created_at).toLocaleDateString() : "—"}</td><td><button type="button" class="btn btn-secondary" data-toggle-drama="${esc(drama.id)}" data-next-status="${drama.status === "published" ? "draft" : "published"}">${drama.status === "published" ? "下架" : "发布"}</button></td></tr>`
   ).join("") || `<tr><td colspan="3">${results[0].error ? "读取失败" : "暂无影视作品"}</td></tr>`;
 
   fillSelect("dramaSelect", cache.dramas.map((drama) => ({
     value: drama.id, label: drama.title
   })), "请先新增影视作品");
   const dramaById = new Map(cache.dramas.map((drama) => [drama.id, drama.title]));
+  $("episodeRows").innerHTML = cache.episodes.map((episode) => {
+    const next = episode.status === "published" ? "draft" : "published";
+    return `<tr><td>${esc(`第${episode.episode_number}集 · ${episode.title}`)}</td><td>${esc(dramaById.get(episode.drama_id) || "—")}</td><td><span class="status">${esc(episode.status)}</span></td><td>${episode.video_path ? "已填写路径" : "未配置"}</td><td><button type="button" class="btn btn-secondary" data-toggle-episode="${esc(episode.id)}" data-next-status="${next}">${next === "draft" ? "下架" : "发布"}</button></td></tr>`;
+  }).join("") || `<tr><td colspan="5">${results[1].error ? "读取失败" : "暂无剧集"}</td></tr>`;
   const episodeOptions = cache.episodes.map((episode) => ({
     value: episode.id,
     label: `${dramaById.get(episode.drama_id) || "未命名作品"} · ${episode.title || `第${episode.episode_number}集`}`
   }));
   fillSelect("promoEpisode", episodeOptions, "请先新增剧集");
+  fillSelect("subtitleEpisode", episodeOptions, "请先新增剧集");
 
   $("adRows").innerHTML = cache.ads.map((ad) =>
     `<tr><td>${esc(ad.ad_type)}</td><td>${ad.episode_id ? "指定剧集" : "全站默认"}</td><td><span class="status">${ad.is_active ? "启用" : "关闭"}</span></td><td>${esc((ad.ad_tag_url || "").slice(0, 48) || "未设置")}</td></tr>`
@@ -134,49 +158,134 @@ async function loadAll() {
   }).join("") || `<tr><td colspan="4">${results[3].error ? "读取失败" : "暂无推广配置"}</td></tr>`;
 }
 
+async function updateContentStatus(table, id, nextStatus, messageId) {
+  const row = table === "dramas" ? cache.dramas.find((item) => item.id === id) : cache.episodes.find((item) => item.id === id);
+  if (!row) return;
+  if (nextStatus === "published") {
+    if (table === "dramas" && !row.poster_path) return setMessage(messageId, "发布失败：请先上传海报文件。", true);
+    if (table === "episodes") {
+      if (!row.video_path || /^https?:\/\//i.test(row.video_path)) return setMessage(messageId, "发布失败：请先上传视频或填写有效的 Storage 相对路径。", true);
+      const parent = cache.dramas.find((item) => item.id === row.drama_id);
+      if (parent?.status !== "published") return setMessage(messageId, "发布失败：请先发布所属影视作品。", true);
+      if (!row.duration_seconds || row.duration_seconds < 1) return setMessage(messageId, "发布失败：请先填写有效的视频时长。", true);
+    }
+  }
+  const values = table === "dramas" ? { status: nextStatus, published_at: nextStatus === "published" ? new Date().toISOString() : null } : { status: nextStatus };
+  const { error } = await db.from(table).update(values).eq("id", id);
+  if (error) setMessage(messageId, "状态更新失败：" + error.message, true);
+  else { setMessage(messageId, nextStatus === "published" ? "内容已发布。" : "内容已下架。"); await loadAll(); }
+}
+
+document.addEventListener("click", async (event) => {
+  const dramaButton = event.target.closest("[data-toggle-drama]");
+  if (dramaButton) { dramaButton.disabled = true; try { await updateContentStatus("dramas", dramaButton.dataset.toggleDrama, dramaButton.dataset.nextStatus, "dramaMsg"); } finally { dramaButton.disabled = false; } return; }
+  const episodeButton = event.target.closest("[data-toggle-episode]");
+  if (episodeButton) { episodeButton.disabled = true; try { await updateContentStatus("episodes", episodeButton.dataset.toggleEpisode, episodeButton.dataset.nextStatus, "episodeMsg"); } finally { episodeButton.disabled = false; } }
+});
 $("dramaForm").addEventListener("submit", async (event) => {
   event.preventDefault();
+  const submit = event.submitter || event.target.querySelector("button[type=submit],button:not([type])");
+  if (submit) submit.disabled = true;
+  let uploadedPosterPath = null;
+  try {
   const slug = $("dramaSlug").value.trim().toLowerCase();
   if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) {
     setMessage("dramaMsg", "slug 仅可使用小写英文字母、数字和连字符。", true);
     return;
   }
+  const file = $("dramaPosterFile").files?.[0];
+  if (file) {
+    if (!["image/jpeg", "image/png", "image/webp", "image/avif"].includes(file.type) || file.size > 10 * 1024 * 1024) throw new Error("海报仅支持 JPG/PNG/WebP/AVIF，且不能超过 10MB。");
+    const ext = ({ "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "image/avif": "avif" })[file.type];
+    uploadedPosterPath = `dramas/${slug}/${crypto.randomUUID()}.${ext}`;
+    const { error: uploadError } = await db.storage.from("ccwu-cinema-posters").upload(uploadedPosterPath, file, { cacheControl: "3600", upsert: false, contentType: file.type });
+    if (uploadError) throw uploadError;
+  }
   const { error } = await db.from("dramas").insert({
-    title: $("dramaTitle").value.trim(),
-    slug,
+    title: $("dramaTitle").value.trim(), slug,
     synopsis: $("dramaSynopsis").value.trim() || null,
-    poster_path: $("dramaPoster").value.trim() || null,
+    poster_path: uploadedPosterPath,
     release_year: $("dramaYear").value ? Number($("dramaYear").value) : null,
     status: "draft"
   });
-  setMessage("dramaMsg", error ? error.message : "影视作品草稿已保存。", !!error);
-  if (!error) {
-    event.target.reset();
-    await loadAll();
+  if (error) {
+    if (uploadedPosterPath) await db.storage.from("ccwu-cinema-posters").remove([uploadedPosterPath]);
+    throw error;
   }
+  setMessage("dramaMsg", "影视作品草稿已保存。海报已上传；作品仍为草稿，需在作品列表中手动发布。");
+  event.target.reset();
+  await loadAll();
+  } catch (error) {
+    setMessage("dramaMsg", error?.message || "保存影视作品失败。", true);
+  } finally { if (submit) submit.disabled = false; }
 });
 
 $("episodeForm").addEventListener("submit", async (event) => {
   event.preventDefault();
+  const submit = event.submitter || event.target.querySelector("button[type=submit],button:not([type])");
+  if (submit) submit.disabled = true;
+  let uploadedVideoPath = null;
+  try {
   if (!$("dramaSelect").value) {
     setMessage("episodeMsg", "请先新增影视作品。", true);
     return;
   }
-  const { error } = await db.from("episodes").insert({
-    drama_id: $("dramaSelect").value,
-    season_number: 1,
-    episode_number: Number($("episodeNo").value),
-    title: $("episodeTitle").value.trim(),
-    video_path: $("videoPath").value.trim() || null,
-    duration_seconds: $("duration").value ? Number($("duration").value) : null,
-    is_free: $("isFree").checked,
-    status: "draft"
-  });
-  setMessage("episodeMsg", error ? error.message : "剧集草稿已保存。", !!error);
-  if (!error) {
-    event.target.reset();
-    await loadAll();
+  const file = $("videoFile").files?.[0];
+  let videoPath = $("videoPath").value.trim() || null;
+  if (file) {
+    if (!["video/mp4", "video/webm"].includes(file.type) || file.size > 2 * 1024 * 1024 * 1024) throw new Error("视频仅支持 MP4/WebM，且不能超过 2GB。");
+    if (videoPath) throw new Error("已选择视频文件，请清空手动 Storage 路径，避免路径冲突。");
+    const dramaId = $("dramaSelect").value;
+    const ext = file.type === "video/mp4" ? "mp4" : "webm";
+    uploadedVideoPath = `episodes/${dramaId}/${crypto.randomUUID()}.${ext}`;
+    setMessage("episodeMsg", "正在上传视频，请保持页面打开……");
+    await uploadResumable("ccwu-cinema-videos", uploadedVideoPath, file, (percent) => setMessage("episodeMsg", `视频上传中：${percent}%`));
+    videoPath = uploadedVideoPath;
   }
+  if (videoPath && (/^https?:\/\//i.test(videoPath) || videoPath.startsWith("/") || videoPath.split("/").some((part) => part === "." || part === "..") || videoPath.includes("\\"))) throw new Error("视频必须使用 ccwu-cinema-videos 桶内的相对 Storage 路径，不能填写外部 URL。");
+  const { error } = await db.from("episodes").insert({
+    drama_id: $("dramaSelect").value, season_number: 1,
+    episode_number: Number($("episodeNo").value), title: $("episodeTitle").value.trim(),
+    video_path: videoPath, duration_seconds: $("duration").value ? Number($("duration").value) : null,
+    is_free: $("isFree").checked, status: "draft"
+  });
+  if (error) {
+    if (uploadedVideoPath) await db.storage.from("ccwu-cinema-videos").remove([uploadedVideoPath]);
+    throw error;
+  }
+  setMessage("episodeMsg", "剧集草稿已保存。视频文件已上传；需先发布所属作品，再发布剧集。");
+  event.target.reset();
+  await loadAll();
+  } catch (error) {
+    setMessage("episodeMsg", error?.message || "保存剧集失败。", true);
+  } finally { if (submit) submit.disabled = false; }
+});
+
+$("subtitleForm").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const submit = event.submitter || event.target.querySelector("button[type=submit],button:not([type])");
+  if (submit) submit.disabled = true;
+  let uploadedPath = null;
+  try {
+    const episodeId = $("subtitleEpisode").value;
+    const file = $("subtitleFile").files?.[0];
+    const language = $("subtitleLanguage").value;
+    if (!episodeId || !file) throw new Error("请选择剧集和字幕文件。");
+    if (!["text/vtt", "application/x-subrip", "text/plain"].includes(file.type) || file.size > 2 * 1024 * 1024) throw new Error("字幕仅支持 VTT/SRT/TXT，且不能超过 2MB。");
+    const ext = file.name.toLowerCase().endsWith(".srt") ? "srt" : file.name.toLowerCase().endsWith(".txt") ? "txt" : "vtt";
+    uploadedPath = `episodes/${episodeId}/subtitles/${language}-${crypto.randomUUID()}.${ext}`;
+    const { error: uploadError } = await db.storage.from("ccwu-cinema-subtitles").upload(uploadedPath, file, { cacheControl: "3600", upsert: false, contentType: file.type });
+    if (uploadError) throw uploadError;
+    const { error } = await db.from("subtitle_tracks").insert({ episode_id: episodeId, language_code: language, label: $("subtitleLabel").value.trim(), file_url: uploadedPath, storage_path: uploadedPath, status: "published", reviewed_by: currentUser.id });
+    if (error) {
+      await db.storage.from("ccwu-cinema-subtitles").remove([uploadedPath]);
+      throw error;
+    }
+    setMessage("subtitleMsg", "字幕已上传并发布。");
+    event.target.reset();
+  } catch (error) {
+    setMessage("subtitleMsg", error?.message || "字幕上传失败。", true);
+  } finally { if (submit) submit.disabled = false; }
 });
 
 $("adForm").addEventListener("submit", async (event) => {
