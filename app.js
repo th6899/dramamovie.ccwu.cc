@@ -184,5 +184,5 @@ $("manualPayForm").addEventListener("submit",async e=>{
 });
 $("menuBtn").onclick=()=>{const n=document.querySelector(".topbar nav");n.style.display=n.style.display==="flex"?"none":"flex";n.style.position="absolute";n.style.top="76px";n.style.left="0";n.style.right="0";n.style.padding="20px";n.style.background="white";n.style.flexDirection="column"};
 db.auth.onAuthStateChange((_event,session)=>{updateUserUI(session?.user??null);});
-await render();await refreshUser();
 if(new URLSearchParams(location.search).get("auth")==="login")showAuth();
+await render();await refreshUser();
