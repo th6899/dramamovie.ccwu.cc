@@ -31,6 +31,11 @@ function base64ToBytes(value: string): Uint8Array {
   const binary = atob(value);
   return Uint8Array.from(binary, (c) => c.charCodeAt(0));
 }
+function asArrayBuffer(bytes: Uint8Array): ArrayBuffer {
+  const copy = new ArrayBuffer(bytes.byteLength);
+  new Uint8Array(copy).set(bytes);
+  return copy;
+}
 function concatBytes(...parts: Uint8Array[]): Uint8Array {
   const size = parts.reduce((n, p) => n + p.length, 0);
   const out = new Uint8Array(size);
@@ -70,7 +75,7 @@ async function importPrivateKey(pem: string): Promise<CryptoKey> {
   if (parsed.label === "RSA PRIVATE KEY") raw = pkcs1PrivateToPkcs8(raw);
   else if (parsed.label !== "PRIVATE KEY") throw new Error("unsupported_private_key_format");
   return await crypto.subtle.importKey(
-    "pkcs8", raw, { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" }, false, ["sign"],
+    "pkcs8", asArrayBuffer(raw), { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" }, false, ["sign"],
   );
 }
 async function importPublicKey(pem: string): Promise<CryptoKey> {
@@ -79,7 +84,7 @@ async function importPublicKey(pem: string): Promise<CryptoKey> {
   if (parsed.label === "RSA PUBLIC KEY") raw = pkcs1PublicToSpki(raw);
   else if (parsed.label !== "PUBLIC KEY") throw new Error("unsupported_public_key_format");
   return await crypto.subtle.importKey(
-    "spki", raw, { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" }, false, ["verify"],
+    "spki", asArrayBuffer(raw), { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" }, false, ["verify"],
   );
 }
 async function rsaSign(privatePem: string, message: string): Promise<string> {
@@ -90,7 +95,7 @@ async function rsaSign(privatePem: string, message: string): Promise<string> {
 async function rsaVerify(publicPem: string, message: string, signature: string): Promise<boolean> {
   const key = await importPublicKey(publicPem);
   return await crypto.subtle.verify(
-    "RSASSA-PKCS1-v1_5", key, base64ToBytes(signature), encoder.encode(message),
+    "RSASSA-PKCS1-v1_5", key, asArrayBuffer(base64ToBytes(signature)), asArrayBuffer(encoder.encode(message)),
   );
 }
 async function sha256Hex(value: string): Promise<string> {
@@ -434,12 +439,12 @@ async function decryptWeChatResource(resource: Record<string, unknown>): Promise
   const plaintext = await crypto.subtle.decrypt(
     {
       name: "AES-GCM",
-      iv: encoder.encode(String(resource.nonce || "")),
-      additionalData: encoder.encode(String(resource.associated_data || "")),
+      iv: asArrayBuffer(encoder.encode(String(resource.nonce || ""))),
+      additionalData: asArrayBuffer(encoder.encode(String(resource.associated_data || ""))),
       tagLength: 128,
     },
     key,
-    base64ToBytes(String(resource.ciphertext || "")),
+    asArrayBuffer(base64ToBytes(String(resource.ciphertext || ""))),
   );
   return JSON.parse(new TextDecoder().decode(plaintext));
 }
