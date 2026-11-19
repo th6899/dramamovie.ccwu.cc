@@ -14,6 +14,7 @@ This matrix records what has been verified in the independent test environment a
 | DB-03 | Owner reads | Orders, profiles, membership subscriptions, and VPN subscriptions have owner-scoped read policies | PASS |
 | DB-04 | Profile editing | Authenticated users can update only profiles.display_name; role-column UPDATE remains denied | PASS |
 | DB-05 | Financial write isolation | Browser roles cannot INSERT/UPDATE/DELETE service_orders; VPN plan writes require admin/editor | PASS |
+| AUTH-01 | Staff admin | Owner-created and verified test account `tianhon027@gmail.com`; `private.user_roles` role is `admin`; JWT-context checks return `is_staff() = true` and `is_ccwu_admin() = true` | PASS |
 | DB-06 | Public table RLS audit | All 27 public business tables have RLS enabled; order reads are owner/admin/support scoped; privileged approval RPC requires explicit admin role | PASS |
 | STORAGE-01 | Media bucket privacy | Video, subtitles, and payment proofs are private; proof upload/read is scoped to owner or staff; posters and QR images are intentionally public | PASS |
 | STORAGE-02 | Upload constraints | Video 50 MB, subtitles 2 MB WebVTT-only, payment proofs 8 MB image/PDF, posters 10 MB image-only, QR images 5 MB image-only | PASS |
@@ -35,7 +36,6 @@ This matrix records what has been verified in the independent test environment a
 
 | ID | Area | Required input/action | Safe test condition |
 |---|---|---|---|
-| AUTH-01 | Staff admin | Owner-created and verified test account `tianhon027@gmail.com`; `private.user_roles` role is `admin`; JWT-context checks return `is_staff() = true` and `is_ccwu_admin() = true` | PASS |
 | AUTH-02 | Ownership isolation | A second ordinary test account | Verify one user cannot read another user's orders/subscriptions |
 | AUTH-03 | Leaked password protection | Enable Supabase Auth leaked-password protection in the test project's dashboard | No production Auth setting changes |
 | STRIPE-01 | Stripe checkout | Configure test-only STRIPE_SECRET_KEY, test STRIPE_WEBHOOK_SECRET, exact test APP_ORIGIN, and test recurring Price IDs | sk_test_ only; no live keys or transactions |
