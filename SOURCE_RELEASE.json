@@ -38,7 +38,8 @@
     "supabase/functions/record-video-ad-events/",
     "docs/",
     ".github/scripts/validate_playback_security_contract.py",
-    "supabase/migrations/20261119181000_enforce_free_video_upload_limit.sql"
+    "supabase/migrations/20261119181000_enforce_free_video_upload_limit.sql",
+    ".github/scripts/validate_financial_write_security.py"
   ],
   "notes": [
     "Version 2.0.4 adds staff media upload, explicit publish/unpublish controls, and published-subtitle-only playback.",
@@ -53,7 +54,8 @@
     "Production merge and deployment are separate release gates requiring explicit authorization.",
     "The admin video uploader enforces Supabase Free's 50 MB per-file upload limit and uses TUS resumable uploads.",
     "The test project's private video Storage bucket now enforces a 50 MB per-file maximum server-side, matching the admin uploader and Supabase Free plan.",
-    "Latest CI run #274 (`44491407035`) passed all three jobs, including playback JWT, content entitlement, signed media URL, private storage policy, and server-side file-limit contracts.",
-    "The source tree contains 56 migrations, matching all 56 applied migration versions in the independent test database."
+    "Latest CI run #282 (`44492451783`) passed all three jobs, including financial write-permission, playback authorization, and private storage security contracts.",
+    "The source tree contains 57 migrations, matching all 57 applied migration versions in the independent test database.",
+    "Direct browser DML on service_orders is revoked; VPN plan write policies require admin/editor. CI guards financial write permissions and frontend order mutation paths."
   ]
 }
