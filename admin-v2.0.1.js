@@ -5,6 +5,10 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js";
 
 const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const isTestProject = (() => {
+  try { return new URL(SUPABASE_URL).hostname === "uvtzhzgirgwjzsmcdgej.supabase.co"; }
+  catch { return false; }
+})();
 window.CCWU_BUILD_VERSION = "2.0.3";
 const $ = (id) => document.getElementById(id);
 const esc = (value) => String(value ?? "").replace(/[&<>"']/g, (char) => ({
@@ -456,9 +460,10 @@ async function loadNativePaymentMethods(){
   }else{
    ready=false;readyText="尚未接入";
   }
+  if(isTestProject&&row.environment!=="test"){ready=false;readyText="测试项目禁止启用正式支付通道";}
   const action=row.is_enabled
-   ?'<button class="btn btn-outline" type="button" data-toggle-native-payment="'+esc(row.code)+'" data-enable="false">停用</button>'
-   :'<button class="btn btn-primary" type="button" data-toggle-native-payment="'+esc(row.code)+'" data-enable="true"'+(ready?"":" disabled")+'>启用</button>';
+   ?'<button class="btn btn-outline" type="button" data-toggle-native-payment="'+esc(row.code)+'" data-environment="'+esc(row.environment)+'" data-enable="false">停用</button>'
+   :'<button class="btn btn-primary" type="button" data-toggle-native-payment="'+esc(row.code)+'" data-environment="'+esc(row.environment)+'" data-enable="true"'+(ready?"":" disabled")+'>启用</button>';
   return '<tr><td>'+esc(name)+'</td><td>'+esc(row.asset)+'</td><td>'+esc(row.environment)+'</td><td>'+esc(readyText)+'</td><td>'+(row.is_enabled?'<span class="status-pill">已启用</span>':'<span class="muted">关闭</span>')+'</td><td>'+action+'</td></tr>';
  }).join("")||'<tr><td colspan="6">暂无自动收款通道记录</td></tr>';
  if(!statusResult.error)setMessage("nativePaymentStatus","通道状态已刷新。凭据状态只显示是否存在配置，不会读取或展示密钥。");
@@ -468,7 +473,8 @@ document.addEventListener("click",async event=>{
  const button=event.target.closest("[data-toggle-native-payment]");
  if(!button)return;
  const enable=button.dataset.enable==="true",code=button.dataset.toggleNativePayment;
- if(enable&&!confirm("请确认该支付通道的测试/正式凭据已经核实。启用后客户可能创建真实支付订单。继续？"))return;
+ if(enable&&isTestProject&&button.dataset.environment!=="test"){setMessage("nativePaymentStatus","测试项目禁止启用正式支付通道。",true);return;}
+ if(enable&&!confirm("请确认该支付通道的环境与凭据已经核实。启用后客户可能创建对应环境的支付订单。继续？"))return;
  button.disabled=true;
  const {error}=await db.from("payment_methods").update({is_enabled:enable}).eq("code",code);
  if(error)setMessage("nativePaymentStatus","保存通道状态失败："+error.message,true);
