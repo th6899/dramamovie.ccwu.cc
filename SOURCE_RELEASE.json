@@ -36,20 +36,23 @@
     "supabase/functions/cn-payment/",
     "supabase/functions/track-episode-promotion/",
     "supabase/functions/record-video-ad-events/",
-    "docs/"
+    "docs/",
+    ".github/scripts/validate_playback_security_contract.py",
+    "supabase/migrations/20261119181000_enforce_free_video_upload_limit.sql"
   ],
   "notes": [
     "Version 2.0.4 adds staff media upload, explicit publish/unpublish controls, and published-subtitle-only playback.",
     "Version 2.0.4 is a static portal plus Supabase backend source release; it is not a frontend-only diagnostic package.",
     "Admin entrypoint is loaded as an ES module from admin-v2.0.1.js with an explicit cache-busting version.",
     "Test and production Supabase host mappings are isolated; unknown hosts fail closed.",
-    "Six tracked Edge Functions and 55 database migrations are included in source.",
     "types/database.types.ts is generated from the independent test project's exposed public schema and RPC contracts; private schema internals are not exposed.",
     "CI validates frontend syntax, deployment isolation, public bundle secret patterns, plan/Stripe checkout contracts, generated database types, literal HTML/JS DOM references, admin/account/media workflows, Deno Edge Function types, and migration source integrity.",
     "USD recurring membership and VPN plans require configured Stripe Price IDs.",
     "CNY payment integrations remain disabled until merchant credentials and callback tests are completed.",
     "No provider secrets or service-role keys belong in public source files.",
     "Production merge and deployment are separate release gates requiring explicit authorization.",
-    "The admin video uploader enforces Supabase Free's 50 MB per-file upload limit and uses TUS resumable uploads."
+    "The admin video uploader enforces Supabase Free's 50 MB per-file upload limit and uses TUS resumable uploads.",
+    "The test project's private video Storage bucket now enforces a 50 MB per-file maximum server-side, matching the admin uploader and Supabase Free plan.",
+    "Latest CI run #259 passed all three jobs, including playback JWT, content entitlement, signed media URL, private storage policy, and server-side file-limit contracts."
   ]
 }
