@@ -34,6 +34,8 @@ jobs:
         run: python3 .github/scripts/validate_portal.py
       - name: Check plan editor and Stripe checkout contract
         run: python3 .github/scripts/validate_plan_checkout.py
+      - name: Check generated Supabase database types
+        run: python3 .github/scripts/validate_database_types.py
 
   edge-functions:
     name: Supabase Edge Function type checks
