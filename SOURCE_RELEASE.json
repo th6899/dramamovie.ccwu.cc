@@ -14,6 +14,7 @@
     "payment-result.js",
     "config.js",
     "styles.css",
+    "_headers",
     "types/database.types.ts",
     ".github/workflows/ci.yml",
     ".github/scripts/validate_portal.py",
