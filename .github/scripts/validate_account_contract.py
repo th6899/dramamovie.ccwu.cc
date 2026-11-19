@@ -18,6 +18,8 @@ checks = {
     "login return query redirects to account": 'get("return")==="account"' in home,
     "no role or privilege update in account module": '.update({ role:' not in module and 'service_role' not in module,
 }
+checks["login prompt remains visible without JavaScript"] = 'id="accountLoginPrompt" class="account-card"' in page
+
 failed = [label for label, ok in checks.items() if not ok]
 for label, ok in checks.items():
     print(f"{'OK' if ok else 'FAIL'}: {label}")
