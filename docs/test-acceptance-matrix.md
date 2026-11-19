@@ -7,7 +7,8 @@ This matrix records what has been verified in the independent test environment a
 | ID | Area | Verification | Result |
 |---|---|---|---|
 | ENV-01 | Host isolation | Test Pages hosts resolve to test Supabase; known production hosts resolve to production; unknown hosts fail closed | PASS |
-| ENV-02 | Static deployment | Earlier preview deployment and public routes were verified; the latest v2.0.4 commit still needs Cloudflare Pages deployment SHA confirmation | PENDING |
+| ENV-02 | Preview version | Public test preview serves the v2.0.4 admin page and cache-busted media-upload module | PASS |
+| ENV-03 | Deployment provenance | Cloudflare Pages deployment SHA for the latest Git commit has not yet been confirmed through the read-only API | PENDING |
 | DB-01 | Schema migrations | 55 source migrations match 55 applied test database versions | PASS |
 | DB-02 | RLS baseline | All public tables have RLS enabled; private ledgers are RLS default-deny | PASS |
 | DB-03 | Owner reads | Orders, profiles, membership subscriptions, and VPN subscriptions have owner-scoped read policies | PASS |
