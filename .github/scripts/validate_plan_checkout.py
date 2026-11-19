@@ -61,3 +61,17 @@ for token in (
         raise SystemExit(f"Stripe checkout contract missing: {token}")
 
 print("Plan editor and Stripe checkout contract checks passed.")
+
+result_page = read("payment-result.html")
+result_script = read("payment-result.js")
+for token in (
+    'appOrigin+"/payment-result.html?order_id="',
+    'resultUrl+"&session_id={CHECKOUT_SESSION_ID}"',
+    'resultUrl+"&status=cancelled"',
+):
+    if token not in checkout:
+        raise SystemExit(f"Stripe return URL contract missing: {token}")
+if "/account?" in checkout:
+    raise SystemExit("Stripe return URLs must not target the nonexistent /account route.")
+if 'id="orderInfo"' not in result_page or 'params.get("order_id")' not in result_script:
+    raise SystemExit("Stripe return page must read and display the server-owned order ID.")
