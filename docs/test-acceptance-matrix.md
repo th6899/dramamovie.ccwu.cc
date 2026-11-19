@@ -10,7 +10,7 @@ This matrix records what has been verified in the independent test environment a
 | ENV-02 | Static deployment | Current test branch preview serves the latest source changes | PASS |
 | DB-01 | Schema migrations | 55 source migrations match 55 applied test database versions | PASS |
 | DB-02 | RLS baseline | All public tables have RLS enabled; private ledgers are RLS default-deny | PASS |
-| DB-03 | Owner reads | Orders, profiles, membership subscriptions, and VPN subscriptions have owner-scoped read policies | PASS |
+| DB-03 | Owner reads | Orders, profiles, membership subscriptions, and VPN subscriptions have owner-scoped read policies | PASS |\n| DB-04 | Profile editing | Authenticated users can update only profiles.display_name; role-column UPDATE remains denied | PASS |
 | FN-01 | Edge Function parity | Six deployed test functions match their branch source; create-checkout v3 and cn-payment v7 | PASS |
 | FN-02 | Function checks | All six Edge Functions pass Deno 2 type checking | PASS |
 | PAY-01 | Stripe mode | Checkout function requires sk_test_ and validates recurring USD Price ID/amount/currency/interval | PASS |
