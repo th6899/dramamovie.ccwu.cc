@@ -62,4 +62,4 @@ The following are live-merchant configuration names only and must not be populat
 
 ## Current verified blockers
 
-At the latest read-only audit, provider credentials were not configured, all payment methods were disabled, and no payment transactions existed. The test project also still requires a dedicated staff account, a second ordinary test account, and an authorized media asset before authenticated admin, ownership-isolation, and playback acceptance tests can be completed.
+At the latest read-only audit, provider credentials were not configured, all payment methods were disabled, and no payment transactions existed. The test project's `cn-payment` Edge Function now rejects any enabled CNY payment method whose environment is not `test`; the admin console also blocks enabling live CNY methods and locks manual real-merchant QR toggles in this test project. The test project also still requires a dedicated staff account, a second ordinary test account, and an authorized media asset before authenticated admin, ownership-isolation, and playback acceptance tests can be completed.
