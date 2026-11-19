@@ -10,8 +10,9 @@ This repository contains the CCWU Global static portal, administration interface
 - `payment-result.html`, `payment-result.js`: checkout return/status page
 - `config.js`: host-based Supabase project selection and browser-safe publishable key
 - `supabase/migrations/`: versioned database schema, RLS, storage policies, payment and entitlement functions
+- `types/database.types.ts`: generated TypeScript contract snapshot from the independent test database's exposed public schema and RPCs
 - `supabase/functions/`: six server-side functions: `create-checkout`, `stripe-webhook`, `get-episode-playback`, `cn-payment`, `track-episode-promotion`, and `record-video-ad-events`
-- `.github/workflows/ci.yml`: frontend, Edge Function, plan/checkout, deployment-isolation, and migration-source checks
+- `.github/workflows/ci.yml`: frontend, Edge Function, plan/checkout, generated database-type, deployment-isolation, and migration-source checks
 
 ## Environment isolation
 
@@ -84,6 +85,7 @@ node --input-type=module --check < player.js
 python3 .github/scripts/validate_portal.py
 python3 .github/scripts/validate_plan_checkout.py
 python3 .github/scripts/validate_migrations.py
+python3 .github/scripts/validate_database_types.py
 ```
 
 The Edge Function checks use Deno 2:
