@@ -1,0 +1,57 @@
+name: CCWU portal validation
+
+on:
+  pull_request:
+    branches: [main, master]
+  push:
+    branches: [fix/portal-auth-errors-v2.0.3]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ccwu-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  frontend:
+    name: Frontend syntax and deployment isolation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Check browser JavaScript syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          for file in app.js admin-v2.0.1.js config.js player.js; do
+            test -f "$file"
+            node --input-type=module --check < "$file"
+          done
+      - name: Check deployment host isolation and public bundle secrets
+        run: python3 .github/scripts/validate_portal.py
+
+  edge-functions:
+    name: Supabase Edge Function type checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Type-check Edge Functions
+        run: |
+          deno check --no-lock supabase/functions/create-checkout/index.ts
+          deno check --no-lock supabase/functions/stripe-webhook/index.ts
+          deno check --no-lock supabase/functions/get-episode-playback/index.ts
+          deno check --no-lock supabase/functions/cn-payment/index.ts
+
+  migrations:
+    name: Migration source integrity
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check migration filenames and duplicate versions
+        run: python3 .github/scripts/validate_migrations.py
