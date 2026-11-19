@@ -35,3 +35,12 @@ for marker in (
 ):
     if marker not in headers:
         raise SystemExit(f"Static response header check failed: missing {marker}")
+
+# Admin payment labels must describe implemented flows, not planned/unavailable providers.
+admin_html = (root / "admin.html").read_text(encoding="utf-8")
+for marker in ("Stripe Checkout", "支付宝沙箱", "微信支付 API v3", 'id="nativePaymentRows"', 'id="saveManualQr"'):
+    if marker not in admin_html:
+        raise SystemExit(f"Admin payment readiness contract failed: missing {marker}")
+for stale in ("PayPal 国际收款接入准备", "PAYMENT.CAPTURE.COMPLETED", "PayPal 已加入通道清单"):
+    if stale in admin_html:
+        raise SystemExit(f"Admin still advertises an unimplemented payment flow: {stale}")
