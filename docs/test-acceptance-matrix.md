@@ -9,7 +9,7 @@ This matrix records what has been verified in the independent test environment a
 | ENV-01 | Host isolation | Test Pages hosts resolve to test Supabase; known production hosts resolve to production; unknown hosts fail closed | PASS |
 | ENV-02 | Preview version | Public test preview serves the v2.0.4 admin page and cache-busted media-upload module | PASS |
 | ENV-03 | Deployment provenance | Cloudflare Pages deployment SHA for the latest Git commit has not yet been confirmed through the read-only API | PENDING |
-| DB-01 | Schema migrations | 55 source migrations match 55 applied test database versions | PASS |
+| DB-01 | Schema migrations | 56 source migrations match 56 applied test database versions | PASS |
 | DB-02 | RLS baseline | All public tables have RLS enabled; private ledgers are RLS default-deny | PASS |
 | DB-03 | Owner reads | Orders, profiles, membership subscriptions, and VPN subscriptions have owner-scoped read policies | PASS |
 | DB-04 | Profile editing | Authenticated users can update only profiles.display_name; role-column UPDATE remains denied | PASS |
@@ -22,8 +22,8 @@ This matrix records what has been verified in the independent test environment a
 | UI-01 | Public routes | Homepage, membership/VPN anchors, player shell, payment result, and admin login shell render in read-only smoke tests | PASS |
 | UI-02 | Account access | Logged-out account visitors see only the login prompt; login return URL opens the login modal and preserves the account return | PASS |
 | MEDIA-00 | Admin media workflow | Poster upload, TUS resumable video upload, subtitle upload, explicit publish/unpublish, and published-subtitle-only playback contracts | PASS |
-| MEDIA-01 | Free storage limit | Admin video upload is capped at 50 MB per file; free Storage quota remains 1 GB total | PASS |
-| CI-01 | Automated validation | Frontend syntax, DOM IDs, DB table/RPC/column contracts, admin/account/media contracts, payment contracts, Deno checks, and migration integrity | PASS |
+| MEDIA-01 | Free storage limit | Admin uploader and private Storage bucket both enforce 50 MB per file; free Storage quota remains 1 GB total | PASS |
+| CI-01 | Automated validation | Frontend syntax, DOM IDs, DB table/RPC/column contracts, admin/account/media/playback-security contracts, payment contracts, Deno checks, and migration integrity | PASS |
 
 ## Blocked pending owner-controlled test inputs
 
