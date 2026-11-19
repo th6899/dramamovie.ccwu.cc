@@ -3,7 +3,7 @@
 from pathlib import Path
 import re
 
-files = ["app.js", "admin-v2.0.1.js", "player.js", "payment-result.js"]
+files = ["app.js", "admin-v2.0.1.js", "player.js", "payment-result.js", "account.js"]
 source = "\n".join(Path(name).read_text(encoding="utf-8") for name in files)
 types = Path("types/database.types.ts").read_text(encoding="utf-8")
 
