@@ -54,7 +54,9 @@
     "Production merge and deployment are separate release gates requiring explicit authorization.",
     "The admin video uploader enforces Supabase Free's 50 MB per-file upload limit and uses TUS resumable uploads.",
     "The test project's private video Storage bucket now enforces a 50 MB per-file maximum server-side, matching the admin uploader and Supabase Free plan.",
-    "Latest CI run #282 (`44492451783`) passed all three jobs, including financial write-permission, playback authorization, and private storage security contracts.",
+    "Latest CI run #287 (`44492677339`) passed all three jobs, including financial write-permission, playback authorization, and private storage security contracts.",
+    "The source tree contains 57 migrations, matching all 57 applied migration versions in the independent test database.",
+    "Direct browser DML on service_orders is revoked; VPN plan write policies require admin/editor. CI guards financial write permissions and frontend order mutation paths.",
     "The source tree contains 57 migrations, matching all 57 applied migration versions in the independent test database.",
     "Direct browser DML on service_orders is revoked; VPN plan write policies require admin/editor. CI guards financial write permissions and frontend order mutation paths."
   ]
