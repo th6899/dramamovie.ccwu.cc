@@ -1,4 +1,4 @@
-# CCWU Global v2.0.5 — test acceptance matrix
+# CCWU Global v2.0.6 — test acceptance matrix
 
 This matrix records what has been verified in the independent test environment and what remains blocked by missing owner-controlled credentials, accounts, or authorized media. A code check or a rendered page is not equivalent to an end-to-end acceptance test.
 
@@ -7,8 +7,8 @@ This matrix records what has been verified in the independent test environment a
 | ID | Area | Verification | Result |
 |---|---|---|---|
 | ENV-01 | Host isolation | Test Pages hosts resolve to test Supabase; known production hosts resolve to production; unknown hosts fail closed | PASS |
-| ENV-02 | Preview version | Public test preview serves the v2.0.5 admin page and SRT-to-WebVTT conversion module | PASS |
-| ENV-03 | Deployment provenance | Cloudflare Pages deployment SHA for the latest Git commit has not yet been confirmed through the read-only API | PENDING |
+| ENV-02 | Preview version | Cloudflare Preview deployment `18b8dd11.ccwu-global-test.pages.dev` serves admin build/module v2.0.6; OAuth callback targets `/admin.html` | PASS |
+| ENV-03 | Deployment provenance | Cloudflare Pages Preview deployment source shows commit `b8a8c18` (full commit `b8a8c1896fa85703519751478b2ce276eaa7be67`) with successful status | PASS |
 | DB-01 | Schema migrations | 58 source migrations match 58 applied test database versions | PASS |
 | DB-02 | RLS baseline | All public tables have RLS enabled; private ledgers are RLS default-deny | PASS |
 | DB-03 | Owner reads | Orders, profiles, membership subscriptions, and VPN subscriptions have owner-scoped read policies | PASS |
@@ -31,7 +31,7 @@ This matrix records what has been verified in the independent test environment a
 
 | ID | Area | Required input/action | Safe test condition |
 |---|---|---|---|
-| AUTH-01 | Staff admin | Owner authorizes a dedicated test staff account | Do not promote the existing viewer account automatically |
+| AUTH-01 | Staff admin | Owner-created and verified test account `tianhon027@gmail.com`; `private.user_roles` role is `admin`; JWT-context checks return `is_staff() = true` and `is_ccwu_admin() = true` | PASS |
 | AUTH-02 | Ownership isolation | A second ordinary test account | Verify one user cannot read another user's orders/subscriptions |
 | AUTH-03 | Leaked password protection | Enable Supabase Auth leaked-password protection in the test project's dashboard | No production Auth setting changes |
 | STRIPE-01 | Stripe checkout | Configure test-only STRIPE_SECRET_KEY, test STRIPE_WEBHOOK_SECRET, exact test APP_ORIGIN, and test recurring Price IDs | sk_test_ only; no live keys or transactions |
