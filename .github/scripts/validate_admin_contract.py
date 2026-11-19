@@ -19,6 +19,9 @@ checks["test project identity guard"] = 'new URL(SUPABASE_URL).hostname === "uvt
 checks["admin disables live CNY channels in test"] = 'if(isTestProject&&row.environment!=="test")' in source
 checks["admin click handler blocks live CNY enablement"] = 'enable&&isTestProject&&button.dataset.environment!=="test"' in source
 
+checks["manual QR toggles disabled in test project"] = source.count('$("alipayQrEnabled").disabled=isTestProject;') == 1 and source.count('$("wechatQrEnabled").disabled=isTestProject;') == 1
+checks["manual QR save blocked in test project"] = 'isTestProject&&($("alipayQrEnabled").checked||$("wechatQrEnabled").checked)' in source
+
 failed = [label for label, ok in checks.items() if not ok]
 for label, ok in checks.items():
     print(f"{'OK' if ok else 'FAIL'}: {label}")
