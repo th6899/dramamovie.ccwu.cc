@@ -57,7 +57,9 @@ These checks do not constitute full end-to-end acceptance. The test database cur
 
 ## Remaining test release gates
 
-1. Configure required test-only Edge Function secrets directly in the Supabase test project dashboard. Secret values must never be committed or pasted into chat.
+See [Test environment secret inventory](docs/test-environment-secrets.md) for the exact test-only Edge Function secret names and safe Dashboard configuration procedure. Secret values must never be committed or pasted into chat.
+
+1. Configure only the required test-only Edge Function secrets directly in the Supabase test project dashboard.
 2. Enable Supabase leaked-password protection in the test Auth settings.
 3. Have the owner create/authorize a dedicated test staff account and a second ordinary test account; do not promote or create staff users automatically.
 4. Upload a real, authorized test media asset and verify signed video/subtitle playback.
