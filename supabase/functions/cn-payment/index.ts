@@ -338,6 +338,22 @@ async function handleCreate(req: Request) {
   const user = userClient(authorization);
   const { data: authData, error: authError } = await user.auth.getUser(match[1]);
   if (authError || !authData.user) return json(401, { error: "authentication_required" });
+
+  // Hard fence: the independent test project must never call a live Alipay/WeChat merchant endpoint.
+  const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
+  let testProject = false;
+  try { testProject = new URL(supabaseUrl).hostname === "uvtzhzgirgwjzsmcdgej.supabase.co"; }
+  catch { return json(503, { error: "invalid_supabase_project_url" }); }
+  if (testProject) {
+    const { data: enabledMethod, error: methodError } = await user.from("payment_methods")
+      .select("environment").eq("provider", provider).eq("asset", "CNY").eq("is_enabled", true)
+      .order("sort_order", { ascending: true }).limit(1).maybeSingle();
+    if (methodError) return json(503, { error: "payment_environment_check_failed" });
+    if (enabledMethod && enabledMethod.environment !== "test") {
+      return json(403, { error: "live_payment_blocked_in_test_project" });
+    }
+  }
+
   const { data: order, error: orderError } = await user.rpc("create_cn_payment_order", {
     p_item_type: itemType, p_item_id: itemId, p_provider: provider, p_request_key: requestKey,
   });
