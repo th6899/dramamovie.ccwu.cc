@@ -1,5 +1,5 @@
 {
-  "release": "2.0.5",
+  "release": "2.0.7",
   "source_basis": "user-provided v1.9.1 Native QR Picker ZIP, subsequently extended with the CCWU Global portal frontend and Supabase backend",
   "files": [
     "README.md",

@@ -1,4 +1,4 @@
-# CCWU Global v2.0.6 — test acceptance matrix
+# CCWU Global v2.0.7 — test acceptance matrix
 
 This matrix records what has been verified in the independent test environment and what remains blocked by missing owner-controlled credentials, accounts, or authorized media. A code check or a rendered page is not equivalent to an end-to-end acceptance test.
 
@@ -7,7 +7,7 @@ This matrix records what has been verified in the independent test environment a
 | ID | Area | Verification | Result |
 |---|---|---|---|
 | ENV-01 | Host isolation | Test Pages hosts resolve to test Supabase; known production hosts resolve to production; unknown hosts fail closed | PASS |
-| ENV-02 | Preview version | Cloudflare Preview deployment `18b8dd11.ccwu-global-test.pages.dev` serves admin build/module v2.0.6; OAuth callback targets `/admin.html` | PASS |
+| ENV-02 | Preview version | Cloudflare Preview deployment `18b8dd11.ccwu-global-test.pages.dev` serves admin build/module v2.0.7; OAuth callback targets `/admin.html` | PASS |
 | ENV-03 | Deployment provenance | Cloudflare Pages Preview deployment source shows commit `b8a8c18` (full commit `b8a8c1896fa85703519751478b2ce276eaa7be67`) with successful status | PASS |
 | DB-01 | Schema migrations | 58 source migrations match 58 applied test database versions | PASS |
 | DB-02 | RLS baseline | All public tables have RLS enabled; private ledgers are RLS default-deny | PASS |
@@ -15,6 +15,7 @@ This matrix records what has been verified in the independent test environment a
 | DB-04 | Profile editing | Authenticated users can update only profiles.display_name; role-column UPDATE remains denied | PASS |
 | DB-05 | Financial write isolation | Browser roles cannot INSERT/UPDATE/DELETE service_orders; VPN plan writes require admin/editor | PASS |
 | AUTH-01 | Staff admin | Owner-created and verified test account `tianhon027@gmail.com`; `private.user_roles` role is `admin`; JWT-context checks return `is_staff() = true` and `is_ccwu_admin() = true` | PASS |
+| UI-03 | Operations privacy | Operations console no longer queries other users' profiles; displays shortened user IDs without broadening profile access | PASS |
 | DB-06 | Public table RLS audit | All 27 public business tables have RLS enabled; order reads are owner/admin/support scoped; privileged approval RPC requires explicit admin role | PASS |
 | STORAGE-01 | Media bucket privacy | Video, subtitles, and payment proofs are private; proof upload/read is scoped to owner or staff; posters and QR images are intentionally public | PASS |
 | STORAGE-02 | Upload constraints | Video 50 MB, subtitles 2 MB WebVTT-only, payment proofs 8 MB image/PDF, posters 10 MB image-only, QR images 5 MB image-only | PASS |

@@ -1,6 +1,6 @@
-window.CCWU_ADMIN_MODULE_VERSION = "2.0.6";
-console.info("[CCWU Admin] ES module 2.0.6 loaded");
-// CCWU Global Admin module 2.0.6 — explicit ES module entrypoint
+window.CCWU_ADMIN_MODULE_VERSION = "2.0.7";
+console.info("[CCWU Admin] ES module 2.0.7 loaded");
+// CCWU Global Admin module 2.0.7 — explicit ES module entrypoint
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { Upload } from "https://esm.sh/tus-js-client@4";
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js";
@@ -10,7 +10,7 @@ const isTestProject = (() => {
   try { return new URL(SUPABASE_URL).hostname === "uvtzhzgirgwjzsmcdgej.supabase.co"; }
   catch { return false; }
 })();
-window.CCWU_BUILD_VERSION = "2.0.6";
+window.CCWU_BUILD_VERSION = "2.0.7";
 const $ = (id) => document.getElementById(id);
 const esc = (value) => String(value ?? "").replace(/[&<>"']/g, (char) => ({
   "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
@@ -470,20 +470,20 @@ const renderRows = (id, rows, emptyCols, emptyText = "暂无记录") => {
 async function loadOperations() {
   const message = $("operationsMsg");
   message.textContent = "正在读取订单、会员、VPN 与退款数据……";
-  const [orders, members, vpns, refunds, profiles, memberPlans, vpnPlans] = await Promise.all([
+  const [orders, members, vpns, refunds, memberPlans, vpnPlans] = await Promise.all([
     db.from("service_orders").select("id,user_id,order_no,item_type,amount,currency,status,created_at").order("created_at", { ascending: false }).limit(100),
     db.from("membership_subscriptions").select("id,user_id,plan_id,status,starts_at,ends_at,created_at").order("created_at", { ascending: false }).limit(100),
     db.from("vpn_subscriptions").select("id,user_id,plan_id,status,starts_at,ends_at,provider_reference,created_at").order("created_at", { ascending: false }).limit(100),
     db.from("refund_requests").select("id,order_id,user_id,reason,status,created_at").order("created_at", { ascending: false }).limit(100),
-    db.from("profiles").select("id,display_name"),
     db.from("membership_plans").select("id,name,code"),
     db.from("vpn_plans").select("id,name,code,device_limit")
   ]);
-  const resultErrors = [orders, members, vpns, refunds, profiles, memberPlans, vpnPlans]
-    .map((r, i) => r.error ? `${["订单","会员订阅","VPN订阅","退款申请","用户资料","会员套餐","VPN套餐"][i]}：${r.error.message}` : null)
+  // Profiles are intentionally owner-readable only; do not query other users' PII here.
+  // Operations rows display a short user ID instead of widening profile SELECT access.
+  const resultErrors = [orders, members, vpns, refunds, memberPlans, vpnPlans]
+    .map((r, i) => r.error ? `${["订单","会员订阅","VPN订阅","退款申请","会员套餐","VPN套餐"][i]}：${r.error.message}` : null)
     .filter(Boolean);
   const data = (result) => result.data || [];
-  const profileMap = new Map(data(profiles).map((x) => [x.id, x.display_name || x.id.slice(0, 8)]));
   const memberPlanMap = new Map(data(memberPlans).map((x) => [x.id, x.name || x.code || x.id.slice(0, 8)]));
   const vpnPlanMap = new Map(data(vpnPlans).map((x) => [x.id, `${x.name || x.code || x.id.slice(0, 8)}${x.device_limit ? `（${x.device_limit}台设备）` : ""}`]));
   const orderMap = new Map(data(orders).map((x) => [x.id, x.order_no || x.id.slice(0, 8)]));
@@ -492,10 +492,10 @@ async function loadOperations() {
   $("kpiVpn").textContent = vpns.error ? "—" : data(vpns).length;
   $("kpiRefunds").textContent = refunds.error ? "—" : data(refunds).length;
 
-  renderRows("orderRows", data(orders).map((x) => `<tr><td>${esc(x.order_no || x.id)}</td><td>${esc(profileMap.get(x.user_id) || x.user_id?.slice(0, 8) || "—")}</td><td>${esc(x.item_type)}</td><td>${esc(x.amount)} ${esc(x.currency)}</td><td><span class="status">${esc(x.status)}</span></td><td>${esc(formatDate(x.created_at))}</td></tr>`), 6, orders.error ? "订单读取失败" : "暂无订单");
-  renderRows("memberRows", data(members).map((x) => `<tr><td>${esc(profileMap.get(x.user_id) || x.user_id?.slice(0, 8) || "—")}</td><td>${esc(memberPlanMap.get(x.plan_id) || "套餐信息不可用")}</td><td><span class="status">${esc(x.status)}</span></td><td>${esc(formatDate(x.starts_at))}</td><td>${esc(formatDate(x.ends_at))}</td></tr>`), 5, members.error ? "会员订阅读取失败" : "暂无会员订阅");
-  renderRows("vpnRows", data(vpns).map((x) => `<tr><td>${esc(profileMap.get(x.user_id) || x.user_id?.slice(0, 8) || "—")}</td><td>${esc(vpnPlanMap.get(x.plan_id) || "套餐信息不可用")}</td><td><span class="status">${esc(x.status)}</span></td><td>${esc(x.provider_reference || "—")}</td><td>${esc(formatDate(x.ends_at))}</td></tr>`), 5, vpns.error ? "VPN 订阅读取失败" : "暂无 VPN 订阅");
-  renderRows("refundRows", data(refunds).map((x) => `<tr><td>${esc(x.id.slice(0, 8))}</td><td>${esc(orderMap.get(x.order_id) || x.order_id?.slice(0, 8) || "—")}</td><td>${esc(profileMap.get(x.user_id) || x.user_id?.slice(0, 8) || "—")}</td><td>${esc(x.reason || "—")}</td><td><span class="status">${esc(x.status)}</span></td><td>${esc(formatDate(x.created_at))}</td></tr>`), 6, refunds.error ? "退款申请读取失败" : "暂无退款申请");
+  renderRows("orderRows", data(orders).map((x) => `<tr><td>${esc(x.order_no || x.id)}</td><td>${esc(x.user_id?.slice(0, 8) || "—")}</td><td>${esc(x.item_type)}</td><td>${esc(x.amount)} ${esc(x.currency)}</td><td><span class="status">${esc(x.status)}</span></td><td>${esc(formatDate(x.created_at))}</td></tr>`), 6, orders.error ? "订单读取失败" : "暂无订单");
+  renderRows("memberRows", data(members).map((x) => `<tr><td>${esc(x.user_id?.slice(0, 8) || "—")}</td><td>${esc(memberPlanMap.get(x.plan_id) || "套餐信息不可用")}</td><td><span class="status">${esc(x.status)}</span></td><td>${esc(formatDate(x.starts_at))}</td><td>${esc(formatDate(x.ends_at))}</td></tr>`), 5, members.error ? "会员订阅读取失败" : "暂无会员订阅");
+  renderRows("vpnRows", data(vpns).map((x) => `<tr><td>${esc(x.user_id?.slice(0, 8) || "—")}</td><td>${esc(vpnPlanMap.get(x.plan_id) || "套餐信息不可用")}</td><td><span class="status">${esc(x.status)}</span></td><td>${esc(x.provider_reference || "—")}</td><td>${esc(formatDate(x.ends_at))}</td></tr>`), 5, vpns.error ? "VPN 订阅读取失败" : "暂无 VPN 订阅");
+  renderRows("refundRows", data(refunds).map((x) => `<tr><td>${esc(x.id.slice(0, 8))}</td><td>${esc(orderMap.get(x.order_id) || x.order_id?.slice(0, 8) || "—")}</td><td>${esc(x.user_id?.slice(0, 8) || "—")}</td><td>${esc(x.reason || "—")}</td><td><span class="status">${esc(x.status)}</span></td><td>${esc(formatDate(x.created_at))}</td></tr>`), 6, refunds.error ? "退款申请读取失败" : "暂无退款申请");
   message.textContent = resultErrors.length
     ? `部分数据暂不可读取：${resultErrors.join("；")}`
     : "运营数据已从数据库读取。当前仅展示最近 100 条记录，不执行付款、退款或订阅变更。";
