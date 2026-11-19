@@ -90,6 +90,7 @@ python3 .github/scripts/validate_database_types.py
 python3 .github/scripts/validate_dom_contract.py
 python3 .github/scripts/validate_admin_contract.py
 python3 .github/scripts/validate_cn_payment_contract.py
+python3 .github/scripts/validate_frontend_db_contract.py
 ```
 
 The Edge Function checks use Deno 2:
