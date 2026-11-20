@@ -47,7 +47,7 @@ This matrix records what has been verified in the independent test environment a
 
 | ID | Area | Required input/action | Safe test condition |
 |---|---|---|---|
-| AUTH-02 | Ownership isolation | Test DB currently has two confirmed accounts and both have admin role; no ordinary-user account is available | BLOCKED — need a non-admin test account before cross-user isolation can be meaningfully verified |
+| AUTH-02 | Ownership isolation | Synthetic authenticated JWT context for a random non-staff UID returned zero rows from profiles, service_orders, membership_subscriptions, vpn_subscriptions, and premium episodes; transaction rolled back. Test DB still has two confirmed accounts and both have admin role | PARTIAL — RLS default-deny/owner filters verified in a synthetic transaction; real two-user IDOR and positive owner-access tests need a non-admin test account |
 | AUTH-03 | Leaked password protection | Enable Supabase Auth leaked-password protection in the test project's dashboard | BLOCKED — dashboard-only Auth setting; test project only |
 | STRIPE-01 | Stripe checkout | Configure test-only STRIPE_SECRET_KEY, test STRIPE_WEBHOOK_SECRET, exact test APP_ORIGIN, and test recurring Price IDs | sk_test_ only; no live keys or transactions |
 | STRIPE-02 | Stripe lifecycle | Run checkout, success/failure, duplicate webhook, renewal, refund, and dispute test events | Stripe test mode only |
