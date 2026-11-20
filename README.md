@@ -53,7 +53,7 @@ All development, schema changes, function deployments and test data belong in th
 
 ## Current test-environment verification
 
-- **74 source migrations match all 74 applied test database versions**, with no missing or extra versions. Latest applied migration: `20261120062700_harden_cn_payment_request_key_conflicts`.
+- **75 source migrations match all 75 applied test database versions**, with no missing or extra versions. Latest applied migration: `20261120064221_harden_profile_trigger_search_path`.
 - All six deployed test Edge Functions are ACTIVE and match their branch entrypoint source byte-for-byte: `create-checkout` v4, `stripe-webhook` v3, `get-episode-playback` v6, `cn-payment` v7, `track-episode-promotion` v4, and `record-video-ad-events` v3.
 - The `create-checkout` v4 function was redeployed to the test Supabase project and now keeps database error details in server logs rather than returning them to browser clients.
 - Player ad-event ingestion now retains unacknowledged batches and retries transient failures; the account center shows generic errors rather than exposing raw database/Auth messages. Both behaviors have CI regression checks.
