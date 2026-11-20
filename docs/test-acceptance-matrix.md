@@ -170,3 +170,11 @@ This matrix records what has been verified in the independent test environment a
 - CI Push run `44732327460` and PR run `44732338138` both passed all three jobs at HEAD `f92a98f4591676e8b5216e57ce91be5e7acf2e87`.
 - **Still NOT DEPLOYED / NOT RUNTIME VERIFIED:** migration remains branch-only. Test DB has no real ad inventory, so behavioral IMA acceptance remains blocked until an authorized real test ad configuration exists.
 - A browser that obtains a reservation but never emits an impression can temporarily suppress that slot for up to two minutes. This is a conservative fail-closed tradeoff.
+
+
+### CNY request-key canonical format hardening — 2026-11-20
+
+- Found and closed a validation mismatch: the Edge Function required canonical RFC-style UUIDs while the SQL RPC accepted any 36-character hex/hyphen string.
+- Added a forward migration to enforce canonical UUID version and variant bits in `public.create_cn_payment_order`; idempotent duplicate detection and item-conflict checks remain intact.
+- Added CI contract assertion for the SQL-level guard.
+- **NOT APPLIED / NOT RUNTIME VERIFIED:** migration remains on the development branch. Payment provider sandbox credentials and real provider E2E remain unavailable/unverified.
