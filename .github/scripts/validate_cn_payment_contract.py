@@ -39,3 +39,7 @@ if 'enabledMethod.environment !== "test"' not in function or "live_payment_block
     raise SystemExit("CNY payment Edge Function must reject live methods in the independent test project.")
 if function.index("live_payment_blocked_in_test_project") > function.index('user.rpc("create_cn_payment_order"'):
     raise SystemExit("Live-payment test fence must run before creating the payment order.")
+
+# SQL independently enforces the same canonical UUID structure as the Edge Function.
+if "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$" not in sql:
+    raise SystemExit("CNY SQL order RPC must reject non-canonical request UUIDs.")
