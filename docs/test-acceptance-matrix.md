@@ -224,3 +224,10 @@ This matrix records what has been verified in the independent test environment a
 - **SOURCE REVIEW PASS:** webhook HMAC/timestamp validation precedes JSON parsing; provider minor amounts are normalized by currency exponent; settlement is delegated to server-side RPCs.
 - **TEST DATABASE PRIVILEGE REVIEW PASS:** anon/authenticated cannot execute payment settlement, subscription event, refund/dispute, or CNY settlement RPCs. Authenticated can invoke only the idempotent order-creation RPC; anon cannot.
 - **NOT VERIFIED:** no signed Stripe sandbox event was sent. Production payment configuration and database were not changed.
+
+
+### Test DB migration drift — 2026-11-20
+
+- Branch has 77 migration source files; test DB ledger has 75 applied through `20261120064221`.
+- Two branch-only migrations remain unapplied: server-side video ad frequency caps (`20261120100000`) and canonical CNY request UUID validation (`20261120120000`).
+- **SOURCE INTEGRITY PASS / DB APPLY PENDING AUTHORIZATION.** No DDL was executed.
