@@ -177,3 +177,11 @@ Before each new session, read this log and inspect the current branch HEAD and l
 - Automated read-only browser smoke test of `/admin.html` on that exact URL returned Cloudflare Pages `Deployment Not Found` / `Nothing is here yet`, not the admin application. Service Catalog and Tutorials sections could not be inspected. A green deployment indicator therefore does not establish that this immutable deployment URL is serving content.
 - No credentials were submitted and no data/configuration was changed. Do not ask the user to repeat API authorization or to create/publish catalog records.
 - Next owner action, if required: in Cloudflare Pages > ccwu-global-test > Deployments, click **Details** on the top Preview row (`f55a4cf`) and inspect the deployment's canonical URL and build/deployment details. Share that Details view; do not redeploy or change settings. Meanwhile continue source-level checks and keep production untouched.
+
+
+## 2026-11-20 — Corrected Preview URL and admin UI smoke test
+
+- Correction to the previous smoke-test note: the URL first tested was mistyped by one character. The Cloudflare deployment details screenshot gives the exact URL as `https://61e6e8eb.ccwu-global-test.pages.dev/` (deployment ID `61e6e8eb-834a-4637-9da8-8638a49608b8`), commit `f55a4cf`. The earlier `Deployment Not Found` result applies only to the incorrect URL and is not evidence of a deployment failure.
+- Read-only browser verification of the exact URL `https://61e6e8eb.ccwu-global-test.pages.dev/admin.html` succeeded. The admin login page loads, and both the Digital Services catalog and Tutorials management forms/list containers are present. The page was unauthenticated during this read-only check; no credentials were submitted and no data was changed.
+- Cloudflare build log shows initialize, clone, build (skipped because no build command is configured), and deploy all succeeded; 136 files uploaded/published. This matches the static-site root-directory configuration.
+- Next validation: use the user's already working authenticated session on the correct Preview host to verify the catalog sections render after login, then perform only safe read-only checks. No dummy records, publishing, production deployment, or production data changes.
