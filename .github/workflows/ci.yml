@@ -54,6 +54,8 @@ jobs:
         run: python3 .github/scripts/validate_financial_write_security.py
       - name: Check manual payment approval amount and ownership guards
         run: python3 .github/scripts/validate_manual_payment_approval.py
+      - name: Check private manual payment proof storage
+        run: python3 .github/scripts/validate_payment_proof_storage.py
 
   edge-functions:
     name: Supabase Edge Function type checks
