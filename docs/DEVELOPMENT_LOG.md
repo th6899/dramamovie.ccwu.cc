@@ -64,3 +64,33 @@ For every work session, append a dated section containing:
 6. Any user action required, with one precise instruction only when unavoidable.
 
 Before each new session, read this log and inspect the current branch HEAD and latest deployment before editing. Avoid redoing work listed under “Confirmed completed.”
+
+
+## 2026-11-20 — Continued development checkpoint
+
+### Starting state and verification
+- Starting branch: `fix/portal-auth-errors-v2.0.3`
+- Starting HEAD: `c49c4afac2a42d7273805c77c7bb32c7b9621b25`
+- Production/main HEAD observed: `64ff5a7ec97c7e5f9aa9a24f42f6526cfe441bcc` (read-only; unchanged).
+- GitHub Actions run `44706929888` completed successfully for this HEAD. All three jobs passed:
+  - Frontend syntax and deployment isolation (including plan checkout, database types, DOM contracts, admin, CNY QR recovery, media publishing, playback security, payment/RPC/security guards).
+  - Supabase Edge Function type checks.
+  - Migration source integrity.
+- A duplicate CI run `44706920485` also completed successfully.
+- Current admin source is `admin.html` v2.0.7 and loads `admin-v2.0.1.js?v=2.0.7`.
+- Current source includes the six-category public catalog readiness check and calls it from `loadAll()`.
+- Membership and VPN admin forms both offer USD and CNY; USD requires a Stripe Price ID, CNY does not. Both default to inactive drafts; staff must explicitly activate.
+- Public homepage formats both CNY and USD plan prices from each row's stored currency.
+- No source code, database, production settings, or payment configuration was changed during this checkpoint.
+- Deployment of documentation-only HEAD `c49c4af` was not independently confirmed in Cloudflare; do not claim it is deployed.
+
+### User-confirmed status
+- User confirmed both the GitHub login and administrator-email login can now enter the admin backend. Authentication troubleshooting remains closed unless a new failure is reported.
+
+### Remaining release gates (high-level, not artificial micro-step count)
+1. Authenticated functional acceptance of admin create/edit/save/publish workflows, including catalog readiness, plan management, media publishing, and front-end visibility. Avoid test data that resembles real content; use clearly labelled temporary records only if needed and clean them up.
+2. Owner-supplied real catalog and commercial configuration: approved service/plan descriptions and prices, authorized media assets, and real wallet/payment details when available. Do not fabricate these.
+3. Final test deployment verification and production release only after explicit user approval; keep production unchanged meanwhile.
+
+### Next action
+- Continue authenticated acceptance checks using the user's already-established admin session if available. If the session is not accessible to the assistant, continue static/source and database contract validation without asking the user to repeat login setup. Ask for user action only for the exact browser-only acceptance interaction that cannot be performed remotely.
