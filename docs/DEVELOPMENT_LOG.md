@@ -429,3 +429,12 @@ Before each new session, read this log and inspect the current branch HEAD and l
 - GitHub Actions Push run `44733261243` and PR run `44733270649` both passed all three jobs: frontend/security contracts, Supabase Edge Function type checks, and migration source integrity.
 - Cloudflare Pages Preview build for `0474fda` completed successfully at `https://cb02ef7f.ccwu-global-test.pages.dev`.
 - This confirms source/CI and Preview build only. The new migration has not been applied to Supabase; CNY provider callback E2E and media/ad playback E2E remain unverified.
+
+
+## 2026-11-20 — Avoid unused ad reservations without signing configuration
+
+- Playback review found that capped-ad eligibility reservations were created before checking whether `CCWU_EVENT_SIGNING_SECRET` was configured. The response correctly suppressed ads without a signing token, but the unused reservation could temporarily suppress a later request for up to two minutes.
+- Moved the signing-secret gate ahead of the eligibility RPC so no reservation is created when signed event reporting is unavailable. Ad delivery remains fail-closed.
+- Added a playback source contract to prevent regression.
+- Commits: `1021072` (Edge Function), `7c6747b` (CI contract).
+- No database writes, migration application, provider calls, or production changes.
