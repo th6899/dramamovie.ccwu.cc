@@ -495,3 +495,13 @@ Before each new session, read this log and inspect the current branch HEAD and l
 - Read-only test DB inventory: 0 ad configs, 0 active configs, 0 capped active configs, 0 ad event rows. The frequency-reservation table is absent because its branch migration has not been applied. No runtime IMA/ad frequency-cap E2E can be meaningfully run against this empty inventory.
 - Latest branch HEAD `21f96878bb56d0dbd8d1e9033b5d2ee95e01ef02`: Push run `44735193264` and PR run `44735204262` both passed all 3 jobs.
 - No source defect confirmed in this pass; no migration applied and no ad inventory inserted.
+
+
+## 2026-11-20 — End-of-day checkpoint
+
+- Today's video-ad pipeline audit and test-inventory findings are recorded above; no repeat audit or reimplementation is needed tomorrow unless new evidence or a regression appears.
+- Final documentation checkpoint: branch `fix/portal-auth-errors-v2.0.3`, HEAD `aa63abede5b5a9b215b9af4f70a73911cb8eaa5c`.
+- CI at this exact HEAD: Push run `44735598429` completed successfully; all 3 jobs passed (frontend syntax/deployment isolation, Supabase Edge Function type checks, migration source integrity). Earlier run `44735588569` was superseded/cancelled by the newer run; it is not a failure of the final checkpoint.
+- Remaining release gates are integration/acceptance, not another broad source-development phase: (1) apply the two pending branch migrations to the test DB only after explicit authorization, then verify migration compatibility; (2) real video playback + IMA insertion/frequency-cap E2E with approved test media, ad inventory/tag, and configured signing secret; (3) payment provider sandbox callback E2E followed by whole-site acceptance. Production deployment remains separately gated by explicit approval.
+- Test DB still has zero ad configs (zero active, zero capped) and zero ad event rows. The frequency-reservation table is absent because its migration remains unapplied. No database changes or test content were created today.
+- Tomorrow: resume from this exact HEAD and these three gates; do not repeat completed login/OAuth/Cloudflare authorization, source audits, or already-passed CI checks unless new evidence requires it.
