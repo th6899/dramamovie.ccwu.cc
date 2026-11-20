@@ -12,7 +12,7 @@ Deno.serve(async(req)=>{
   const url=Deno.env.get("SUPABASE_URL")||"",anon=Deno.env.get("SUPABASE_ANON_KEY")||"",service=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")||"";if(!url||!anon||!service)return json({error:"SERVER_CONFIGURATION_INCOMPLETE"},503);
   const admin=createClient(url,service,{auth:{autoRefreshToken:false,persistSession:false}}),authHeader=req.headers.get("authorization")||"",candidateToken=authHeader.startsWith("Bearer ")?authHeader.slice(7):"",token=candidateToken&&candidateToken!==anon&&candidateToken.split(".").length===3?candidateToken:"";
   let userId:string|null=null;if(token){const {data,error}=await admin.auth.getUser(token);if(error||!data.user)return json({error:"UNAUTHORIZED"},401);userId=data.user.id;}
-  const body=await req.json().catch(()=>null),episodeId=body?.episode_id;if(typeof episodeId!=="string"||!/^[0-9a-f-]{36}$/i.test(episodeId))return json({error:"INVALID_EPISODE"},400);
+  const body=await req.json().catch(()=>null),episodeId=body?.episode_id,viewerSessionId=typeof body?.viewer_session_id==="string"&&/^[0-9a-f-]{36}$/i.test(body.viewer_session_id)?body.viewer_session_id:null;if(typeof episodeId!=="string"||!/^[0-9a-f-]{36}$/i.test(episodeId)||!viewerSessionId)return json({error:"INVALID_EPISODE_OR_VIEWER_SESSION"},400);
   const {data:episode,error:episodeError}=await admin.from("episodes").select("id,drama_id,title,video_path,is_free,status,season_number,episode_number").eq("id",episodeId).maybeSingle();if(episodeError||!episode)return json({error:"EPISODE_NOT_FOUND"},404);if(episode.status!=="published")return json({error:"EPISODE_NOT_AVAILABLE"},404);
   const {data:drama,error:dramaError}=await admin.from("dramas").select("id,title,status").eq("id",episode.drama_id).maybeSingle();if(dramaError||!drama||drama.status!=="published")return json({error:"CONTENT_NOT_AVAILABLE"},404);
   let hasMembership=false;if(!episode.is_free){if(!userId)return json({error:"MEMBERSHIP_REQUIRED"},401);const now=new Date().toISOString();const {data:subscriptions,error:membershipError}=await admin.from("membership_subscriptions").select("id").eq("user_id",userId).eq("status","active").lte("starts_at",now).gt("ends_at",now).limit(1);if(membershipError)return json({error:"ACCESS_CHECK_UNAVAILABLE"},503);hasMembership=(subscriptions||[]).length>0;if(!hasMembership)return json({error:"MEMBERSHIP_REQUIRED"},403);}else if(userId){const now=new Date().toISOString();const {data:subscriptions}=await admin.from("membership_subscriptions").select("id").eq("user_id",userId).eq("status","active").lte("starts_at",now).gt("ends_at",now).limit(1);hasMembership=(subscriptions||[]).length>0;}
@@ -23,14 +23,21 @@ Deno.serve(async(req)=>{
   const {data:adRows}=await admin.from("video_ad_configs").select("id,episode_id,slot_key,ad_type,ad_provider,ad_tag_url,midroll_offset_seconds,skip_after_seconds,frequency_cap_hours,members_exempt,starts_at,ends_at").eq("is_active",true).or(`episode_id.is.null,episode_id.eq.${episodeId}`).order("slot_key",{ascending:true});
   const adSlots=(adRows||[]).filter(row=>(!row.starts_at||row.starts_at<=now)&&(!row.ends_at||row.ends_at>now)&&!(hasMembership&&row.members_exempt)&&!!safeHttpsTarget(row.ad_tag_url)).map(({episode_id:_episode,starts_at:_starts,ends_at:_ends,...row})=>({...row,ad_tag_url:safeHttpsTarget(row.ad_tag_url)!}));
   const eventSecret=Deno.env.get("CCWU_EVENT_SIGNING_SECRET")||"";
+  const candidateConfigIds=adSlots.map(row=>row.id);
+  let eligibleConfigIds:string[]=[];
+  if(candidateConfigIds.length){
+   const {data:eligible,error:eligibilityError}=await admin.rpc("get_eligible_video_ad_config_ids",{p_episode_id:episodeId,p_viewer_id:userId,p_viewer_session_id:viewerSessionId,p_config_ids:candidateConfigIds});
+   if(eligibilityError||!Array.isArray(eligible))return json({error:"AD_ELIGIBILITY_CHECK_UNAVAILABLE"},503);
+   eligibleConfigIds=eligible;
+  }
+  const eligibleSlots=adSlots.filter(row=>eligibleConfigIds.includes(row.id));
   const eventNonce=crypto.randomUUID();
-  const eventConfigIds=adSlots.map(row=>row.id);
-  const adEventToken=eventSecret.length>=32&&eventConfigIds.length?await signEventToken(eventSecret,{type:"ad_events",episode_id:episodeId,config_ids:eventConfigIds,exp:Math.floor(Date.now()/1000)+14400,nonce:eventNonce}):null;
+  const adEventToken=eventSecret.length>=32&&eligibleConfigIds.length?await signEventToken(eventSecret,{type:"ad_events",episode_id:episodeId,config_ids:eligibleConfigIds,viewer_id:userId,viewer_session_id:viewerSessionId,exp:Math.floor(Date.now()/1000)+14400,nonce:eventNonce}):null;
   const signedPromotions=await Promise.all(promotions.map(async(row)=>{
     if(eventSecret.length<32)return {...row,tracking_url:row.target_url};
     const token=await signEventToken(eventSecret,{type:"promotion_click",promotion_id:row.id,episode_id:episodeId,exp:Math.floor(Date.now()/1000)+86400,nonce:crypto.randomUUID()});
     return {...row,tracking_url:`${url}/functions/v1/track-episode-promotion?token=${encodeURIComponent(token)}`};
   }));
-  return json({ok:true,drama:{title:drama.title},episode:{id:episode.id,title:episode.title,season_number:episode.season_number,episode_number:episode.episode_number},access:episode.is_free?"free":"membership",video_url:video.signedUrl,expires_in_seconds:300,subtitles,promotions:signedPromotions||[],ad_slots:adSlots,ad_event_token:adEventToken});
+  return json({ok:true,drama:{title:drama.title},episode:{id:episode.id,title:episode.title,season_number:episode.season_number,episode_number:episode.episode_number},access:episode.is_free?"free":"membership",video_url:video.signedUrl,expires_in_seconds:300,subtitles,promotions:signedPromotions||[],ad_slots:eligibleSlots,ad_event_token:adEventToken});
  }catch{return json({error:"PLAYBACK_UNAVAILABLE"},503);}
 });
