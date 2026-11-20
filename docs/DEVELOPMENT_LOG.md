@@ -453,3 +453,11 @@ Before each new session, read this log and inspect the current branch HEAD and l
 - The first CI run after the ad reservation optimization caught two implementation issues: a duplicated `eventSecret` declaration in the playback Edge Function and a JavaScript-style `indexOf` call mistakenly used in a Python source-contract script.
 - Removed the duplicate declaration and corrected the Python assertion to use `str.index`. The earlier failed run is retained as a useful regression signal; a new run on the corrected HEAD is required before marking this change validated.
 - No database or production changes.
+
+
+## 2026-11-20 — Ad reservation and viewer-session fixes validated
+
+- Corrected the CI-discovered duplicate declaration and Python contract assertion.
+- Full Push run `44734066839` passed all three jobs at source commit `93040d314db2fddd1635a909b5f05cd28f53c753`: frontend syntax/security contracts, Supabase Edge Function type checks, and migration source integrity.
+- Cloudflare Pages Preview build for the same source commit completed successfully.
+- The subsequent documentation-only checkpoint records this result. No Supabase migration was applied and no Edge Function was deployed to Supabase; media/ad runtime E2E remains unverified.
