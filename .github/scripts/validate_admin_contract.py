@@ -47,6 +47,8 @@ checks["catalog inserts remain unpublished drafts"] = 'is_published:false' in so
 checks["catalog save catches errors and restores submit state"] = 'async function submitCatalogDraft' in source and 'catch(error)' in source and 'finally {' in source and 'if(submit)submit.disabled=false;' in source
 checks["catalog publish controls prevent duplicate clicks and report failures"] = 'if(!b||b.disabled)return;' in source and '目录状态更新失败：' in source
 checks["catalog state refreshes readiness after successful mutations"] = 'await loadAdditionalCatalogs();' in source and 'await loadPublicCatalogReadiness();' in source
+checks["catalog save distinguishes successful insert from refresh failure"] = '记录已保存，但列表刷新失败：' in source and source.index('setMessage(messageId,successMessage);') < source.index('await loadAdditionalCatalogs();')
+checks["catalog publish distinguishes successful update from refresh failure"] = '目录状态已更新，但列表刷新失败：' in source and '目录状态更新失败：' in source
 
 failed = [label for label, ok in checks.items() if not ok]
 for label, ok in checks.items():
