@@ -38,6 +38,6 @@ Deno.serve(async(req)=>{
     const token=await signEventToken(eventSecret,{type:"promotion_click",promotion_id:row.id,episode_id:episodeId,exp:Math.floor(Date.now()/1000)+86400,nonce:crypto.randomUUID()});
     return {...row,tracking_url:`${url}/functions/v1/track-episode-promotion?token=${encodeURIComponent(token)}`};
   }));
-  return json({ok:true,drama:{title:drama.title},episode:{id:episode.id,title:episode.title,season_number:episode.season_number,episode_number:episode.episode_number},access:episode.is_free?"free":"membership",video_url:video.signedUrl,expires_in_seconds:300,subtitles,promotions:signedPromotions||[],ad_slots:eligibleSlots,ad_event_token:adEventToken});
+  return json({ok:true,drama:{title:drama.title},episode:{id:episode.id,title:episode.title,season_number:episode.season_number,episode_number:episode.episode_number},access:episode.is_free?"free":"membership",video_url:video.signedUrl,expires_in_seconds:300,subtitles,promotions:signedPromotions||[],ad_slots:adEventToken?eligibleSlots:[],ad_event_token:adEventToken});
  }catch{return json({error:"PLAYBACK_UNAVAILABLE"},503);}
 });
