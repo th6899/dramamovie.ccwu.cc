@@ -23,6 +23,7 @@ checks = {
     "ad-event endpoint allowlists IMA event types": all(x in ad_events for x in ('"ad_request"', '"first_quartile"', '"midpoint"', '"third_quartile"', '"complete"', '"error"')),
     "ad-event writes use service-role RPC": 'admin.rpc("record_video_ad_events_v2"' in ad_events,
     "playback requires a persistent opaque viewer session ID": "viewer_session_id" in playback and "INVALID_EPISODE_OR_VIEWER_SESSION" in playback,
+    "media and signed event endpoints validate canonical UUID shape": all("[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}" in source for source in (playback, ad_events, promotion)) and all("^[0-9a-f-]{36}$" not in source for source in (playback, ad_events, promotion)),
     "playback filters ad slots through the server-side frequency-cap RPC": 'admin.rpc("get_eligible_video_ad_config_ids"' in playback and "eligibleSlots" in playback,
     "playback fails closed when signed impression tracking is unavailable": "ad_slots:adEventToken?eligibleSlots:[]" in playback,
     "signed ad-event token binds authenticated and anonymous viewer identities": all(x in playback for x in ("viewer_id:userId", "viewer_session_id:viewerSessionId")),
