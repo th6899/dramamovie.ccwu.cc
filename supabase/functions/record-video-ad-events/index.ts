@@ -48,7 +48,9 @@ Deno.serve(async (req) => {
     }
     const payload = await verifyToken(body.token, secret);
     if (!payload || payload.type !== "ad_events" || !/^[0-9a-f-]{36}$/i.test(payload.episode_id || "") ||
-        !/^[0-9a-f-]{36}$/i.test(payload.nonce || "") || !Array.isArray(payload.config_ids) ||
+        !/^[0-9a-f-]{36}$/i.test(payload.nonce || "") ||
+        !(payload.viewer_id === null || /^[0-9a-f-]{36}$/i.test(payload.viewer_id || "")) ||
+        !/^[0-9a-f-]{36}$/i.test(payload.viewer_session_id || "") || !Array.isArray(payload.config_ids) ||
         payload.config_ids.length < 1 || payload.config_ids.length > 50 ||
         !payload.config_ids.every((id: unknown) => typeof id === "string" && /^[0-9a-f-]{36}$/i.test(id))) {
       return json({ error: "INVALID_OR_EXPIRED_TOKEN" }, 401);
@@ -66,10 +68,12 @@ Deno.serve(async (req) => {
       return json({ error: "INVALID_EVENT" }, 400);
     }
     const admin = createClient(url, service, { auth: { autoRefreshToken: false, persistSession: false } });
-    const { data, error } = await admin.rpc("record_video_ad_events", {
+    const { data, error } = await admin.rpc("record_video_ad_events_v2", {
       p_episode_id: payload.episode_id,
       p_event_token_id: payload.nonce,
       p_allowed_config_ids: payload.config_ids,
+      p_viewer_id: payload.viewer_id,
+      p_viewer_session_id: payload.viewer_session_id,
       p_events: events,
     });
     if (error) return json({ error: "EVENT_WRITE_FAILED" }, 503);
