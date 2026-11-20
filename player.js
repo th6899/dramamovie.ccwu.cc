@@ -16,6 +16,8 @@ let midrollDone = new Set();
 let postrollDone = false;
 const adSessionFingerprint = crypto.randomUUID();
 let adEventQueue = [];
+let adEventFlushInFlight = false;
+let adEventRetryTimer = null;
 let activeSlot = null;
 
 const esc = (value) => String(value ?? "").replace(/[&<>"']/g, (char) => ({
@@ -95,10 +97,29 @@ function resumeContent() {
 }
 
 async function flushAdEvents() {
-  if (!playback?.ad_event_token || !adEventQueue.length) return;
-  const batch = adEventQueue.splice(0, 30);
-  const { error } = await db.functions.invoke("record-video-ad-events", { body: { token: playback.ad_event_token, events: batch } });
-  if (error) console.warn("[CCWU Player] Ad event ingestion failed", error);
+  if (adEventFlushInFlight || !playback?.ad_event_token || !adEventQueue.length) return;
+  adEventFlushInFlight = true;
+  try {
+    while (adEventQueue.length) {
+      const batch = adEventQueue.slice(0, 30);
+      const { error } = await db.functions.invoke("record-video-ad-events", {
+        body: { token: playback.ad_event_token, events: batch }
+      });
+      if (error) throw error;
+      // Remove events only after the server confirms the batch was accepted.
+      adEventQueue.splice(0, batch.length);
+    }
+  } catch (error) {
+    console.warn("[CCWU Player] Ad event ingestion failed; queued events will be retried", error);
+    if (!adEventRetryTimer) {
+      adEventRetryTimer = setTimeout(() => {
+        adEventRetryTimer = null;
+        void flushAdEvents();
+      }, 5000);
+    }
+  } finally {
+    adEventFlushInFlight = false;
+  }
 }
 function queueAdEvent(slot, eventType, errorCode = "") {
   if (!playback?.ad_event_token || !slot?.id) return;
