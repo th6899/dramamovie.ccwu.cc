@@ -31,6 +31,9 @@ for field in ("memberPlanActive", "vpnPlanActive"):
 
 if "测试环境仅使用沙盒凭证与沙盒价格" not in html or "禁止启用真实收款" not in html:
     raise SystemExit("plan editor must warn against real-money test configuration")
+if '$("memberPlanActive").checked = true' in admin or '$("vpnPlanActive").checked = true' in admin:
+    raise SystemExit("plan form reset must not re-enable the active checkbox")
+
 
 for prefix in ("memberPlan", "vpnPlan"):
     block = re.search(
