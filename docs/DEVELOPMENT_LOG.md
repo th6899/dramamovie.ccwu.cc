@@ -94,3 +94,18 @@ Before each new session, read this log and inspect the current branch HEAD and l
 
 ### Next action
 - Continue authenticated acceptance checks using the user's already-established admin session if available. If the session is not accessible to the assistant, continue static/source and database contract validation without asking the user to repeat login setup. Ask for user action only for the exact browser-only acceptance interaction that cannot be performed remotely.
+
+
+## 2026-11-20 — Admin catalog modules added
+
+- Starting HEAD: `be1ead142f742a7e87e5e8909cd20964c9d1f8a6`.
+- Added a Digital Services Catalog admin section to `admin.html`: create service drafts, list entries, publish/unpublish.
+- Added a Tutorials admin section: create tutorial drafts with Markdown body, summary, category and optional resource path; list entries and publish/unpublish.
+- Updated `admin-v2.0.1.js` with database insert/list/toggle handlers for `service_catalog` and `tutorials`; successful saves refresh the tables and six-category readiness monitor.
+- Both modules default to draft/unpublished. No placeholder content was created. No database rows, production resources, payment settings, or deployment settings were modified.
+- New commit(s): HTML `888b008ec4fb488cc5b0f25a87ae5f29c7208aac`; JS `37cf4f1122313acbc584db014e9eed4f97eabe3c`. Current branch HEAD verified as `37cf4f1122313acbc584db014e9eed4f97eabe3c`.
+- Static DOM contract check: PASS; every JS-referenced element ID exists in HTML. New service/tutorial forms and table bindings confirmed.
+- GitHub Actions run `44707523484`: frontend syntax and deployment isolation job completed its checks successfully, including browser JavaScript syntax, HTML/JS DOM contracts, admin auth/settings, content publishing, database/RPC contracts and payment security. At checkpoint time remaining jobs were still running; do not mark the entire workflow passed until run conclusion is success.
+- Run URL: https://github.com/th6899/dramamovie.ccwu.cc/actions/runs/44707523484
+- Not deployed to Cloudflare yet; no deployment claim.
+- Next: confirm all CI jobs finish successfully, then verify preview deployment includes the new sections. Authenticated browser create/save/publish still needs a real signed-in browser session; do not seed invented records.
