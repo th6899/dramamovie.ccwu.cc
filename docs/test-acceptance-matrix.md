@@ -151,3 +151,12 @@ This matrix records what has been verified in the independent test environment a
 - PostgreSQL advisory lock functions referenced by the migration are available.
 - No rows were present in test `private.video_ad_events` at inspection time. No DDL or data writes were performed.
 - Concurrent event-ingestion writes for the same viewer/config are serialized and the cap is rechecked before storing a new impression. This prevents duplicate qualifying impression records; it cannot retract an ad already started in a concurrent browser tab.
+
+
+### CNY payment retry idempotency review — 2026-11-20
+
+- Portal checkout already sends a fresh UUID `request_key` for each new payment attempt.
+- The Edge Function previously substituted a random UUID when the key was missing or malformed, which made retries non-idempotent. It now rejects malformed/missing keys before creating an order.
+- The SQL order-creation RPC independently validates the key and handles unique-key collisions; existing request keys cannot be reused for a different plan/item.
+- CI passed for Edge Function + frontend + migration source checks on `c0d2064` (Push `44729893567`, PR `44729885991`). The subsequent documentation-only checkpoint is running separately.
+- No payment credentials, orders, or database records were changed; provider E2E remains gated on real sandbox credentials.
