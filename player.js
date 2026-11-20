@@ -106,7 +106,12 @@ function resumeContent() {
     adsManager = null;
   }
   $("adContainer").replaceChildren();
-  video.play().catch(() => {});
+  // A post-roll runs after the content has ended; resuming the media element
+  // here would restart the episode from the beginning.
+  if (activeSlot?.ad_type !== "postroll" && !video.ended) {
+    video.play().catch(() => {});
+  }
+  activeSlot = null;
 }
 
 async function flushAdEvents() {
