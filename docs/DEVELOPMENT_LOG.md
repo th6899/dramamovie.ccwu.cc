@@ -291,3 +291,11 @@ Before each new session, read this log and inspect the current branch HEAD and l
 - Refreshed `docs/test-acceptance-matrix.md` to v2.0.8 and replaced stale deployment-blocker rows with the owner-confirmed Preview provenance. New matrix commit: `ebc0eb5`.
 - CI passed for the code-fix commit `46ae11f` (run `44721960491`) and branch checkpoint `cf49b17` (run `44722046291`), all three jobs green.
 - The remaining runtime check is the visible served admin marker/title after a hard refresh. Cloudflare Preview is confirmed; production remains untouched.
+
+
+## 2026-11-20 — Latest Cloudflare Preview deployment and CI confirmed
+
+- Owner supplied the latest Cloudflare Pages Preview row: branch `fix/portal-auth-errors-v2.0.3`, commit `e7dfcf3` (`e7dfcf37d8e5f1e9a4620166866ef19b6f983fed`), deployment URL `https://53d0dac2.ccwu-global-test.pages.dev`, deployment ID `53d0dac2-b7d9-4111-a9ed-5f3b4e13807c`.
+- This is the latest deployment and its source commit descends from the version-correction commits `f5c8ac9` (HTML title/footer 2.0.8), `0197e8a` (JS module marker 2.0.8), and `46ae11f` (CI assertions). Thus the deployed source includes the v2.0.8 corrections; this does not by itself assert what an already-open browser tab currently renders.
+- GitHub Actions for exact deployed commit `e7dfcf3`: runs `44722502692` and `44722495177` completed successfully. Earlier overlapping runs for prior documentation checkpoint `ebc0eb5` were cancelled after the newer commit runs completed; no failing code check is indicated.
+- Latest Preview URL is the immutable deployment host above. Hard-refresh the admin page on this URL to verify the visible footer/title; production remains untouched.
