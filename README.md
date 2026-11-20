@@ -92,7 +92,7 @@ The site is static. The intended test Pages project is `ccwu-global-test`; use t
 Owner-side check required in Cloudflare Dashboard → Workers & Pages → `ccwu-global-test` → Settings → Builds & deployments:
 1. Confirm the connected Git repository is `th6899/dramamovie.ccwu.cc`.
 2. Confirm the production branch is not being used for test changes; the intended test branch is `fix/portal-auth-errors-v2.0.3`.
-3. Confirm the root directory is empty (repository root), build command is empty, and output directory is `/` (or the dashboard's root/default publish directory).
+3. Confirm the root directory is empty (repository root), build command is empty, and output directory is `.` (repository root).
 4. In Deployments, inspect the latest Preview deployment's source commit. It must match the branch head before calling the change live. If no deployment exists for the current branch head, use the dashboard's retry/deploy control or restore the Git integration. Do not switch production domains or deploy the test branch as production.
 
 A Pages Edit API token or authenticated Cloudflare dashboard action is required to trigger a deployment manually; never substitute the read-only token. Do not attach or switch production domains during test validation.
