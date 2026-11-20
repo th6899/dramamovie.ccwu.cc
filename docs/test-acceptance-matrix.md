@@ -178,3 +178,10 @@ This matrix records what has been verified in the independent test environment a
 - Added a forward migration to enforce canonical UUID version and variant bits in `public.create_cn_payment_order`; idempotent duplicate detection and item-conflict checks remain intact.
 - Added CI contract assertion for the SQL-level guard.
 - **NOT APPLIED / NOT RUNTIME VERIFIED:** migration remains on the development branch. Payment provider sandbox credentials and real provider E2E remain unavailable/unverified.
+
+
+### CNY canonical request UUID hardening — CI checkpoint
+
+- Commit `0474fda2a120f8a5dc42bca1f2032b066e60250c`: Push run `44733261243` and PR run `44733270649` both passed all three CI jobs.
+- Cloudflare Preview build succeeded at `https://cb02ef7f.ccwu-global-test.pages.dev` for commit `0474fda`.
+- **NOT RUNTIME VERIFIED:** the forward migration remains unapplied; no provider credentials or payment records were used. Real Alipay/WeChat callback settlement remains a separate external E2E gate.
