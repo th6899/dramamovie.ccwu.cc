@@ -7,8 +7,8 @@ This matrix records what has been verified in the independent test environment a
 | ID | Area | Verification | Result |
 |---|---|---|---|
 | ENV-01 | Host isolation | Test Pages hosts resolve to test Supabase; known production hosts resolve to production; unknown hosts fail closed | PASS |
-| ENV-02 | Preview version | Owner confirmed the current Cloudflare Preview deployment includes branch commit `607b0e3`, which contains the v2.0.8 admin label/module consistency corrections and the passing CI record. The visible v2.0.8 marker still requires a final browser refresh check. | DEPLOYED — RUNTIME MARKER CHECK PENDING |
-| ENV-03 | Deployment provenance | Owner-confirmed Cloudflare Preview deployment includes commit `607b0e3` on `fix/portal-auth-errors-v2.0.3`; branch alias is `fix-portal-auth-errors-v-2-0.ccwu-global-test.pages.dev`. This is Preview only; production domain is unchanged. | PASS — OWNER CONFIRMED |
+| ENV-02 | Preview version | Owner confirmed the latest Preview admin page visibly reports `CCWU Global · Admin Build v2.0.8`. The served title/footer version mismatch is resolved. | PASS — OWNER CONFIRMED RUNTIME |
+| ENV-03 | Deployment provenance | Owner-confirmed latest app Preview deployment is commit `e7dfcf3` on `fix/portal-auth-errors-v2.0.3` at `https://53d0dac2.ccwu-global-test.pages.dev`. The owner has since confirmed the rendered admin marker is v2.0.8. This is Preview only; production domain is unchanged. | PASS — OWNER CONFIRMED |
 | ENV-04 | Cloudflare build source | Preview deployment is confirmed to include the current branch checkpoint `607b0e3`; HTML footer/title and JS module labels were aligned to v2.0.8 in ancestor commits `f5c8ac9` and `0197e8a`. Browser-visible served marker remains the final runtime check. | DEPLOYED — RUNTIME MARKER CHECK PENDING |
 | DB-01 | Schema migrations | 75 source migrations match 75 applied test database versions, including Stripe/CNY idempotency and Auth profile-trigger search_path hardening | PASS (source filename/version set compared with the test database migration ledger) |
 | DB-02 | RLS baseline | All public tables have RLS enabled; private ledgers are RLS default-deny | PASS |
@@ -81,7 +81,7 @@ This matrix records what has been verified in the independent test environment a
 - Never paste secrets into chat, GitHub, issue comments, screenshots, or browser-delivered files.
 - See test-environment-secrets.md for the exact secret names and environment rules.
 - The test project hard-blocks live CNY automatic providers; Stripe checkout requires a test-mode key. Manual real-merchant QR is locked off in the test admin UI.
-| ENV-05 | Preview redeployment trigger | After Cloudflare production branch is set back to `main` and Preview is configured for all non-production branches, this commit serves as a fresh Git event to test the Git-to-Pages deployment hook. Verify the deployment's source SHA in Cloudflare before accepting it | WAITING FOR DEPLOYMENT VERIFICATION |
+| ENV-05 | Preview redeployment trigger | Owner-confirmed Preview deployment of the application commit and visible v2.0.8 runtime marker demonstrate the Git-to-Pages Preview path is functioning. Later documentation-only commits are CI-validated; no new app deployment is required for this acceptance item. | PASS — OWNER CONFIRMED |
 
 
 ## 2026-11-20 verification corrections and current state
