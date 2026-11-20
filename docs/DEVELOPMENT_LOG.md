@@ -207,3 +207,10 @@ Before each new session, read this log and inspect the current branch HEAD and l
 - CI run `44712672939` for prior HEAD `8c60fae` completed successfully: all three jobs passed (frontend syntax/deployment isolation, Edge Function type checks, migration source integrity).
 - Acceptance matrix updated with authenticated UI read-only PASS and catalog empty-state snapshot. Next meaningful app-level acceptance requires an owner-provided real service/tutorial draft to test save/update/publish lifecycle; do not invent or seed fake content. Existing code contract checks already cover save error handling, duplicate-submit prevention, draft defaults, publish toggles, and readiness refresh.
 - No code, database rows, Auth settings, grants, payments, Cloudflare settings, or production resources changed.
+
+
+## 2026-11-20 — Faster security and CI closure
+
+- Confirmed all CI checks for current code HEAD `c58a22c` completed successfully (run `44712828657`): frontend syntax/deployment isolation, Edge Function type checks, and migration source integrity.
+- Completed read-only RLS/table privilege audit for six public catalog tables. RLS is enabled for all six. Anonymous has SELECT but no write grants; anonymous row policies expose only published/active rows. Episode visibility is further restricted to free published episodes whose parent drama is published. Authenticated writes are gated by staff-role policies. No database policy or grant changes were made.
+- Added this audit result and successful CI status to the acceptance matrix. Remaining gates are now concentrated on authenticated mutation lifecycle with a real owner-provided draft and the documented Free-plan leaked-password protection limitation. No test data was fabricated, no payment or Auth configuration changed, and production remains untouched.
