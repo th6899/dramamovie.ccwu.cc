@@ -470,3 +470,11 @@ Before each new session, read this log and inspect the current branch HEAD and l
 - Alipay amount is parsed as decimal CNY; WeChat Pay integer fen is converted to CNY by dividing by 100. Both converge on the same numeric CNY order/transaction comparison.
 - The Alipay and WeChat callback handlers verify provider signatures before calling the service-role settlement RPC. No callback credentials or payment records were accessed or changed.
 - No new source defect was confirmed in this pass. Provider sandbox callback E2E remains unverified; source-level audit is not a substitute for signed sandbox notifications.
+
+
+## 2026-11-20 — Stripe settlement and RPC privilege audit
+
+- Reviewed the Stripe webhook Edge Function and its currency-minor-unit conversion helper. Webhook processing verifies the timestamped HMAC before JSON parsing, rejects stale signatures, validates event envelopes, converts provider minor units using currency exponents, and delegates settlement to privileged RPCs.
+- Read-only inspection of the test database confirmed the financial RPC privilege boundary: anonymous and authenticated roles cannot execute checkout settlement, subscription event, refund/dispute, or CNY settlement functions; service_role can. The idempotent Stripe order-creation RPC is executable by authenticated users and service_role, not anon.
+- Reviewed checkout settlement locking, order/session association, payment amount/currency matching, subscription event ordering, and refund/dispute cumulative amount checks. No confirmed source defect in this pass.
+- No SQL was changed or applied; no payment/provider records or secrets were read or modified. Real signed Stripe sandbox callbacks remain an external E2E gate.
