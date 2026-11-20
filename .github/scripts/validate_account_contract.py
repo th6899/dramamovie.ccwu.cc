@@ -6,6 +6,7 @@ page = Path("account.html").read_text(encoding="utf-8")
 module = Path("account.js").read_text(encoding="utf-8")
 home = Path("app.js").read_text(encoding="utf-8")
 profile_migration = Path("supabase/migrations/20261119083006_grant_profile_display_name_update.sql").read_text(encoding="utf-8")
+profile_hardening = Path("supabase/migrations/20261120054655_revoke_legacy_profile_column_updates.sql").read_text(encoding="utf-8")
 
 checks = {
     "account dashboard loads as ES module": '<script type="module" src="./account.js?v=2.0.3"></script>' in page,
@@ -29,3 +30,6 @@ for label, ok in checks.items():
     print(f"{'OK' if ok else 'FAIL'}: {label}")
 if failed:
     raise SystemExit("Account dashboard contract failed: " + ", ".join(failed))
+
+checks["legacy username/avatar UPDATE grants are revoked"] = "REVOKE UPDATE (username, avatar_url) ON TABLE public.profiles FROM authenticated" in profile_hardening
+checks["profile hardening has fail-closed assertions"] = "profile_column_update_privilege_not_revoked" in profile_hardening and "profile_display_name_update_privilege_missing" in profile_hardening
