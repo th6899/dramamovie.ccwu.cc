@@ -169,3 +169,11 @@ Before each new session, read this log and inspect the current branch HEAD and l
 - Next acceptance gate: verify the deployed Preview UI and authenticated admin catalog workflow on the test project. The user only needs to open the provided Preview URL and confirm the admin page loads with the Service Catalog and Tutorials sections; do not create or publish dummy content.
 - Test Auth leaked-password protection remains disabled per the test-project Security Advisor and requires an owner-controlled dashboard setting. The five authenticated SECURITY DEFINER RPC grants and private-schema API exposure findings remain review-only; no grants or settings changed.
 - No database rows, production resources, payment configuration, secrets, DNS, or Cloudflare configuration were changed.
+
+
+## 2026-11-20 — Preview URL live smoke test blocked
+
+- Starting HEAD: `b2618b7ef96b3d22ff71b56cba58431f8eb81795`; Cloudflare dashboard screenshot showed latest successful Preview commit `f55a4cf` at `https://616e6e6b.ccwu-global-test.pages.dev/`.
+- Automated read-only browser smoke test of `/admin.html` on that exact URL returned Cloudflare Pages `Deployment Not Found` / `Nothing is here yet`, not the admin application. Service Catalog and Tutorials sections could not be inspected. A green deployment indicator therefore does not establish that this immutable deployment URL is serving content.
+- No credentials were submitted and no data/configuration was changed. Do not ask the user to repeat API authorization or to create/publish catalog records.
+- Next owner action, if required: in Cloudflare Pages > ccwu-global-test > Deployments, click **Details** on the top Preview row (`f55a4cf`) and inspect the deployment's canonical URL and build/deployment details. Share that Details view; do not redeploy or change settings. Meanwhile continue source-level checks and keep production untouched.
