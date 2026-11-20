@@ -122,3 +122,12 @@ Before each new session, read this log and inspect the current branch HEAD and l
 - Cloudflare Preview remains unverified/stale. The previously inspected immutable Preview URL does not prove the latest branch HEAD is deployed. No deployment URL or commit is claimed.
 - No database rows, production data, payment settings, secrets, DNS, or Cloudflare configuration were changed.
 - Remaining owner-controlled gates: Cloudflare dashboard deployment provenance/retry (read-only token cannot perform it), test Auth leaked-password protection, authorized media/test provider inputs, and final signed-in functional acceptance. Do not repeat completed authentication repairs.
+
+
+## 2026-11-20 — Catalog workflow regression coverage
+
+- Starting HEAD: `7185aaff269b8b5cd464896186acdb3d2080ef48`; latest development-log CI run `44708246189` completed successfully with all three jobs passing.
+- Reviewed `admin-v2.0.1.js`, `admin.html`, and the existing admin contract validator. Confirmed the new service/tutorial forms are loaded through `loadAll()`, start as unpublished drafts, and refresh readiness after successful mutations.
+- Extended `.github/scripts/validate_admin_contract.py` with regression checks for service/tutorial form and table wiring, draft-only inserts, save error handling and button restoration, duplicate publish-click protection, and readiness refresh after mutations.
+- Validator change commit: `4d74c0fb3908fc700678c3909fc85e04d9881226`. CI for this commit was not yet confirmed at the time of this entry.
+- No app data, database rows, payment configuration, production settings, Cloudflare settings, secrets, or DNS were changed. Preview deployment provenance remains blocked pending read-only dashboard confirmation / owner action.
