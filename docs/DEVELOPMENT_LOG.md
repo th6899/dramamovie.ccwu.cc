@@ -485,3 +485,13 @@ Before each new session, read this log and inspect the current branch HEAD and l
 - Compared the branch migration source tree with the test project's applied migration ledger using read-only queries.
 - Branch source contains 77 migration files; the test database has 75 applied records through `20261120064221`. Exactly two later branch migrations are unapplied in the test DB: `20261120100000_enforce_server_side_video_ad_frequency_caps.sql` and `20261120120000_validate_canonical_cn_payment_request_keys.sql`.
 - This is intentional pending explicit authorization for database DDL. Neither migration was applied to test or production. The branch CI migration integrity check passes at the current source checkpoint.
+
+
+## 2026-11-20 — Video ad pipeline source and test-inventory audit
+
+- Re-read the player, playback Edge Function, signed event-ingestion Edge Function, and server-side frequency-cap migration end-to-end.
+- Confirmed player request-context guards reject stale IMA callbacks; loader errors are request-scoped; post-roll fallback does not restart ended content; event batches remain queued until the server accepts them and retry after transient failure.
+- Confirmed playback only returns ad slots after a server eligibility check and only when the event-signing secret is configured; the signed token binds episode, allowed config IDs, authenticated user (if any), anonymous browser session, expiry and nonce. Event ingestion derives identity from the signed token, not client event fields.
+- Read-only test DB inventory: 0 ad configs, 0 active configs, 0 capped active configs, 0 ad event rows. The frequency-reservation table is absent because its branch migration has not been applied. No runtime IMA/ad frequency-cap E2E can be meaningfully run against this empty inventory.
+- Latest branch HEAD `21f96878bb56d0dbd8d1e9033b5d2ee95e01ef02`: Push run `44735193264` and PR run `44735204262` both passed all 3 jobs.
+- No source defect confirmed in this pass; no migration applied and no ad inventory inserted.
