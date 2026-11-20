@@ -7,9 +7,15 @@ cn = Path("supabase/migrations/20261118114905_restore_cn_payment_order_and_recon
 manual = Path("supabase/migrations/20261118114558_restore_manual_payment_order_and_approval_rpcs.sql").read_text(encoding="utf-8").lower()
 manual_guard = Path("supabase/migrations/20261118121904_harden_manual_payment_channel_and_submission_guards.sql").read_text(encoding="utf-8").lower()
 cn_lookup = Path("supabase/migrations/20261119075802_restore_cn_payment_qr_on_order_lookup.sql").read_text(encoding="utf-8").lower()
+stripe_idempotent = Path("supabase/migrations/20261120061200_add_idempotent_stripe_checkout_order_creation.sql").read_text(encoding="utf-8").lower()
 
 checks = {
     "Stripe order creation requires an authenticated owner": "v_user uuid := auth.uid()" in stripe and "p_currency is distinct from 'usd'" in stripe,
+    "Stripe idempotent checkout binds request keys to a unique payment transaction": "payment_transactions_card_psp_request_key_uidx" in stripe_idempotent and "metadata->>'request_key'" in stripe_idempotent and "provider='card_psp'" in stripe_idempotent,
+    "Stripe idempotent order creation requires authenticated owner and USD": "v_user uuid := auth.uid()" in stripe_idempotent and "p_request_key is null" in stripe_idempotent and "p_currency is distinct from 'usd'" in stripe_idempotent,
+    "Stripe idempotent order creation validates active plan and recurring Price ID": "where id=p_item_id and is_active=true" in stripe_idempotent and "stripe_recurring_price_not_configured" in stripe_idempotent,
+    "Stripe idempotent retries enforce matching item, currency and pending status": "request_key_conflict" in stripe_idempotent and "order_not_pending" in stripe_idempotent and "'duplicate',true" in stripe_idempotent,
+    "Stripe idempotent checkout RPC is not executable anonymously": "revoke all on function public.create_stripe_subscription_order_idempotent(text,uuid,text,uuid)" in stripe_idempotent and "grant execute on function public.create_stripe_subscription_order_idempotent(text,uuid,text,uuid) to authenticated,service_role" in stripe_idempotent,
     "Stripe plan must be active and USD": "where id = p_item_id and is_active = true" in stripe and "v_currency is distinct from 'usd'" in stripe,
     "Stripe order RPC is authenticated-only, not anonymous": "revoke all on function public.create_stripe_subscription_order(text,uuid,text) from public,anon,authenticated,service_role" in stripe and "grant execute on function public.create_stripe_subscription_order(text,uuid,text) to authenticated,service_role" in stripe,
     "CNY order creation requires an authenticated owner": "v_user uuid := auth.uid()" in cn and "o.user_id=v_user" in cn,
