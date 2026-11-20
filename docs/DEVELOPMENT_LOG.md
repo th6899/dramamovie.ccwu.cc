@@ -402,3 +402,14 @@ Before each new session, read this log and inspect the current branch HEAD and l
 - Added CI contract coverage across the three Edge Functions.
 - Commits: `9a060bd`, `410971a`, `c37ecb1` (endpoint validation); `399f044` (CI contract).
 - No runtime secrets, payment data, database rows, or production services changed.
+
+
+## 2026-11-20 — Atomic reservations for capped video-ad slots
+
+- Addressed the remaining parallel-playback race: previously two tabs could both pass the eligibility query before either IMA impression was ingested.
+- Added private `video_ad_frequency_reservations` keyed by ad config and authenticated-user or anonymous-session identity.
+- The eligibility RPC now serializes same-viewer/config checks, checks recent impressions, and atomically reserves capped inventory for two minutes before returning it. Parallel requests cannot both receive the same capped slot while its reservation is active.
+- Expired reservations are replaced on the next request; successful impression ingestion releases the reservation in the same transaction as event recording. A short reservation can conservatively suppress an ad for up to two minutes if the browser never starts it.
+- Added CI source contracts for reservation creation and release.
+- Commits: `03615e3` (migration), `8797743` (CI).
+- Migration is branch-only and has not been applied to either Supabase project. No deployment or production changes.
