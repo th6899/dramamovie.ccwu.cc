@@ -350,3 +350,6 @@ Before each new session, read this log and inspect the current branch HEAD and l
 
 
 - Player playback regression found during continued review: completing a post-roll ad previously called `video.play()` after the media element had ended, which could restart the episode from the beginning. Updated `resumeContent()` to keep ended content stopped for post-roll completion and clear the active slot. Added a CI source contract for this regression. Commit: `31cb36a` (player), `2c5d9f2` (CI).
+
+
+- CNY payment retry review found that `cn-payment` silently generated a new request UUID when the client omitted or malformed `request_key`. That bypassed the intended idempotency boundary and could create a second order on retries. The endpoint now rejects missing/invalid UUID request keys; the existing portal checkout already supplies `crypto.randomUUID()`. Added a CI source contract. Commits: `68fa7bc` (Edge Function), `42eaa05` (CI).
