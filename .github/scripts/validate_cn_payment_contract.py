@@ -3,12 +3,14 @@
 from pathlib import Path
 
 migration_path = Path("supabase/migrations/20261119075802_restore_cn_payment_qr_on_order_lookup.sql")
+request_key_migration_path = Path("supabase/migrations/20261120120000_validate_canonical_cn_payment_request_keys.sql")
 function_path = Path("supabase/functions/cn-payment/index.ts")
 if not migration_path.is_file() or not function_path.is_file():
     raise SystemExit("Missing CN payment QR recovery migration or Edge Function source.")
 
 migration = migration_path.read_text(encoding="utf-8")
 function = function_path.read_text(encoding="utf-8")
+sql = request_key_migration_path.read_text(encoding="utf-8") if request_key_migration_path.is_file() else ""
 
 for token in (
     "public.get_my_cn_payment_order(p_order_no text)",
