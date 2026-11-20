@@ -1,6 +1,6 @@
-window.CCWU_ADMIN_MODULE_VERSION = "2.0.7";
-console.info("[CCWU Admin] ES module 2.0.7 loaded");
-// CCWU Global Admin module 2.0.7 — explicit ES module entrypoint
+window.CCWU_ADMIN_MODULE_VERSION = "2.0.8";
+console.info("[CCWU Admin] ES module 2.0.8 loaded");
+// CCWU Global Admin module 2.0.8 — explicit ES module entrypoint
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { Upload } from "https://esm.sh/tus-js-client@4";
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js";
