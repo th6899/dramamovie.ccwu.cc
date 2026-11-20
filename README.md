@@ -63,7 +63,7 @@ All development, schema changes, function deployments and test data belong in th
 - Current catalogue: one inactive CNY membership plan, zero VPN plans, zero enabled payment methods and no manual QR settings. No plan/pricing assumptions or real payment methods have been invented.
 - Video/subtitle buckets are private; video upload is limited to 50 MiB and subtitle storage is WebVTT-only. No authorized test video/subtitle asset has been supplied, so real upload/playback E2E remains blocked.
 - Supabase Health Advisor currently reports no lints. Security Advisor still reports five authenticated SECURITY DEFINER RPCs (reviewed for empty search_path, identity/role checks and grants), 27 intentional private-schema RLS-without-policy INFO findings, and leaked-password protection disabled. The legacy Auth profile trigger `handle_new_ccwu_profile()` was also hardened to use an empty `search_path`; its trigger and postgres-only EXECUTE ACL remain intact.
-- **Latest Cloudflare Pages Preview deployment provenance is not yet verified.** GitHub CI success is not proof that Cloudflare deployed the latest branch commit.
+- **Latest Cloudflare Pages Preview deployment is stale.** On 2026-11-20, the exact Preview hostname served Admin Build v2.0.7 without the newly committed catalog-readiness notice, while the stable project alias served v2.0.1. Branch CI passes at `ca0039d`; this repository currently defines CI validation only and no Cloudflare deployment workflow. Do not interpret CI success as deployment success.
 
 These checks do not constitute full end-to-end acceptance. Auth leaked-password protection, authorized media playback, Stripe/Alipay sandbox lifecycle tests, Google IMA test-tag verification, VPN provider integration, and Cloudflare Preview provenance remain explicit release gates.
 
@@ -85,7 +85,17 @@ A clean-room database rebuild and all positive-path authorization tests must pas
 
 ## Cloudflare Pages deployment
 
-The site is static. Use the repository root as the publish directory and leave the build command empty. Validate a Preview deployment first. Do not attach or switch production domains during test validation.
+The site is static. The intended test Pages project is `ccwu-global-test`; use the repository root as the publish directory and leave the build command empty. The current test branch is `fix/portal-auth-errors-v2.0.3`. The nested `CCWU_Global_Source_v2.0.1_Admin_Module_Fix/` directory is a legacy source snapshot and must not be selected as the Pages root directory.
+
+**Deployment is currently blocked pending Cloudflare dashboard verification.** The repository's `.github/workflows/ci.yml` runs validation only; it does not deploy to Cloudflare. The Pages API token previously created for this project is read-only and cannot trigger or upload a deployment. On 2026-11-20, the Preview URL still served Admin Build v2.0.7 without the latest catalog-readiness UI, and the stable `ccwu-global-test.pages.dev` alias served v2.0.1.
+
+Owner-side check required in Cloudflare Dashboard → Workers & Pages → `ccwu-global-test` → Settings → Builds & deployments:
+1. Confirm the connected Git repository is `th6899/dramamovie.ccwu.cc`.
+2. Confirm the production branch is not being used for test changes; the intended test branch is `fix/portal-auth-errors-v2.0.3`.
+3. Confirm the root directory is empty (repository root), build command is empty, and output directory is `/` (or the dashboard's root/default publish directory).
+4. In Deployments, inspect the latest Preview deployment's source commit. It must match the branch head before calling the change live. If no deployment exists for the current branch head, use the dashboard's retry/deploy control or restore the Git integration. Do not switch production domains or deploy the test branch as production.
+
+A Pages Edit API token or authenticated Cloudflare dashboard action is required to trigger a deployment manually; never substitute the read-only token. Do not attach or switch production domains during test validation.
 
 ## Local checks
 
