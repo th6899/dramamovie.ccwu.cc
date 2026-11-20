@@ -50,7 +50,7 @@ async function loadAccount(user) {
   ]);
 
   $("displayName").value = profile.data?.display_name || user.user_metadata?.name || "";
-  if (profile.error) showMessage("profileMessage", "个人资料读取失败：" + profile.error.message, true);
+  if (profile.error) { console.warn("[CCWU Account] Profile read failed", profile.error); showMessage("profileMessage", "个人资料暂时无法读取，请稍后重试。", true); }
   else if (!profile.data) showMessage("profileMessage", "尚未找到个人资料记录；其他账户数据仍可查看。");
 
   const memberMap = new Map((memberPlans.data || []).map((plan) => [plan.id, plan.name || plan.code || "会员套餐"]));
@@ -76,9 +76,9 @@ async function loadAccount(user) {
     orders.error ? "订单读取失败" : "暂无服务订单");
 
   const errors = [
-    memberships.error && ("会员订阅：" + memberships.error.message),
-    vpns.error && ("VPN 订阅：" + vpns.error.message),
-    orders.error && ("订单：" + orders.error.message),
+    memberships.error && "会员订阅读取失败",
+    vpns.error && "VPN 订阅读取失败",
+    orders.error && "订单读取失败",
     memberPlans.error && "会员套餐名称暂不可用",
     vpnPlans.error && "VPN 套餐名称暂不可用"
   ].filter(Boolean);
@@ -103,7 +103,8 @@ $("profileForm").addEventListener("submit", async (event) => {
     if (!data) throw new Error("未找到可更新的个人资料记录。");
     showMessage("profileMessage", "个人资料已保存。");
   } catch (error) {
-    showMessage("profileMessage", error?.message || "保存失败，请稍后重试。", true);
+    console.warn("[CCWU Account] Profile update failed", error);
+    showMessage("profileMessage", "个人资料保存失败，请稍后重试。", true);
   } finally {
     button.disabled = false;
   }
@@ -113,7 +114,8 @@ $("logoutButton").addEventListener("click", async () => {
   $("logoutButton").disabled = true;
   const { error } = await db.auth.signOut();
   if (error) {
-    showMessage("accountMessage", "退出登录失败：" + error.message, true);
+    console.warn("[CCWU Account] Sign-out failed", error);
+    showMessage("accountMessage", "退出登录失败，请检查网络后重试。", true);
     $("logoutButton").disabled = false;
     return;
   }
@@ -121,7 +123,7 @@ $("logoutButton").addEventListener("click", async () => {
 });
 
 const { data: { user }, error } = await db.auth.getUser();
-if (error) showMessage("accountMessage", "账户验证失败：" + error.message, true);
+if (error) { console.warn("[CCWU Account] User verification failed", error); showMessage("accountMessage", "账户验证失败，请刷新页面后重试。", true); }
 if (user) await loadAccount(user);
 else $("accountLoginPrompt").classList.remove("hidden");
 
