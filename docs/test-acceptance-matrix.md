@@ -9,7 +9,7 @@ This matrix records what has been verified in the independent test environment a
 | ENV-01 | Host isolation | Test Pages hosts resolve to test Supabase; known production hosts resolve to production; unknown hosts fail closed | PASS |
 | ENV-02 | Preview version | Owner confirmed the latest Preview admin page visibly reports `CCWU Global · Admin Build v2.0.8`. The served title/footer version mismatch is resolved. | PASS — OWNER CONFIRMED RUNTIME |
 | ENV-03 | Deployment provenance | Owner-confirmed latest app Preview deployment is commit `e7dfcf3` on `fix/portal-auth-errors-v2.0.3` at `https://53d0dac2.ccwu-global-test.pages.dev`. The owner has since confirmed the rendered admin marker is v2.0.8. This is Preview only; production domain is unchanged. | PASS — OWNER CONFIRMED |
-| ENV-04 | Cloudflare build source | Preview deployment is confirmed to include the current branch checkpoint `607b0e3`; HTML footer/title and JS module labels were aligned to v2.0.8 in ancestor commits `f5c8ac9` and `0197e8a`. Browser-visible served marker remains the final runtime check. | DEPLOYED — RUNTIME MARKER CHECK PENDING |
+| ENV-04 | Cloudflare build source | Owner-confirmed app Preview commit `e7dfcf3` serves the v2.0.8 admin runtime marker; the HTML title/footer and JS module label are aligned. Subsequent branch commits are documentation-only checkpoints and are not misrepresented as the deployed app source SHA. | PASS — OWNER CONFIRMED |
 | DB-01 | Schema migrations | 75 source migrations match 75 applied test database versions, including Stripe/CNY idempotency and Auth profile-trigger search_path hardening | PASS (source filename/version set compared with the test database migration ledger) |
 | DB-02 | RLS baseline | All public tables have RLS enabled; private ledgers are RLS default-deny | PASS |
 | DB-03 | Owner reads | Orders, profiles, membership subscriptions, and VPN subscriptions have owner-scoped read policies | PASS |
@@ -57,6 +57,9 @@ This matrix records what has been verified in the independent test environment a
 | MEDIA-00 | Admin media workflow | Poster upload, TUS resumable video upload, VTT upload, SRT-to-WebVTT conversion, explicit publish/unpublish, and published-subtitle-only playback contracts | PASS |
 | MEDIA-01 | Free storage limit | Admin uploader and private Storage bucket both enforce 50 MB per file; subtitle bucket accepts private WebVTT only; free Storage quota remains 1 GB total | PASS |
 | CI-01 | Automated validation | Frontend syntax, DOM IDs, DB table/RPC/column contracts, admin/account/media/playback-security/financial-write/subscription-write/manual-payment/proof-storage/financial-RPC/payment-edge-security/signed-ad-tracking/owner-RLS/notification-field/anonymous-access/WebVTT contracts, Deno checks, and migration integrity | PASS |
+
+
+- **AD-02 | Ad frequency cap behavior — NOT YET IMPLEMENTED/VERIFIED:** the admin schema and playback response expose `frequency_cap_hours`, but the player currently selects slots by ad type and does not enforce a per-viewer/per-session cap. Do not describe this field as operational until a server-side or otherwise robust enforcement path and tests are added. Live IMA delivery remains separately blocked pending an authorized test ad tag.
 
 ## Blocked pending owner-controlled test inputs
 
