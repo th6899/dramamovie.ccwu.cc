@@ -446,3 +446,10 @@ Before each new session, read this log and inspect the current branch HEAD and l
 - Tightened the stored session check to the same UUID version/variant structure; invalid legacy values are replaced with a fresh `crypto.randomUUID()`.
 - Added CI source contract coverage. No user identity data was read or changed; no database or deployment actions performed.
 - Commits: `e2198bd` (player), `fe56dad` (CI contract).
+
+
+## 2026-11-20 — CI-driven correction of ad reservation guard
+
+- The first CI run after the ad reservation optimization caught two implementation issues: a duplicated `eventSecret` declaration in the playback Edge Function and a JavaScript-style `indexOf` call mistakenly used in a Python source-contract script.
+- Removed the duplicate declaration and corrected the Python assertion to use `str.index`. The earlier failed run is retained as a useful regression signal; a new run on the corrected HEAD is required before marking this change validated.
+- No database or production changes.
