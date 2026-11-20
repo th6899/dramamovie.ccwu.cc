@@ -390,7 +390,7 @@ async function handleCreate(req: Request) {
     await markCreationFailed(service, String(order.order_id), provider);
     const message = e instanceof Error ? e.message : "provider_error";
     console.error("[cn-payment] provider creation failed:", message);
-    return json(503, { error: message });
+    return json(503, { error: "payment_provider_unavailable" });
   }
   const { data: attached, error: attachError } = await service.rpc("attach_cn_payment_session", {
     p_order_id: order.order_id,
