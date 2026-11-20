@@ -11,12 +11,16 @@ def read(path: str) -> str:
 checkout = read("supabase/functions/create-checkout/index.ts")
 stripe = read("supabase/functions/stripe-webhook/index.ts")
 cn = read("supabase/functions/cn-payment/index.ts")
+app = read("app.js")
 
 checks = {
     "Stripe checkout requires a bearer session and validates it with Auth": 'startsWith("Bearer ")' in checkout and "userClient.auth.getUser()" in checkout,
     "Stripe checkout refuses live API keys": 'stripeKey.startsWith("sk_test_")' in checkout,
     "Stripe checkout blocks production origins": "PRODUCTION_ORIGIN_BLOCKED" in checkout,
     "Stripe checkout rejects CNY and mainland-China requests": 'body.currency==="CNY"||body.region==="mainland_cn"' in checkout,
+    "Browser reuses a stable checkout request key on retry": "requestKey:crypto.randomUUID()" in app and "requestKey:pendingCheckout.requestKey" in app,
+    "Stripe Edge Function uses the idempotent order RPC": 'userClient.rpc("create_stripe_subscription_order_idempotent"' in checkout,
+    "Stripe API session creation uses an idempotency key": '"Idempotency-Key":"ccwu-checkout-"+order.order_id' in checkout,
     "Stripe checkout validates provider price amount, currency and interval": all(x in checkout for x in ('stripePrice.currency!=="usd"', "stripePrice.unit_amount!==expectedMinor", "stripePrice.recurring?.interval!==order.billing_interval")),
     "Stripe webhook verifies timestamped HMAC before parsing JSON": stripe.index("verifyStripeSignature(raw") < stripe.index("JSON.parse(raw)") and "Math.abs(Date.now()/1000-ts)>300" in stripe and 'name:"HMAC",hash:"SHA-256"' in stripe,
     "Stripe webhook rejects invalid signatures and malformed event envelopes": all(x in stripe for x in ('error:"invalid_signature"', 'error:"invalid_event_envelope"', 'typeof event?.id!=="string"', 'typeof event?.type!=="string"')),
