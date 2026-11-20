@@ -6,6 +6,7 @@ policies = Path("supabase/migrations/20261118113035_align_public_rls_with_produc
 manual = Path("supabase/migrations/20261118121904_harden_manual_payment_channel_and_submission_guards.sql").read_text(encoding="utf-8").lower()
 notification_hardening = Path("supabase/migrations/20261120060036_restrict_customer_notification_updates_to_read_at.sql").read_text(encoding="utf-8").lower()
 auxiliary_grants = Path("supabase/migrations/20261120060305_least_privilege_customer_auxiliary_tables.sql").read_text(encoding="utf-8").lower()
+anon_private = Path("supabase/migrations/20261120060453_revoke_anon_select_from_private_user_tables.sql").read_text(encoding="utf-8").lower()
 
 checks = {
     "manual payment submissions are inserted only by their owner": "customers submit own manual payment details" in policies and "auth.uid()" in policies and "manual_payment_submissions.order_id" in policies and "o.user_id" in policies and "o.status = 'pending'" in policies,
@@ -23,6 +24,8 @@ checks["notification hardening asserts only read_at is updateable"] = "notificat
 checks["anonymous access to private customer tables is revoked"] = all(f"revoke all on table public.{table} from anon" in auxiliary_grants for table in ("manual_payment_submissions", "refund_requests", "email_service_orders", "vpn_device_bindings"))
 checks["manual submissions and refunds retain only their intended customer/staff operations"] = "grant select, insert on table public.manual_payment_submissions to authenticated" in auxiliary_grants and "grant select, insert, update, delete on table public.refund_requests to authenticated" in auxiliary_grants
 checks["email orders and VPN device bindings are customer read-only"] = "grant select on table public.email_service_orders to authenticated" in auxiliary_grants and "grant select on table public.vpn_device_bindings to authenticated" in auxiliary_grants and "email_order_privileges_invalid" in auxiliary_grants and "vpn_device_binding_privileges_invalid" in auxiliary_grants
+
+checks["anonymous SELECT is revoked from all private user-data tables"] = all(f"revoke all on table public.{table} from anon" in anon_private for table in ("profiles", "membership_subscriptions", "vpn_subscriptions", "episode_watch_progress", "vpn_access_configs")) and "anonymous_private_user_data_select_not_revoked" in anon_private
 
 failed = [name for name, ok in checks.items() if not ok]
 for name, ok in checks.items():
