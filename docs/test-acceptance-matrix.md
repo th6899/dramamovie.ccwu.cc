@@ -203,3 +203,10 @@ This matrix records what has been verified in the independent test environment a
 
 - Initial CI correctly caught a duplicate TypeScript declaration and an invalid Python contract assertion after the guard refactor. Both source issues were corrected in follow-up commits `0d1e0a4` and `b9a6403`.
 - Previous CI run is not accepted as a pass. Awaiting a fresh full CI run on the corrected branch HEAD.
+
+
+### Ad reservation and anonymous viewer-session source validation
+
+- Corrected CI-detected source-contract and duplicate declaration issues.
+- Push CI run `44734066839` passed all three jobs at source commit `93040d314db2fddd1635a909b5f05cd28f53c753`; Cloudflare Preview build also succeeded.
+- **NOT RUNTIME VERIFIED:** no test ad inventory was present/configured and the migration/Edge Functions remain unapplied/undeployed to Supabase. Browser IMA E2E still requires authorized test content and event-signing configuration.
