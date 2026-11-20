@@ -185,3 +185,9 @@ This matrix records what has been verified in the independent test environment a
 - Commit `0474fda2a120f8a5dc42bca1f2032b066e60250c`: Push run `44733261243` and PR run `44733270649` both passed all three CI jobs.
 - Cloudflare Preview build succeeded at `https://cb02ef7f.ccwu-global-test.pages.dev` for commit `0474fda`.
 - **NOT RUNTIME VERIFIED:** the forward migration remains unapplied; no provider credentials or payment records were used. Real Alipay/WeChat callback settlement remains a separate external E2E gate.
+
+
+### Ad reservation with missing signing secret — source hardening
+
+- Playback now checks for a sufficiently long `CCWU_EVENT_SIGNING_SECRET` before calling the reservation RPC. When absent, no capped slot is reserved and no ad is delivered; this avoids wasting the two-minute reservation window while preserving fail-closed behavior.
+- Added CI contract coverage. Source-only change; runtime behavior remains NOT VERIFIED until a test ad inventory and secret are configured in the test project.
