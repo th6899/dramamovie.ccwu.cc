@@ -128,6 +128,12 @@ This matrix records what has been verified in the independent test environment a
 - No production changes, database writes, credentials changes, or paid services.
 
 
+### Test database ad inventory check — 2026-11-20
+
+- Read-only query against test project `uvtzhzgirgwjzsmcdgej`: `video_ad_configs` currently has 0 total rows, 0 active rows, 0 active rows with an ad tag, and 0 rows with a positive frequency cap.
+- Therefore no real IMA slot can be exercised in the test environment yet. Do not create placeholder or fabricated ad inventory. Runtime acceptance requires a real authorized test ad tag and an actual test configuration.
+- No data was inserted or changed.
+
 ## 2026-11-20 — Server-side ad frequency cap implementation checkpoint
 
 - Added migration `20261120100000_enforce_server_side_video_ad_frequency_caps.sql`: nullable authenticated viewer ID and anonymous viewer-session UUID columns, impression lookup indexes, a service-role-only eligibility RPC, and a service-role-only event-ingestion RPC that persists the identity bound in the signed playback token.
