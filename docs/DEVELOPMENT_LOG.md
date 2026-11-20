@@ -421,3 +421,11 @@ Before each new session, read this log and inspect the current branch HEAD and l
 - Added a forward-only migration replacing the CNY order RPC with the same canonical UUID version/variant validation used by the Edge Function. Existing request-key conflict protection and retry behavior are preserved.
 - Added CI contract coverage to keep the SQL guard aligned with the Edge Function.
 - Branch-only migration; not applied to test or production databases. No payment orders, provider credentials, or live payment settings changed.
+
+
+## 2026-11-20 — CNY request-key hardening CI and Preview checkpoint
+
+- Verified the canonical request-key migration and CI contract at commit `0474fda2a120f8a5dc42bca1f2032b066e60250c`.
+- GitHub Actions Push run `44733261243` and PR run `44733270649` both passed all three jobs: frontend/security contracts, Supabase Edge Function type checks, and migration source integrity.
+- Cloudflare Pages Preview build for `0474fda` completed successfully at `https://cb02ef7f.ccwu-global-test.pages.dev`.
+- This confirms source/CI and Preview build only. The new migration has not been applied to Supabase; CNY provider callback E2E and media/ad playback E2E remain unverified.
