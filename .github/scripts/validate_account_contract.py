@@ -31,6 +31,8 @@ checks["profile hardening has fail-closed assertions"] = "profile_column_update_
 
 checks["profile rows cannot be inserted directly by authenticated users"] = "REVOKE INSERT (id, username, avatar_url) ON TABLE public.profiles FROM authenticated" in profile_insert_hardening and "profile_column_insert_privilege_not_revoked" in profile_insert_hardening
 
+checks["database error details are not exposed in account UI"] = all(token not in module for token in ("profile.error.message", "memberships.error.message", "vpns.error.message", "orders.error.message", "error?.message")) and "Profile update failed" in module
+
 failed = [label for label, ok in checks.items() if not ok]
 for label, ok in checks.items():
     print(f"{'OK' if ok else 'FAIL'}: {label}")
