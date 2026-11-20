@@ -353,3 +353,7 @@ Before each new session, read this log and inspect the current branch HEAD and l
 
 
 - CNY payment retry review found that `cn-payment` silently generated a new request UUID when the client omitted or malformed `request_key`. That bypassed the intended idempotency boundary and could create a second order on retries. The endpoint now rejects missing/invalid UUID request keys; the existing portal checkout already supplies `crypto.randomUUID()`. Added a CI source contract. Commits: `68fa7bc` (Edge Function), `42eaa05` (CI).
+
+
+- Payment RPC security review (read-only test DB catalog): `process_cn_payment_success` and `attach_cn_payment_session` are SECURITY DEFINER with empty search_path, inaccessible to anon/authenticated and executable by service_role only. Customer order creation/lookup RPCs are authenticated-only; manual approval is callable by authenticated but performs an internal `auth.uid()` + admin-role check before any ledger mutation. No DB rows or permissions changed.
+- Latest payment idempotency hardening CI verification: Push run `44729893567` and Pull Request run `44729885991` both passed all three jobs (frontend/deployment isolation, Edge Function type checks, migration source integrity) for commit `c0d2064`.
