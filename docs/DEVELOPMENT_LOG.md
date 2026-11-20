@@ -224,3 +224,12 @@ Before each new session, read this log and inspect the current branch HEAD and l
 - Commits: `24a7223` (save handling), `2a2b322` (publish handling), `d58fa13` and `0733bc2` (regression assertions). Latest application branch HEAD before this log entry: `0733bc2a18c9df588b2065c434955cf477c3ec07`.
 - CI for latest code/validator commit `0733bc2` is queued as run `44713218077`; do not mark as passed until all three jobs finish.
 - No database rows, production data, payment configuration, Auth settings, Cloudflare settings, or real content were changed. Preview still points to the previously verified deployment until a new successful Preview deployment is confirmed.
+
+
+## 2026-11-20 — Current branch CI closure
+
+- Verified latest branch HEAD `942efc12c54270f67497fd21fb6b84343fbfbb13`.
+- GitHub Actions run `44713275646` completed successfully; all three required jobs passed: Frontend syntax and deployment isolation, Supabase Edge Function type checks, and Migration source integrity. Documentation validation run `44713267306` also passed.
+- Application change in this batch: catalog insert/update success is now reported separately from a subsequent list/readiness refresh failure, preventing false failure messages and accidental duplicate retries. Regression assertions cover both save and publish refresh paths.
+- Code/CI gate for current branch is green. Cloudflare's last directly verified deployment remains Preview commit `f55a4cf`; browser session became unavailable during this check, so deployment of later app-code commits is not claimed. The Pages auto-deploy setting was previously observed enabled; exact new deployment must still be confirmed in Cloudflare before live Preview acceptance.
+- Production release remains intentionally blocked pending: (1) confirmation of latest Preview deployment and authenticated mutation acceptance; (2) owner-provided genuine, authorized catalog content to exercise real save/publish lifecycle; (3) explicit production release approval. Leaked-password protection is unavailable on the current Supabase Free plan and is documented as a known security limitation. No paid upgrade, fabricated content, production change, or payment configuration change was made.
