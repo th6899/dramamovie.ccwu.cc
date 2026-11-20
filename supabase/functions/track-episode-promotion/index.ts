@@ -16,9 +16,9 @@ async function verifyToken(token: string, secret: string) {
     const payload = JSON.parse(new TextDecoder().decode(decode(parts[0])));
     if (!payload || payload.type !== "promotion_click" || !Number.isInteger(payload.exp) ||
         payload.exp < Math.floor(Date.now() / 1000) ||
-        !/^[0-9a-f-]{36}$/i.test(payload.promotion_id || "") ||
-        !/^[0-9a-f-]{36}$/i.test(payload.episode_id || "") ||
-        !/^[0-9a-f-]{36}$/i.test(payload.nonce || "")) return null;
+        !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(payload.promotion_id || "") ||
+        !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(payload.episode_id || "") ||
+        !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(payload.nonce || "")) return null;
     return payload;
   } catch {
     return null;
