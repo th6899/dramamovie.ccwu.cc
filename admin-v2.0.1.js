@@ -429,7 +429,7 @@ $("membershipPlanForm").addEventListener("submit", async (event) => {
     duration_days: Number($("memberPlanDays").value), is_active: $("memberPlanActive").checked
   });
   setMessage("memberPlanMsg", error ? error.message : "会员套餐已保存。", !!error);
-  if (!error) { event.target.reset(); $("memberPlanDays").value = 30; $("memberPlanActive").checked = true; await loadPlans(); }
+  if (!error) { event.target.reset(); $("memberPlanDays").value = 30; $("memberPlanActive").checked = false; await loadPlans(); }
 });
 $("vpnPlanForm").addEventListener("submit", async (event) => {
   event.preventDefault();
@@ -448,7 +448,7 @@ $("vpnPlanForm").addEventListener("submit", async (event) => {
     is_active: $("vpnPlanActive").checked
   });
   setMessage("vpnPlanMsg", error ? error.message : "VPN 套餐已保存。", !!error);
-  if (!error) { event.target.reset(); $("vpnPlanDays").value = 30; $("vpnPlanDevices").value = 3; $("vpnPlanActive").checked = true; await loadPlans(); }
+  if (!error) { event.target.reset(); $("vpnPlanDays").value = 30; $("vpnPlanDevices").value = 3; $("vpnPlanActive").checked = false; await loadPlans(); }
 });
 document.addEventListener("click", async (event) => {
   const button = event.target.closest("[data-toggle-plan]");
