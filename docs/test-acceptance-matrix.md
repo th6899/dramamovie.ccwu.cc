@@ -59,7 +59,7 @@ This matrix records what has been verified in the independent test environment a
 | CI-01 | Automated validation | Frontend syntax, DOM IDs, DB table/RPC/column contracts, admin/account/media/playback-security/financial-write/subscription-write/manual-payment/proof-storage/financial-RPC/payment-edge-security/signed-ad-tracking/owner-RLS/notification-field/anonymous-access/WebVTT contracts, Deno checks, and migration integrity | PASS |
 
 
-- **AD-02 | Ad frequency cap behavior — NOT YET IMPLEMENTED/VERIFIED:** the admin schema and playback response expose `frequency_cap_hours`, but the player currently selects slots by ad type and does not enforce a per-viewer/per-session cap. Do not describe this field as operational until a server-side or otherwise robust enforcement path and tests are added. Live IMA delivery remains separately blocked pending an authorized test ad tag.
+- **AD-02 | Ad frequency cap behavior — IMPLEMENTED IN BRANCH SOURCE; NOT DEPLOYED/DB-VERIFIED:** added a service-role-only eligibility RPC that filters ad slots against recent `impression` events per authenticated `viewer_id` or persistent random anonymous `viewer_session_id`; signed event tokens bind the same identity, and event ingestion persists it. The player stores the anonymous session UUID in localStorage where available (private/storage-restricted contexts fall back to page-session scope). Migration `20261120100000_enforce_server_side_video_ad_frequency_caps.sql`; CI source contracts added. This is not operational in the test/production database until the migration and matching Edge Functions are deployed and runtime tests pass. Live IMA delivery remains separately blocked pending an authorized test ad tag.
 
 ## Blocked pending owner-controlled test inputs
 
@@ -126,3 +126,14 @@ This matrix records what has been verified in the independent test environment a
 - GitHub Actions run `44723885965` for the latest development-log commit completed successfully; all three jobs passed: frontend syntax/deployment isolation, Supabase Edge Function type checks, and migration source integrity.
 - Replaced the stale historical ENV-04 pending statement with an explicit superseded note pointing to the owner-confirmed latest Preview deployment `e7dfcf3` at `https://53d0dac2.ccwu-global-test.pages.dev`. The runtime footer check and real-content E2E release gates remain open.
 - No production changes, database writes, credentials changes, or paid services.
+
+
+## 2026-11-20 — Server-side ad frequency cap implementation checkpoint
+
+- Added migration `20261120100000_enforce_server_side_video_ad_frequency_caps.sql`: nullable authenticated viewer ID and anonymous viewer-session UUID columns, impression lookup indexes, a service-role-only eligibility RPC, and a service-role-only event-ingestion RPC that persists the identity bound in the signed playback token.
+- Updated `get-episode-playback` to require an opaque viewer-session UUID, call the eligibility RPC before returning ad slots, and bind authenticated user ID plus anonymous session ID into the HMAC event token.
+- Updated `record-video-ad-events` to validate the signed viewer identity and call the v2 service-role RPC. Client-supplied identity fields are not trusted for frequency-cap attribution.
+- Updated `player.js` to persist a random UUID in localStorage across episodes when browser storage is available; storage-restricted/private contexts fall back to a page-session UUID. This is pseudonymous continuity, not an anti-abuse identity or device fingerprint.
+- Added CI source-contract assertions for the new eligibility, token-binding, event persistence, and session persistence behavior.
+- **Status remains NOT DEPLOYED / NOT RUNTIME VERIFIED:** no test or production database migration was applied; no Edge Function deployment was triggered. CI and SQL/type/runtime validation must pass before AD-02 can be marked operational. Authenticated users are keyed by account ID; anonymous visitors are keyed by their browser session UUID. Clearing storage or using another browser can reset an anonymous cap.
+- No secrets, paid services, production changes, or real ad/media content used.
