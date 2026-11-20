@@ -1,11 +1,11 @@
-# CCWU Global Portal — source release 2.0.5
+# CCWU Global Portal — source release 2.0.8
 
 This repository contains the CCWU Global static portal, administration interface, video player, customer account dashboard, Supabase migrations, and server-side Edge Functions.
 
 ## Application components
 
 - `index.html`, `app.js`: public portal and membership/VPN catalogue
-- `admin.html`, `admin-v2.0.1.js`: staff administration interface, resumable video upload, subtitle conversion, explicit publishing, ads/promotions, plan and payment configuration
+- `admin.html`, `admin-v2.0.1.js` (build marker 2.0.8): staff administration interface, resumable video upload, subtitle conversion, explicit publishing, ads/promotions, plan and payment configuration
 - `player.html`, `player.js`: episode player, entitlement checks, signed playback, subtitles and ad-event tracking
 - `payment-result.html`, `payment-result.js`: authenticated checkout return and order-status page
 - `account.html`, `account.js`: owner-scoped profile, subscription and order dashboard
