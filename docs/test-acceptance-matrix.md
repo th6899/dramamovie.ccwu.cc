@@ -231,3 +231,11 @@ This matrix records what has been verified in the independent test environment a
 - Branch has 77 migration source files; test DB ledger has 75 applied through `20261120064221`.
 - Two branch-only migrations remain unapplied: server-side video ad frequency caps (`20261120100000`) and canonical CNY request UUID validation (`20261120120000`).
 - **SOURCE INTEGRITY PASS / DB APPLY PENDING AUTHORIZATION.** No DDL was executed.
+
+
+### Video ad pipeline audit — 2026-11-20
+
+- **SOURCE REVIEW PASS:** IMA stale-callback guards, request-scoped loader errors, post-roll-safe fallback, retry-preserving event queue, signed viewer identity, server-side eligibility, and fail-closed behavior reviewed.
+- **TEST INVENTORY BLOCKER:** test DB contains 0 ad configurations (0 active / 0 capped) and 0 event rows. The frequency reservation table is absent because the corresponding branch migration is pending. IMA insertion and frequency-cap E2E cannot be demonstrated without migration plus approved real test ad inventory/tag.
+- **CI PASS:** HEAD `21f96878bb56d0dbd8d1e9033b5d2ee95e01ef02`, Push `44735193264` and PR `44735204262`, all 3 jobs passed.
+- No database writes, migrations, or inventory seeding performed.
