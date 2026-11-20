@@ -32,6 +32,8 @@ let adEventQueue = [];
 let adEventFlushInFlight = false;
 let adEventRetryTimer = null;
 let activeSlot = null;
+let adRequestSequence = 0;
+let activeAdRequestId = 0;
 
 const esc = (value) => String(value ?? "").replace(/[&<>"']/g, (char) => ({
   "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
@@ -99,7 +101,9 @@ function renderPromotions(rows) {
   });
 }
 
-function resumeContent() {
+function resumeContent(requestId = activeAdRequestId) {
+  // Ignore callbacks from a stale IMA request after a newer slot has started.
+  if (requestId !== activeAdRequestId) return;
   activeAdRequest = false;
   if (adsManager) {
     try { adsManager.destroy(); } catch {}
@@ -167,23 +171,32 @@ function setupIma() {
     adsLoader.addEventListener(
       google.ima.AdsManagerLoadedEvent.Type.ADS_MANAGER_LOADED,
       (event) => {
+        const requestId = event.getUserRequestContext?.();
+        if (!Number.isInteger(requestId) || requestId !== activeAdRequestId || !activeAdRequest || !activeSlot) {
+          try { event.getAdsManager(video).destroy(); } catch {}
+          return;
+        }
+        const slot = activeSlot;
         try {
           adsManager = event.getAdsManager(video);
-          attachImaTracking(adsManager, activeSlot);
+          attachImaTracking(adsManager, slot);
           adsManager.addEventListener(google.ima.AdErrorEvent.Type.AD_ERROR, (error) => {
-            queueAdEvent(activeSlot, "error", error?.getError?.()?.getErrorCode?.()?.toString?.() || "IMA_ERROR");
-            resumeContent();
+            queueAdEvent(slot, "error", error?.getError?.()?.getErrorCode?.()?.toString?.() || "IMA_ERROR");
+            resumeContent(requestId);
           });
-          adsManager.addEventListener(google.ima.AdEvent.Type.ALL_ADS_COMPLETED, resumeContent);
-          adsManager.addEventListener(google.ima.AdEvent.Type.CONTENT_RESUME_REQUESTED, resumeContent);
+          adsManager.addEventListener(google.ima.AdEvent.Type.ALL_ADS_COMPLETED, () => resumeContent(requestId));
+          adsManager.addEventListener(google.ima.AdEvent.Type.CONTENT_RESUME_REQUESTED, () => resumeContent(requestId));
           adsManager.init(video.clientWidth || 640, video.clientHeight || 360, google.ima.ViewMode.NORMAL);
           adsManager.start();
         } catch {
-          resumeContent();
+          resumeContent(requestId);
         }
       }
     );
-    adsLoader.addEventListener(google.ima.AdErrorEvent.Type.AD_ERROR, resumeContent);
+    adsLoader.addEventListener(google.ima.AdErrorEvent.Type.AD_ERROR, (event) => {
+      const requestId = event.getUserRequestContext?.();
+      if (Number.isInteger(requestId)) resumeContent(requestId);
+    });
     return true;
   } catch (error) {
     console.warn("[CCWU Player] IMA initialization failed", error);
@@ -199,6 +212,8 @@ function requestAd(slot) {
   }
   if (activeAdRequest) return;
   activeAdRequest = true;
+  const requestId = ++adRequestSequence;
+  activeAdRequestId = requestId;
   activeSlot = slot;
   queueAdEvent(slot, "ad_request");
   video.pause();
@@ -207,13 +222,14 @@ function requestAd(slot) {
     imaDisplay.initialize();
     const request = new google.ima.AdsRequest();
     request.adTagUrl = slot.ad_tag_url;
+    request.userRequestContext = requestId;
     request.linearAdSlotWidth = video.clientWidth || 640;
     request.linearAdSlotHeight = video.clientHeight || 360;
     request.nonLinearAdSlotWidth = video.clientWidth || 640;
     request.nonLinearAdSlotHeight = Math.max(90, Math.round((video.clientHeight || 360) / 3));
     adsLoader.requestAds(request);
   } catch {
-    resumeContent();
+    resumeContent(requestId);
   }
 }
 
