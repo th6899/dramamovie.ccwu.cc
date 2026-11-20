@@ -50,7 +50,7 @@ This matrix records what has been verified in the independent test environment a
 | UI-02 | Account access | Logged-out account visitors see only the login prompt; login return URL opens the login modal and preserves the account return | PASS |
 | MEDIA-00 | Admin media workflow | Poster upload, TUS resumable video upload, VTT upload, SRT-to-WebVTT conversion, explicit publish/unpublish, and published-subtitle-only playback contracts | PASS |
 | MEDIA-01 | Free storage limit | Admin uploader and private Storage bucket both enforce 50 MB per file; subtitle bucket accepts private WebVTT only; free Storage quota remains 1 GB total | PASS |
-| CI-01 | Automated validation | Frontend syntax, DOM IDs, DB table/RPC/column contracts, admin/account/media/playback-security/financial-write/subscription-write/manual-payment/proof-storage/financial-RPC/WebVTT contracts, Deno checks, and migration integrity | PASS |
+| CI-01 | Automated validation | Frontend syntax, DOM IDs, DB table/RPC/column contracts, admin/account/media/playback-security/financial-write/subscription-write/manual-payment/proof-storage/financial-RPC/owner-RLS/notification-field/anonymous-access/WebVTT contracts, Deno checks, and migration integrity | PASS |
 
 ## Blocked pending owner-controlled test inputs
 
