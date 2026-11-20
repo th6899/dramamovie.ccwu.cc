@@ -357,3 +357,6 @@ Before each new session, read this log and inspect the current branch HEAD and l
 
 - Payment RPC security review (read-only test DB catalog): `process_cn_payment_success` and `attach_cn_payment_session` are SECURITY DEFINER with empty search_path, inaccessible to anon/authenticated and executable by service_role only. Customer order creation/lookup RPCs are authenticated-only; manual approval is callable by authenticated but performs an internal `auth.uid()` + admin-role check before any ledger mutation. No DB rows or permissions changed.
 - Latest payment idempotency hardening CI verification: Push run `44729893567` and Pull Request run `44729885991` both passed all three jobs (frontend/deployment isolation, Edge Function type checks, migration source integrity) for commit `c0d2064`.
+
+
+- Player IMA lifecycle audit found asynchronous `ADS_MANAGER_LOADED` / `AD_ERROR` callbacks were reading the mutable global `activeSlot`. A delayed callback from an earlier ad request could be attributed to a later slot or resume the wrong playback state. Added monotonically increasing request IDs, IMA `userRequestContext` validation for manager-loaded events, slot-captured event tracking, request-scoped loader-error listeners, and stale-request guards in `resumeContent`. Added CI source contracts. Commits: `98d4c00`, `f7787dc`, `fb99e87`.
