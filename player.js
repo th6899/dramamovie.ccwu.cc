@@ -208,7 +208,10 @@ function setupIma() {
 function requestAd(slot) {
   if (!slot?.ad_tag_url || !setupIma()) {
     $("adStatus").textContent = "广告暂不可用，继续播放正片。";
-    video.play().catch(() => {});
+    // A failed post-roll must not restart media that has already ended.
+    if (slot?.ad_type !== "postroll" && !video.ended) {
+      video.play().catch(() => {});
+    }
     return;
   }
   if (activeAdRequest) return;
