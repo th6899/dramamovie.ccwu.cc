@@ -101,3 +101,8 @@ This matrix records what has been verified in the independent test environment a
 
 - **RLS-01 | Public catalog access policy audit — PASS (policy/privilege inspection):** RLS is enabled on `service_catalog`, `tutorials`, `dramas`, `episodes`, `membership_plans`, and `vpn_plans`. Anonymous role has SELECT only (no INSERT) and no write privileges; anonymous SELECT policies constrain visibility to published/active records. Authenticated role has table CRUD grants, with writes constrained by staff-role RLS policies. Episode anonymous reads additionally require published episode, free status, and published parent drama. No policies or grants were modified.
 - **CI-01 | Latest code HEAD:** `c58a22c`; run `44712828657` completed successfully with all three jobs green (frontend syntax/deployment isolation, Edge Function type checks, migration source integrity).
+
+
+- **CI-01 | Current branch code gate — PASS:** HEAD `942efc12c54270f67497fd21fb6b84343fbfbb13`; Actions run `44713275646` passed all three jobs (frontend syntax/deployment isolation, Edge Function type checks, migration source integrity). Documentation validation run `44713267306` also passed.
+- **ENV-04 | Latest app-code Preview deployment — PENDING:** last directly verified Cloudflare Preview remains commit `f55a4cf`. Browser session unavailable during the latest check; do not infer that newer application commits are deployed solely from green CI or prior auto-deploy setting.
+- **Release gate:** no production release until latest Preview is verified, authenticated save/publish is tested with genuine authorized content, and owner explicitly approves production release.
