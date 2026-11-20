@@ -66,6 +66,7 @@ declare
   v_config_id uuid;
   v_event_type text;
   v_inserted integer := 0;
+  v_frequency_cap_hours integer;
 begin
   if p_episode_id is null or p_event_token_id is null
     or p_allowed_config_ids is null or pg_catalog.cardinality(p_allowed_config_ids) = 0
@@ -82,6 +83,35 @@ begin
     if not (v_config_id = any(p_allowed_config_ids))
       or v_event_type not in ('ad_request','impression','start','first_quartile','midpoint','third_quartile','complete','skip','click','error') then
       raise exception 'invalid_ad_event' using errcode = '22023';
+    end if;
+
+    -- Serialize impression writes for the same viewer/config pair. This closes
+    -- concurrent ingestion races; the eligibility RPC remains the pre-delivery check.
+    if v_event_type = 'impression' then
+      perform pg_catalog.pg_advisory_xact_lock(
+        pg_catalog.hashtextextended(
+          v_config_id::text || ':' || coalesce(p_viewer_id::text, p_viewer_session_id::text), 0
+        )
+      );
+      select c.frequency_cap_hours into v_frequency_cap_hours
+      from public.video_ad_configs c
+      where c.id = v_config_id;
+
+      if coalesce(v_frequency_cap_hours, 0) > 0 and exists (
+        select 1
+        from private.video_ad_events e
+        where e.config_id = v_config_id
+          and e.event_type = 'impression'
+          and e.occurred_at >= pg_catalog.now()
+            - pg_catalog.make_interval(hours => v_frequency_cap_hours)
+          and (
+            (p_viewer_id is not null and e.viewer_id = p_viewer_id)
+            or
+            (p_viewer_id is null and e.viewer_session_id = p_viewer_session_id)
+          )
+      ) then
+        continue;
+      end if;
     end if;
 
     insert into private.video_ad_events(
