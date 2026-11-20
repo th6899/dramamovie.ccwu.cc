@@ -126,7 +126,7 @@ async function openCheckout(itemType,itemId,button){
  manualPaymentSettings=settingsError?{alipay_qr_path:null,wechat_qr_path:null,alipay_enabled:false,wechat_enabled:false,instructions:""}:settings;
  const {data:methods,error:methodsError}=await db.from("payment_methods").select("provider,asset,environment,is_enabled").eq("asset","CNY").eq("is_enabled",true);
  nativePaymentMethods=methodsError?[]:(methods||[]);
- pendingCheckout={itemType,itemId,plan};
+ pendingCheckout={itemType,itemId,plan,requestKey:crypto.randomUUID()};
  $("checkoutSummary").textContent=plan.name+"｜"+plan.duration_days+" 天｜应付 "+formatPrice(plan.price_amount,plan.currency);
  const isCny=String(plan.currency).toUpperCase()==="CNY";
  document.querySelectorAll('[data-payment-method="alipay"],[data-payment-method="wechat"]').forEach(b=>{
@@ -152,7 +152,7 @@ document.addEventListener("click",async e=>{
    try{
     const {data:{user},error:userError}=await db.auth.getUser();if(userError||!user)throw new Error("请先登录后再购买。");
     if(String(pendingCheckout.plan.currency).toUpperCase()!=="USD")throw new Error("Stripe 仅支持美元套餐。");
-    const {data,error}=await db.functions.invoke("create-checkout",{body:{itemType:pendingCheckout.itemType,itemId:pendingCheckout.itemId,currency:"USD",region:"international"}});
+    const {data,error}=await db.functions.invoke("create-checkout",{body:{itemType:pendingCheckout.itemType,itemId:pendingCheckout.itemId,currency:"USD",region:"international",requestKey:pendingCheckout.requestKey}});
     if(error)throw new Error("Stripe 测试结账暂不可用，请检查测试密钥、USD 价格 ID 和预览站点配置。");
     if(!data||typeof data.checkout_url!=="string"||!data.checkout_url.startsWith("https://checkout.stripe.com/"))throw new Error("Stripe 未返回有效的安全收银台地址。");
     window.location.assign(data.checkout_url);
