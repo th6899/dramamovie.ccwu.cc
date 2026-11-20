@@ -393,3 +393,12 @@ Before each new session, read this log and inspect the current branch HEAD and l
 - Added CI source contract coverage for request-scoped tracking callbacks.
 - Commits: `ee9e334` (player guard), `bfbeab4` (CI contract).
 - No database writes, deployment, provider calls, or production changes.
+
+
+## 2026-11-20 — Canonical UUID validation for media tokens
+
+- Tightened UUID validation in playback requests, ad-event signed token payloads, and promotion click tokens.
+- Replaced permissive 36-character hex/hyphen checks with canonical UUID structure and RFC variant/version checks. This prevents malformed identifiers from reaching UUID-typed RPC parameters and makes signed identity validation consistent.
+- Added CI contract coverage across the three Edge Functions.
+- Commits: `9a060bd`, `410971a`, `c37ecb1` (endpoint validation); `399f044` (CI contract).
+- No runtime secrets, payment data, database rows, or production services changed.
