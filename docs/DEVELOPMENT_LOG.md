@@ -146,3 +146,15 @@ Before each new session, read this log and inspect the current branch HEAD and l
 - Files changed in this checkpoint: `docs/DEVELOPMENT_LOG.md` only. No application code, database rows, Supabase settings, payment configuration, Cloudflare settings, DNS, or production resources changed.
 - Remaining gates: (1) verify Cloudflare Preview's actual deployed commit and test-project binding; (2) authenticated browser acceptance of admin save/publish workflows; (3) owner-controlled test Auth leaked-password protection and real sandbox/provider inputs; (4) review PR base/diff before any merge; (5) production release only after explicit approval.
 - User action is not required for this CI verification checkpoint. If Cloudflare deployment provenance cannot be read through existing authorized access, the one necessary browser action is to open the latest successful Preview deployment in the already-authorized Cloudflare dashboard and provide its commit SHA plus deployment URL. Do not repeat API authorization.
+
+
+## 2026-11-20 — Test-project security advisor review
+
+- Starting HEAD: `ef3220e03bc36dcc9b503d2bf9ceadefec31b26a`; test Supabase project `uvtzhzgirgwjzsmcdgej` reports `ACTIVE_HEALTHY`.
+- Ran Supabase Security Advisor (read-only). Findings:
+  - Leaked-password protection is disabled (one Auth warning). This remains an owner-controlled Auth dashboard setting; no Auth configuration was changed.
+  - Five exposed `SECURITY DEFINER` RPCs are executable by the authenticated role: `approve_manual_payment`, `create_cn_payment_order`, `create_manual_payment_order`, `create_stripe_subscription_order_idempotent`, and `get_my_cn_payment_order`. These may be intentional authenticated workflows, but must be checked against function bodies, internal authorization checks, and explicit grants before any permission changes. No grants were modified.
+  - Twenty-seven private-schema tables have RLS enabled with no policies. This is consistent with a deny-by-default private schema only if API exposure and grants are also constrained; retain as review items, not automatic errors.
+- No source, SQL, database rows, Auth settings, payment settings, or production resources changed during this audit.
+- CI for documentation commit `ef3220e03bc36dcc9b503d2bf9ceadefec31b26a`: run `44709007459` completed successfully.
+- Remaining security work: inspect the five RPC definitions and grants, verify private schema exposure/grants, and have leaked-password protection enabled in the test Auth settings. Do not change financial RPC grants without positive-path/negative-path regression coverage.
