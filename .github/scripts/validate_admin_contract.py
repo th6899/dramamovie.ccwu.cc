@@ -13,9 +13,9 @@ checks = {
     "empty settings fallback": "const settings=data||{};" in source,
     "manual QR requires an uploaded or saved image before enabling": '&&!currentQrPaths.alipay_qr_path' in source and '&&!currentQrPaths.wechat_qr_path' in source,
     "manual QR settings upsert": 'db.from("manual_payment_settings").upsert' in source,
-    "admin uses ES module entrypoint": '<script type="module" src="admin-v2.0.1.js?v=2.0.7"></script>' in html,
+    "admin uses ES module entrypoint": '<script type="module" src="admin-v2.0.1.js?v=2.0.8"></script>' in html,
 }
-checks["admin build marker matches release"] = 'window.CCWU_BUILD_VERSION = "2.0.7";' in source
+checks["admin build marker matches release"] = 'window.CCWU_BUILD_VERSION = "2.0.8";' in source
 checks["operations console avoids cross-user profile reads"] = 'db.from("profiles").select("id,display_name")' not in source and "Profiles are intentionally owner-readable only" in source
 checks["operations console falls back to user IDs"] = source.count('x.user_id?.slice(0, 8) || "—"') >= 3
 checks["OAuth callback returns to explicit admin page"] = 'new URL("/admin.html", location.origin).toString()' in source
