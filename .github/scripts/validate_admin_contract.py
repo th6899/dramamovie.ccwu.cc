@@ -26,6 +26,21 @@ checks["admin click handler blocks live CNY enablement"] = 'enable&&isTestProjec
 checks["manual QR toggles disabled in test project"] = source.count('$("alipayQrEnabled").disabled=isTestProject;') == 1 and source.count('$("wechatQrEnabled").disabled=isTestProject;') == 1
 checks["manual QR save blocked in test project"] = 'isTestProject&&($("alipayQrEnabled").checked||$("wechatQrEnabled").checked)' in source
 
+checks["public catalog readiness notice exists in admin UI"] = 'id="catalogReadiness"' in html
+checks["catalog readiness checks all six published content groups"] = all(
+    token in source for token in (
+        "loadPublicCatalogReadiness",
+        'from("dramas")',
+        'from("episodes")',
+        'from("service_catalog")',
+        'from("membership_plans")',
+        'from("vpn_plans")',
+        'from("tutorials")',
+        'count: "exact", head: true',
+    )
+)
+checks["catalog readiness warns against publishing unauthorized placeholders"] = "不要发布占位或未经授权的素材" in source
+
 failed = [label for label, ok in checks.items() if not ok]
 for label, ok in checks.items():
     print(f"{'OK' if ok else 'FAIL'}: {label}")
