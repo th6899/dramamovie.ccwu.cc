@@ -282,3 +282,12 @@ Before each new session, read this log and inspect the current branch HEAD and l
 - The admin version consistency regression assertions are included in the passing frontend validation.
 - Cloudflare Preview for commits after the previously confirmed `bc8640b` deployment remains unverified. The connected browser tab still points at the earlier immutable deployment URL, and browser page-context retrieval failed due browser security context availability. No workaround, reauthorization, paid service, or production change was attempted.
 - Next required external check: Cloudflare Pages `ccwu-global-test` Deployments must show a successful Preview built from commit `cf49b17` (or a later branch commit); then verify the served admin footer/title displays 2.0.8. Do not call the earlier `5ceec4ca` deployment proof of the post-fix code.
+
+
+## 2026-11-20 — Owner confirmation of corrected Preview deployment
+
+- Owner confirmed that the current Cloudflare `ccwu-global-test` Preview deployment includes commit `607b0e3`.
+- This confirms the deployment contains the version-label correction commits `f5c8ac9` (admin HTML title/footer), `0197e8a` (JS module version), and `46ae11f` (CI consistency assertions), as well as the documentation checkpoint.
+- Refreshed `docs/test-acceptance-matrix.md` to v2.0.8 and replaced stale deployment-blocker rows with the owner-confirmed Preview provenance. New matrix commit: `ebc0eb5`.
+- CI passed for the code-fix commit `46ae11f` (run `44721960491`) and branch checkpoint `cf49b17` (run `44722046291`), all three jobs green.
+- The remaining runtime check is the visible served admin marker/title after a hard refresh. Cloudflare Preview is confirmed; production remains untouched.
