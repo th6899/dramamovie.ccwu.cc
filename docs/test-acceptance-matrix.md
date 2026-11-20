@@ -15,6 +15,7 @@ This matrix records what has been verified in the independent test environment a
 | DB-04 | Profile editing | Authenticated users can update only profiles.display_name; role-column UPDATE remains denied | PASS |
 | DB-05 | Financial write isolation | Browser roles cannot INSERT/UPDATE/DELETE service_orders; VPN plan writes require admin/editor | PASS |
 | AUTH-01 | Staff admin | Owner-created and verified test account `tianhon027@gmail.com`; `private.user_roles` role is `admin`; JWT-context checks return `is_staff() = true` and `is_ccwu_admin() = true` | PASS |
+| AUTH-04 | Profile column permissions | Legacy column-level UPDATE grants on `username` and `avatar_url` revoked; `display_name` UPDATE retained; RLS remains owner-scoped | PASS (test DB privilege catalog verified; migration includes fail-closed assertions; account CI contract updated) |
 | UI-03 | Operations privacy | Operations console no longer queries other users' profiles; displays shortened user IDs without broadening profile access | PASS |
 | DB-06 | Public table RLS audit | All 27 public business tables have RLS enabled; order reads are owner/admin/support scoped; privileged approval RPC requires explicit admin role | PASS |
 | DB-07 | Private schema grants | 28 private tables; anon has no SELECT grants; authenticated can SELECT only `private.user_roles`; no other private table grants detected | PASS |
