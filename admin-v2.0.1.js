@@ -242,11 +242,15 @@ async function submitCatalogDraft(event,{formId,messageId,table,buildRow,success
   }
   const {error}=await db.from(table).insert(buildRow(slug));
   if(error)throw error;
-  setMessage(messageId,successMessage);
   form.reset();
   if(resetForm)resetForm();
-  await loadAdditionalCatalogs();
-  await loadPublicCatalogReadiness();
+  setMessage(messageId,successMessage);
+  try {
+   await loadAdditionalCatalogs();
+   await loadPublicCatalogReadiness();
+  } catch(refreshError) {
+   setMessage(messageId,successMessage+" 记录已保存，但列表刷新失败："+(refreshError?.message||"请手动刷新页面。"),true);
+  }
  } catch(error) {
   setMessage(messageId,error?.message||"保存失败，请稍后重试。",true);
  } finally {
