@@ -326,3 +326,16 @@ Before each new session, read this log and inspect the current branch HEAD and l
 - Corrected stale ENV-04 matrix wording: the owner-confirmed app deployment is `e7dfcf3` and the owner-confirmed runtime marker is v2.0.8; later branch commits are documentation checkpoints, not the source SHA of that deployment.
 - No database writes, secrets, payment settings, production resources, or live ad settings changed. A robust frequency-cap implementation needs a defined privacy-safe identity and server-side enforcement contract; do not rely on browser localStorage as a security boundary.
 - Matrix audit update commit: `310b2e7`.
+
+
+## 2026-11-20 — Server-side ad frequency cap implementation
+
+- Implemented a source-level end-to-end frequency-cap path on branch `fix/portal-auth-errors-v2.0.3`.
+- Added migration `20261120100000_enforce_server_side_video_ad_frequency_caps.sql` with viewer identity columns and impression indexes, plus service-role-only RPCs for checking eligible ad configurations and recording events with signed viewer identity.
+- Playback now requires a random anonymous viewer-session UUID, identifies authenticated viewers from the validated Supabase JWT, filters candidate ad slots server-side using each config's `frequency_cap_hours`, and signs the viewer identity into the event token.
+- Ad-event ingestion validates the signed identity and calls the new v2 RPC. It does not accept the event body's identity as authoritative.
+- Player persists a random UUID in localStorage to maintain anonymous continuity across episodes when storage is available. Clearing browser storage or switching browsers resets anonymous identity; this is a privacy-preserving frequency-control key, not robust anti-fraud/device identification. Authenticated viewers are keyed by account UUID.
+- Extended `.github/scripts/validate_ad_tracking_security.py` with source contracts for session persistence, server-side eligibility filtering, signed identity binding, and v2 event persistence.
+- Updated acceptance matrix AD-02: implementation exists in branch source, but it is explicitly NOT DEPLOYED / NOT RUNTIME VERIFIED. No migration was applied to test or production DB, no Edge Function was deployed, and live IMA remains blocked pending authorized test tag.
+- Commits in this implementation sequence: `69430f0` (migration), `31dc74d` (playback eligibility), `1427fd2` (signed identity event ingestion), `754b385` (persistent anonymous session), `e09b863` (CI contracts), `c059c69` (acceptance matrix).
+- No production changes, database writes, secrets, paid services, or fabricated media/ad content.
