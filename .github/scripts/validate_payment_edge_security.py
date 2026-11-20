@@ -34,6 +34,7 @@ checks = {
     "WeChat notifications verify serial, timestamp and RSA signature": all(x in cn for x in ("verifyWeChatMessage(raw, req.headers, publicKey, platformSerial)", 'transaction.appid !== appId || transaction.mchid !== mchId')),
     "WeChat notifications decrypt authenticated AES-GCM resources": all(x in cn for x in ('resource.algorithm !== "AEAD_AES_256_GCM"', 'name: "AES-GCM"', 'amount?.currency !== "CNY"')),
     "CNY settlement is delegated to service-role RPC": 'service.rpc("process_cn_payment_success"' in cn,
+    "CNY provider failures expose generic browser errors while retaining server logs": 'console.error("[cn-payment] provider creation failed:", message)' in cn and 'return json(503, { error: "payment_provider_unavailable" })' in cn and 'return json(503, { error: message })' not in cn,
     "Payment webhook endpoint accepts only POST": 'if (req.method !== "POST") return json(405' in cn,
 }
 failed = [name for name, passed in checks.items() if not passed]
