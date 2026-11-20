@@ -47,12 +47,12 @@ Deno.serve(async (req) => {
       return json({ error: "INVALID_EVENT_BATCH" }, 400);
     }
     const payload = await verifyToken(body.token, secret);
-    if (!payload || payload.type !== "ad_events" || !/^[0-9a-f-]{36}$/i.test(payload.episode_id || "") ||
-        !/^[0-9a-f-]{36}$/i.test(payload.nonce || "") ||
-        !(payload.viewer_id === null || /^[0-9a-f-]{36}$/i.test(payload.viewer_id || "")) ||
-        !/^[0-9a-f-]{36}$/i.test(payload.viewer_session_id || "") || !Array.isArray(payload.config_ids) ||
+    if (!payload || payload.type !== "ad_events" || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(payload.episode_id || "") ||
+        !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(payload.nonce || "") ||
+        !(payload.viewer_id === null || /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(payload.viewer_id || "")) ||
+        !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(payload.viewer_session_id || "") || !Array.isArray(payload.config_ids) ||
         payload.config_ids.length < 1 || payload.config_ids.length > 50 ||
-        !payload.config_ids.every((id: unknown) => typeof id === "string" && /^[0-9a-f-]{36}$/i.test(id))) {
+        !payload.config_ids.every((id: unknown) => typeof id === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id))) {
       return json({ error: "INVALID_OR_EXPIRED_TOKEN" }, 401);
     }
     const events = body.events.map((event: Record<string, unknown>) => ({
