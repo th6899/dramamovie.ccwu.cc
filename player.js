@@ -153,7 +153,7 @@ function queueAdEvent(slot, eventType, errorCode = "") {
   adEventQueue.push({ config_id: slot.id, event_type: eventType, session_fingerprint: adSessionFingerprint, error_code: errorCode });
   void flushAdEvents();
 }
-function attachImaTracking(manager, slot) {
+function attachImaTracking(manager, slot, requestId) {
   const map = [
     [google.ima.AdEvent.Type.IMPRESSION, "impression"],
     [google.ima.AdEvent.Type.STARTED, "start"],
@@ -164,7 +164,10 @@ function attachImaTracking(manager, slot) {
     [google.ima.AdEvent.Type.SKIPPED, "skip"],
     [google.ima.AdEvent.Type.CLICK, "click"]
   ];
-  map.forEach(([imaType, eventType]) => manager.addEventListener(imaType, () => queueAdEvent(slot, eventType)));
+  map.forEach(([imaType, eventType]) => manager.addEventListener(imaType, () => {
+    if (requestId !== activeAdRequestId || !activeAdRequest) return;
+    queueAdEvent(slot, eventType);
+  }));
 }
 
 function setupIma() {
@@ -184,8 +187,9 @@ function setupIma() {
         const slot = activeSlot;
         try {
           adsManager = event.getAdsManager(video);
-          attachImaTracking(adsManager, slot);
+          attachImaTracking(adsManager, slot, requestId);
           adsManager.addEventListener(google.ima.AdErrorEvent.Type.AD_ERROR, (error) => {
+            if (requestId !== activeAdRequestId || !activeAdRequest) return;
             queueAdEvent(slot, "error", error?.getError?.()?.getErrorCode?.()?.toString?.() || "IMA_ERROR");
             resumeContent(requestId);
           });
