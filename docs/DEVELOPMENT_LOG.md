@@ -251,3 +251,14 @@ Before each new session, read this log and inspect the current branch HEAD and l
 - Attempted one read-only Cloudflare dashboard deployment verification using the connected TinyFish browser profile. The run did not start because the external TinyFish wallet balance is `-$0.088`; this is a non-retryable provider billing limit. No payment/top-up was made because the project owner requires free services. No further retries will be made against this blocked service.
 - Last directly verified Cloudflare Preview deployment remains commit `f55a4cf`; do not claim build 2.0.8 is deployed. The exact latest Preview deployment/URL must be confirmed through an available free Cloudflare dashboard session or by the owner viewing the Deployments list. No Cloudflare settings or deployments were changed.
 - CI/code gate is complete and green. Remaining external release gate is deployment verification followed by authenticated end-to-end save/publish test using genuine authorized catalog content. Production remains untouched and requires explicit owner approval.
+
+
+## 2026-11-20 — Cloudflare Preview deployment confirmed by owner screenshot
+
+- Owner supplied the Cloudflare deployment-details screenshot for project `ccwu-global-test`.
+- Screenshot confirms a successful Preview deployment: deployment ID `5ceec4ca-c487-4fff-8ea7-6a4792d9acca`; deployment URL `https://5ceec4ca.ccwu-global-test.pages.dev`; branch alias `fix-portal-auth-errors-v-2-0.ccwu-global-test.pages.dev`; status `success`; duration 11 seconds.
+- Cloudflare's branch card truncates the displayed branch name (`fix/po...`). The build log shows checkout at full commit `bc8640bf8341a5cf6ee4a6174ae0be6ac6e8fd14`, matching the active development branch's latest documentation checkpoint commit `bc8640b`. This is direct evidence that the latest branch checkpoint was deployed to Preview.
+- Build log confirms clone, validation/build stage, asset upload (136/136), and deploy all succeeded. Deployment alias is a Preview alias, not the production domain.
+- The branch history includes the admin 2.0.8 runtime marker, HTML cache-busting key, validator, and release manifest updates. However, the screenshot itself does not expose the rendered runtime build marker; do not claim browser-level 2.0.8 verification until the deployed admin page visibly reports it.
+- No production deployment, database mutation, Cloudflare setting change, payment/Auth change, or paid service was used.
+- Next acceptance: open the exact Preview deployment URL, sign in with the already-working test admin session, and confirm the admin build marker reads 2.0.8. Then perform authenticated save/publish only with genuine owner-authorized catalog content; empty catalog remains intentional until such content is supplied.
