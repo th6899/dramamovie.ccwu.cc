@@ -131,3 +131,18 @@ Before each new session, read this log and inspect the current branch HEAD and l
 - Extended `.github/scripts/validate_admin_contract.py` with regression checks for service/tutorial form and table wiring, draft-only inserts, save error handling and button restoration, duplicate publish-click protection, and readiness refresh after mutations.
 - Validator change commit: `4d74c0fb3908fc700678c3909fc85e04d9881226`. CI for this commit was not yet confirmed at the time of this entry.
 - No app data, database rows, payment configuration, production settings, Cloudflare settings, secrets, or DNS were changed. Preview deployment provenance remains blocked pending read-only dashboard confirmation / owner action.
+
+
+## 2026-11-20 — CI completion and release-boundary audit
+
+- Starting branch: `fix/portal-auth-errors-v2.0.3`; starting HEAD: `21f8971718a25ed7574c9db6936152288dfd2e2a`.
+- Rechecked GitHub Actions run `44708464977` against the exact HEAD. **All three jobs completed successfully**:
+  - Frontend syntax and deployment isolation: PASS. This included browser JS syntax, deployment-host isolation/public-bundle secret checks, plan/Stripe contracts, generated database types, DOM contracts, admin auth/settings, CNY QR recovery, account ownership, media publishing, playback/private storage, financial write/RPC guards, payment proof storage, payment Edge Function security, ad tracking, and owner-scoped RLS contracts.
+  - Supabase Edge Function type checks: PASS.
+  - Migration source integrity: PASS.
+- Confirmed the active development branch still points to `21f8971718a25ed7574c9db6936152288dfd2e2a`; no code changes were needed after the successful run.
+- Inspected open draft PR #2. It remains open, draft, and unmerged; its base is `fix/admin-esm-import-v2.0.2`, not `main`. Do not merge or retarget it automatically. This is a release-boundary issue requiring deliberate review; production remains untouched.
+- Deployment provenance: **not verified**. The current GitHub workflow is validation-only and does not deploy Cloudflare Pages. The previously inspected Pages URL is immutable and cannot prove this HEAD is live. No new deployment URL or deployment commit is claimed.
+- Files changed in this checkpoint: `docs/DEVELOPMENT_LOG.md` only. No application code, database rows, Supabase settings, payment configuration, Cloudflare settings, DNS, or production resources changed.
+- Remaining gates: (1) verify Cloudflare Preview's actual deployed commit and test-project binding; (2) authenticated browser acceptance of admin save/publish workflows; (3) owner-controlled test Auth leaked-password protection and real sandbox/provider inputs; (4) review PR base/diff before any merge; (5) production release only after explicit approval.
+- User action is not required for this CI verification checkpoint. If Cloudflare deployment provenance cannot be read through existing authorized access, the one necessary browser action is to open the latest successful Preview deployment in the already-authorized Cloudflare dashboard and provide its commit SHA plus deployment URL. Do not repeat API authorization.
