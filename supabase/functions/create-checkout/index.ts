@@ -15,7 +15,7 @@ Deno.serve(async(req:Request)=>{if(req.method==="OPTIONS")return new Response("o
  let body:any;try{body=await req.json();}catch{return json({error:"INVALID_JSON"},400);}
  if(!["membership","vpn"].includes(body?.itemType)||typeof body?.itemId!=="string"||!["USD","CNY"].includes(body?.currency)||!["international","mainland_cn"].includes(body?.region)||typeof body?.requestKey!=="string"||!/^[0-9a-f-]{36}$/i.test(body.requestKey))return json({error:"INVALID_CHECKOUT_REQUEST"},400);
  if(body.currency==="CNY"||body.region==="mainland_cn")return json({error:"STRIPE_NOT_AVAILABLE_FOR_MAINLAND_CNY"},409);
- const {data:order,error:orderError}=await userClient.rpc("create_stripe_subscription_order_idempotent",{p_item_type:body.itemType,p_item_id:body.itemId,p_currency:body.currency,p_request_key:body.requestKey});if(orderError)return json({error:"ORDER_CREATION_FAILED",message:orderError.message??"order_creation_failed"},409);
+ const {data:order,error:orderError}=await userClient.rpc("create_stripe_subscription_order_idempotent",{p_item_type:body.itemType,p_item_id:body.itemId,p_currency:body.currency,p_request_key:body.requestKey});if(orderError){console.error("stripe_order_creation_failed",orderError.message);return json({error:"ORDER_CREATION_FAILED"},409);}
  const admin=createClient(url,service,{auth:{persistSession:false,autoRefreshToken:false}});
  const priceResponse=await fetch("https://api.stripe.com/v1/prices/"+encodeURIComponent(order.stripe_price_id),{headers:{"Authorization":"Bearer "+stripeKey}});
  const stripePrice=await priceResponse.json().catch(()=>({}));const expectedMinor=Math.round(Number(order.amount)*100);
