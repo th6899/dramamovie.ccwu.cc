@@ -81,3 +81,4 @@ This matrix records what has been verified in the independent test environment a
 - Never paste secrets into chat, GitHub, issue comments, screenshots, or browser-delivered files.
 - See test-environment-secrets.md for the exact secret names and environment rules.
 - The test project hard-blocks live CNY automatic providers; Stripe checkout requires a test-mode key. Manual real-merchant QR is locked off in the test admin UI.
+| ENV-05 | Preview redeployment trigger | After Cloudflare production branch is set back to `main` and Preview is configured for all non-production branches, this commit serves as a fresh Git event to test the Git-to-Pages deployment hook. Verify the deployment's source SHA in Cloudflare before accepting it | WAITING FOR DEPLOYMENT VERIFICATION |
