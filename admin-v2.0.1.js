@@ -142,6 +142,30 @@ function fillSelect(id, options, emptyText) {
   node.disabled = options.length === 0;
 }
 
+async function loadPublicCatalogReadiness() {
+  const checks = [
+    { label: "已发布影视作品", query: () => db.from("dramas").select("id", { count: "exact", head: true }).eq("status", "published") },
+    { label: "已发布剧集", query: () => db.from("episodes").select("id", { count: "exact", head: true }).eq("status", "published") },
+    { label: "已上架数字服务", query: () => db.from("service_catalog").select("id", { count: "exact", head: true }).eq("is_published", true) },
+    { label: "已上架会员套餐", query: () => db.from("membership_plans").select("id", { count: "exact", head: true }).eq("is_active", true) },
+    { label: "已上架 VPN 套餐", query: () => db.from("vpn_plans").select("id", { count: "exact", head: true }).eq("is_active", true) },
+    { label: "已发布教程", query: () => db.from("tutorials").select("id", { count: "exact", head: true }).eq("status", "published") }
+  ];
+  const node = $("catalogReadiness");
+  if (!node) return;
+  node.textContent = "正在检查公开目录发布状态……";
+  const results = await Promise.all(checks.map(async (item) => ({ label: item.label, ...(await item.query()) })));
+  const errors = results.filter((item) => item.error);
+  if (errors.length) {
+    node.textContent = "目录状态检查不完整：" + errors.map((item) => item.label).join("、") + "读取失败。请检查管理员读取权限后重试。";
+    return;
+  }
+  const empty = results.filter((item) => (item.count || 0) === 0).map((item) => item.label);
+  node.textContent = empty.length
+    ? "公开目录尚未就绪：" + empty.join("、") + "目前没有可供访客浏览的已发布内容。请在对应管理模块补充并审核真实内容；不要发布占位或未经授权的素材。"
+    : "公开目录检查通过：" + results.map((item) => item.label + " " + item.count + " 项").join("；") + "。";
+}
+
 async function loadAll() {
   $("overviewText").textContent = "正在读取数据库……";
   const results = await Promise.all([
@@ -165,6 +189,7 @@ async function loadAll() {
   $("overviewText").textContent = errors.length
     ? `部分数据暂不可读取：${errors.join("；")}`
     : "数据库连接正常，概览数据已更新。";
+  await loadPublicCatalogReadiness();
 
   $("dramaRows").innerHTML = cache.dramas.map((drama) =>
     `<tr><td>${esc(drama.title)}</td><td><span class="status">${esc(drama.status)}</span></td><td>${drama.created_at ? new Date(drama.created_at).toLocaleDateString() : "—"}</td><td><button type="button" class="btn btn-secondary" data-toggle-drama="${esc(drama.id)}" data-next-status="${drama.status === "published" ? "draft" : "published"}">${drama.status === "published" ? "下架" : "发布"}</button></td></tr>`
