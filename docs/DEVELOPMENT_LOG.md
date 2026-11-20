@@ -461,3 +461,12 @@ Before each new session, read this log and inspect the current branch HEAD and l
 - Full Push run `44734066839` passed all three jobs at source commit `93040d314db2fddd1635a909b5f05cd28f53c753`: frontend syntax/security contracts, Supabase Edge Function type checks, and migration source integrity.
 - Cloudflare Pages Preview build for the same source commit completed successfully.
 - The subsequent documentation-only checkpoint records this result. No Supabase migration was applied and no Edge Function was deployed to Supabase; media/ad runtime E2E remains unverified.
+
+
+## 2026-11-20 — CNY provider callback settlement audit
+
+- Rechecked the live test-project definition of `private.process_cn_payment_success` (read-only) against the CNY callback Edge Function and service-role wrapper.
+- Settlement locks the order row, validates provider/event type, CNY amount and currency, validates the provider transaction amount/status, and deduplicates by provider + event ID. Reuse of an event ID with a different payload hash is rejected. A second distinct success event for an already-paid order is ignored rather than creating another entitlement; subscription rows also have source-order conflict protection.
+- Alipay amount is parsed as decimal CNY; WeChat Pay integer fen is converted to CNY by dividing by 100. Both converge on the same numeric CNY order/transaction comparison.
+- The Alipay and WeChat callback handlers verify provider signatures before calling the service-role settlement RPC. No callback credentials or payment records were accessed or changed.
+- No new source defect was confirmed in this pass. Provider sandbox callback E2E remains unverified; source-level audit is not a substitute for signed sandbox notifications.
