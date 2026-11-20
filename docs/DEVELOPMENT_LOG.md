@@ -109,3 +109,16 @@ Before each new session, read this log and inspect the current branch HEAD and l
 - Run URL: https://github.com/th6899/dramamovie.ccwu.cc/actions/runs/44707523484
 - Not deployed to Cloudflare yet; no deployment claim.
 - Next: confirm all CI jobs finish successfully, then verify preview deployment includes the new sections. Authenticated browser create/save/publish still needs a real signed-in browser session; do not seed invented records.
+
+
+## 2026-11-20 — Catalog handler hardening and CI/deployment review
+
+- Starting HEAD: `e0a44353b88923f83cfa55e48f27cd6b7dda9cac`.
+- Verified latest workflow run `44707580523`: all three jobs completed successfully (frontend/deployment isolation, Supabase Edge Function type checks, migration integrity). PR-triggered duplicate run `44707589275` also succeeded.
+- Reviewed the latest source and confirmed `.github/workflows/ci.yml` is validation-only; it contains no Cloudflare Pages deployment job. README confirms the Pages project uses the repository root, an empty build command and output directory `.`, while the existing Cloudflare API token is read-only. No deployment was triggered and no production resource was touched.
+- Hardened `admin-v2.0.1.js` catalog form handlers: shared draft-submit path now disables submit while saving, catches thrown/network errors, restores the button in `finally`, and only resets after a successful insert. Service/tutorial publish toggles now guard duplicate clicks, catch update/reload errors and always restore button state. Draft defaults and explicit publishing semantics are unchanged.
+- New commit: `fe5437b95cf894a070029180b1e73585f3690526`.
+- CI run for this exact commit: `44708204399`, queued at checkpoint; do not mark as passed until all jobs complete successfully.
+- Cloudflare Preview remains unverified/stale. The previously inspected immutable Preview URL does not prove the latest branch HEAD is deployed. No deployment URL or commit is claimed.
+- No database rows, production data, payment settings, secrets, DNS, or Cloudflare configuration were changed.
+- Remaining owner-controlled gates: Cloudflare dashboard deployment provenance/retry (read-only token cannot perform it), test Auth leaked-password protection, authorized media/test provider inputs, and final signed-in functional acceptance. Do not repeat completed authentication repairs.
