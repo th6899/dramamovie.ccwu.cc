@@ -29,6 +29,7 @@ checks = {
     "ad-event ingestion writes using signed viewer identity, not event-supplied identity": 'admin.rpc("record_video_ad_events_v2"' in ad_events and "p_viewer_session_id: payload.viewer_session_id" in ad_events,
     "anonymous viewer session persists across episodes where browser storage is available": "localStorage.getItem(key)" in read("player.js") and "localStorage.setItem(key, created)" in read("player.js"),
     "frequency-cap migration adds viewer indexes and service-role-only RPCs": all(x in read("supabase/migrations/20261120100000_enforce_server_side_video_ad_frequency_caps.sql").lower() for x in ("viewer_id", "viewer_session_id", "get_eligible_video_ad_config_ids", "record_video_ad_events_v2", "to service_role")),
+    "impression writes serialize and recheck cap within the event transaction": all(x in read("supabase/migrations/20261120100000_enforce_server_side_video_ad_frequency_caps.sql") for x in ("pg_advisory_xact_lock", "hashtextextended", "v_frequency_cap_hours", "continue;")),
 
     "player retains queued ad events until ingestion succeeds": "adEventQueue.slice(0, 30)" in read("player.js") and "adEventQueue.splice(0, batch.length)" in read("player.js") and "if (error) throw error" in read("player.js"),
     "player serializes event batches and retries failed ingestion": "adEventFlushInFlight" in read("player.js") and "adEventRetryTimer" in read("player.js") and "adEventQueue.splice(0, 30)" not in read("player.js"),
