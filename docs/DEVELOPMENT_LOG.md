@@ -299,3 +299,10 @@ Before each new session, read this log and inspect the current branch HEAD and l
 - This is the latest deployment and its source commit descends from the version-correction commits `f5c8ac9` (HTML title/footer 2.0.8), `0197e8a` (JS module marker 2.0.8), and `46ae11f` (CI assertions). Thus the deployed source includes the v2.0.8 corrections; this does not by itself assert what an already-open browser tab currently renders.
 - GitHub Actions for exact deployed commit `e7dfcf3`: runs `44722502692` and `44722495177` completed successfully. Earlier overlapping runs for prior documentation checkpoint `ebc0eb5` were cancelled after the newer commit runs completed; no failing code check is indicated.
 - Latest Preview URL is the immutable deployment host above. Hard-refresh the admin page on this URL to verify the visible footer/title; production remains untouched.
+
+
+## 2026-11-20 — Acceptance matrix stale status cleanup
+
+- Verified latest branch checkpoint `a5c39c0` Actions run `44723885965`: all three jobs passed (frontend syntax/deployment isolation, Edge Function type checks, migration source integrity).
+- Updated acceptance matrix to explicitly supersede the stale historical ENV-04 pending note with the owner-confirmed Preview deployment `e7dfcf3` and its URL. Matrix commit: `e5c31f3`.
+- Remaining non-documentation acceptance: browser-visible v2.0.8 marker confirmation and owner-authorized real-content/provider E2E tests. Production remains untouched.
