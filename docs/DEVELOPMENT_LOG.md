@@ -158,3 +158,14 @@ Before each new session, read this log and inspect the current branch HEAD and l
 - No source, SQL, database rows, Auth settings, payment settings, or production resources changed during this audit.
 - CI for documentation commit `ef3220e03bc36dcc9b503d2bf9ceadefec31b26a`: run `44709007459` completed successfully.
 - Remaining security work: inspect the five RPC definitions and grants, verify private schema exposure/grants, and have leaked-password protection enabled in the test Auth settings. Do not change financial RPC grants without positive-path/negative-path regression coverage.
+
+
+## 2026-11-20 — Cloudflare Preview provenance and latest CI verified
+
+- Starting branch HEAD: `f55a4cf91224acdbdf6fa44f2479efe19d1a62ff` (`docs: record test auth security advisor findings`). Cloudflare dashboard screenshot confirms the latest successful Preview deployment is exactly `f55a4cf`, URL `https://616e6e6b.ccwu-global-test.pages.dev/`; Preview auto-deploy is enabled.
+- GitHub branch listing independently confirms `fix/portal-auth-errors-v2.0.3` points to the same full SHA. Production remains on `main` at `64ff5a7ec97c7e5f9aa9a24f42f6526cfe441bcc`; no production deployment was initiated.
+- GitHub Actions run `44709100260` for exact HEAD `f55a4cf` completed successfully: Frontend syntax and deployment isolation, Supabase Edge Function type checks, and Migration source integrity all passed. PR validation run `44709107059` also passed.
+- Draft PR #2 remains open/unmerged and targets `fix/admin-esm-import-v2.0.2`, not `main`. Do not merge, retarget, or release automatically.
+- Next acceptance gate: verify the deployed Preview UI and authenticated admin catalog workflow on the test project. The user only needs to open the provided Preview URL and confirm the admin page loads with the Service Catalog and Tutorials sections; do not create or publish dummy content.
+- Test Auth leaked-password protection remains disabled per the test-project Security Advisor and requires an owner-controlled dashboard setting. The five authenticated SECURITY DEFINER RPC grants and private-schema API exposure findings remain review-only; no grants or settings changed.
+- No database rows, production resources, payment configuration, secrets, DNS, or Cloudflare configuration were changed.
