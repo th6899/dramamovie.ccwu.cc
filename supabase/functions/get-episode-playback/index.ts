@@ -23,9 +23,10 @@ Deno.serve(async(req)=>{
   const {data:adRows}=await admin.from("video_ad_configs").select("id,episode_id,slot_key,ad_type,ad_provider,ad_tag_url,midroll_offset_seconds,skip_after_seconds,frequency_cap_hours,members_exempt,starts_at,ends_at").eq("is_active",true).or(`episode_id.is.null,episode_id.eq.${episodeId}`).order("slot_key",{ascending:true});
   const adSlots=(adRows||[]).filter(row=>(!row.starts_at||row.starts_at<=now)&&(!row.ends_at||row.ends_at>now)&&!(hasMembership&&row.members_exempt)&&!!safeHttpsTarget(row.ad_tag_url)).map(({episode_id:_episode,starts_at:_starts,ends_at:_ends,...row})=>({...row,ad_tag_url:safeHttpsTarget(row.ad_tag_url)!}));
   const eventSecret=Deno.env.get("CCWU_EVENT_SIGNING_SECRET")||"";
+  const eventSecret=Deno.env.get("CCWU_EVENT_SIGNING_SECRET")||"";
   const candidateConfigIds=adSlots.map(row=>row.id);
   let eligibleConfigIds:string[]=[];
-  if(candidateConfigIds.length){
+  if(eventSecret.length>=32&&candidateConfigIds.length){
    const {data:eligible,error:eligibilityError}=await admin.rpc("get_eligible_video_ad_config_ids",{p_episode_id:episodeId,p_viewer_id:userId,p_viewer_session_id:viewerSessionId,p_config_ids:candidateConfigIds});
    if(eligibilityError||!Array.isArray(eligible))return json({error:"AD_ELIGIBILITY_CHECK_UNAVAILABLE"},503);
    eligibleConfigIds=eligible;
