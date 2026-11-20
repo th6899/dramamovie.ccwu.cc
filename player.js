@@ -18,7 +18,7 @@ function getAdViewerSessionId() {
   const key = "ccwu_ad_viewer_session_v1";
   try {
     const existing = localStorage.getItem(key);
-    if (existing && /^[0-9a-f-]{36}$/i.test(existing)) return existing;
+    if (existing && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(existing)) return existing;
     const created = crypto.randomUUID();
     localStorage.setItem(key, created);
     return created;
