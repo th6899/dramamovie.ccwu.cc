@@ -360,3 +360,15 @@ Before each new session, read this log and inspect the current branch HEAD and l
 
 
 - Player IMA lifecycle audit found asynchronous `ADS_MANAGER_LOADED` / `AD_ERROR` callbacks were reading the mutable global `activeSlot`. A delayed callback from an earlier ad request could be attributed to a later slot or resume the wrong playback state. Added monotonically increasing request IDs, IMA `userRequestContext` validation for manager-loaded events, slot-captured event tracking, request-scoped loader-error listeners, and stale-request guards in `resumeContent`. Added CI source contracts. Commits: `98d4c00`, `f7787dc`, `fb99e87`.
+
+
+## 2026-11-20 — IMA request-context API correction
+
+- Starting HEAD for this correction: `b58628e25f00df4eb79381aecb9ad1c3b237cc02`.
+- Official Google IMA HTML5 documentation confirms request context is passed as the **second argument** to `AdsLoader.requestAds(adsRequest, userRequestContext)`; `AdsManagerLoadedEvent.getUserRequestContext()` and `AdErrorEvent.getUserRequestContext()` return that context.
+- Found a real playback defect: the player assigned `request.userRequestContext` on the `AdsRequest` object and called `requestAds(request)`. The documented context was therefore not supplied; the manager-loaded callback would reject the missing context as stale and destroy the returned manager.
+- Fixed `player.js`: call `adsLoader.requestAds(request, requestId)`; match loader-level errors using their own `getUserRequestContext()` and ignore errors not belonging to the active request.
+- Updated `.github/scripts/validate_ad_tracking_security.py` to assert the documented API call and request-scoped loader-error handling.
+- Commits: `cc2b92f` (player fix), `65199ae` (CI contract).
+- No deployment, database migration, Edge Function deployment, live ad request, or production change was made. Test ad inventory remains empty, so runtime IMA playback still requires an authorized test tag and published test episode.
+- Next: inspect/verify latest CI on the exact new HEAD; continue player lifecycle and backend reservation-race review.
