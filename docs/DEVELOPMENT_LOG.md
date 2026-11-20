@@ -306,3 +306,13 @@ Before each new session, read this log and inspect the current branch HEAD and l
 - Verified latest branch checkpoint `a5c39c0` Actions run `44723885965`: all three jobs passed (frontend syntax/deployment isolation, Edge Function type checks, migration source integrity).
 - Updated acceptance matrix to explicitly supersede the stale historical ENV-04 pending note with the owner-confirmed Preview deployment `e7dfcf3` and its URL. Matrix commit: `e5c31f3`.
 - Remaining non-documentation acceptance: browser-visible v2.0.8 marker confirmation and owner-authorized real-content/provider E2E tests. Production remains untouched.
+
+
+## 2026-11-20 — Owner-confirmed v2.0.8 runtime and acceptance matrix correction
+
+- Owner confirmed the latest Preview admin page visibly displays `CCWU Global · Admin Build v2.0.8`; the browser-visible version gate is now PASS.
+- The latest owner-confirmed app Preview deployment remains commit `e7dfcf3` at `https://53d0dac2.ccwu-global-test.pages.dev`. Later commits in the branch are documentation checkpoints; do not misrepresent them as the source SHA of that immutable deployment.
+- Latest branch HEAD before this documentation update: `6675530`. GitHub Actions push run `44724457235` and pull-request run `44724466180` both completed successfully.
+- Corrected `docs/test-acceptance-matrix.md` to record the visible v2.0.8 confirmation and remove the stale pending runtime-marker / Preview redeployment entries. Matrix update commit: `c37c12f`.
+- No production deployment, payment activation, credential change, database mutation, paid service, or fabricated catalog/media content was used.
+- Remaining release acceptance is limited to owner-controlled genuine media/catalog inputs and provider-specific sandbox credentials/contracts for media playback, Google IMA, Stripe lifecycle, and VPN provisioning; production release still requires explicit owner approval.
