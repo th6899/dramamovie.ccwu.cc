@@ -41,6 +41,13 @@ checks["catalog readiness checks all six published content groups"] = all(
 )
 checks["catalog readiness warns against publishing unauthorized placeholders"] = "不要发布占位或未经授权的素材" in source
 
+checks["digital service form and list are wired"] = all(token in html for token in ('id="serviceCatalogForm"', 'id="serviceCatalogRows"', 'id="serviceCatalogMsg"')) and '$("serviceCatalogForm").addEventListener("submit"' in source
+checks["tutorial form and list are wired"] = all(token in html for token in ('id="tutorialForm"', 'id="tutorialRows"', 'id="tutorialMsg"')) and '$("tutorialForm").addEventListener("submit"' in source
+checks["catalog inserts remain unpublished drafts"] = 'is_published:false' in source and 'status:"draft"' in source
+checks["catalog save catches errors and restores submit state"] = 'async function submitCatalogDraft' in source and 'catch(error)' in source and 'finally {' in source and 'if(submit)submit.disabled=false;' in source
+checks["catalog publish controls prevent duplicate clicks and report failures"] = 'if(!b||b.disabled)return;' in source and '目录状态更新失败：' in source
+checks["catalog state refreshes readiness after successful mutations"] = 'await loadAdditionalCatalogs();' in source and 'await loadPublicCatalogReadiness();' in source
+
 failed = [label for label, ok in checks.items() if not ok]
 for label, ok in checks.items():
     print(f"{'OK' if ok else 'FAIL'}: {label}")
