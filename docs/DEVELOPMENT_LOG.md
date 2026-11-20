@@ -383,3 +383,13 @@ Before each new session, read this log and inspect the current branch HEAD and l
 - Added a CI source contract asserting both the normal post-roll completion guard and the IMA-unavailable fallback guard.
 - Commits: `8bb7929` (player fix), `57339aa` (CI contract).
 - No deployment, database migration, Edge Function deployment, or real ad playback was performed.
+
+
+## 2026-11-20 — Ignore stale IMA manager tracking events
+
+- Continued auditing late callbacks from AdsManager instances after an ad request has completed or a newer request has started.
+- Found that manager-level impression/quartile/complete/skip/click callbacks and manager AD_ERROR callback were bound to the slot but did not verify the originating request ID. A delayed event from an obsolete manager could therefore be attributed to a later playback state.
+- Updated `attachImaTracking(manager, slot, requestId)` and manager error callback to ignore events unless their captured request ID still matches `activeAdRequestId` and an ad request remains active.
+- Added CI source contract coverage for request-scoped tracking callbacks.
+- Commits: `ee9e334` (player guard), `bfbeab4` (CI contract).
+- No database writes, deployment, provider calls, or production changes.
