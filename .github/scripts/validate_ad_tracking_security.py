@@ -16,7 +16,7 @@ rpc_migration = read("supabase/migrations/20261119040820_expose_service_only_pro
 
 checks = {
     "playback signs ad-event tokens with a server secret of minimum length": 'eventSecret.length>=32' in playback and 'name:"HMAC",hash:"SHA-256"' in playback,
-    "ad-event token binds episode, allowed config IDs, expiry and nonce": all(x in playback for ('type:"ad_events"', "episode_id:episodeId", "config_ids:eventConfigIds", "nonce:eventNonce")),
+    "ad-event token binds episode, allowed config IDs, expiry and nonce": all(x in playback for x in ('type:"ad_events"', "episode_id:episodeId", "config_ids:eventConfigIds", "nonce:eventNonce")),
     "ad-event endpoint limits token and event batch sizes": "token.length > 8192" in ad_events and "body.events.length > 30" in ad_events,
     "ad-event endpoint validates HMAC, expiry and token type": all(x in ad_events for ("crypto.subtle.verify", "payload.exp < Math.floor(Date.now() / 1000)", 'payload.type !== "ad_events"')),
     "ad-event endpoint restricts config IDs to signed token contents": "payload.config_ids.includes(event.config_id)" in ad_events,
