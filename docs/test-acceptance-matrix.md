@@ -19,7 +19,8 @@ This matrix records what has been verified in the independent test environment a
 | DB-06 | Public table RLS audit | All 27 public business tables have RLS enabled; order reads are owner/admin/support scoped; privileged approval RPC requires explicit admin role | PASS |
 | DB-07 | Private schema grants | 28 private tables; anon has no SELECT grants; authenticated can SELECT only `private.user_roles`; no other private table grants detected | PASS |
 | DB-08 | High-privilege RPC review | Five advisor-flagged public SECURITY DEFINER RPCs reviewed: all deny anon execution, use empty search_path, and enforce authenticated identity; payment approval additionally requires explicit admin role; order lookup is owner-scoped | PASS (code review; adversarial runtime tests pending) |
-| DB-10 | Client table-wide privilege hardening | Revoked TRUNCATE on all 27 public tables from anon/authenticated; verified both roles have no TRUNCATE privilege on any current public table | PASS (default-privilege templates still require owner-level review for future tables) |\n| DB-09 | Content readiness snapshot | Test DB currently has 1 drama and 1 episode, 0 ad configs, 0 promotions, 0 active membership/VPN plans, 0 orders, and 0 subscriptions | BLOCKED (requires authorized test media/content and test plans) |
+| DB-10 | Client table-wide privilege hardening | Revoked TRUNCATE on all 27 public tables from anon/authenticated; verified both roles have no TRUNCATE privilege on any current public table | PASS (default-privilege templates still require owner-level review for future tables) |
+| DB-09 | Content readiness snapshot | Test DB currently has 1 drama and 1 episode, 0 ad configs, 0 promotions, 0 active membership/VPN plans, 0 orders, and 0 subscriptions | BLOCKED (requires authorized test media/content and test plans) |
 | SEC-01 | Security advisor follow-up | 27 private tables report RLS enabled without policies (private-schema default-deny design); leaked-password protection remains disabled and must be enabled before launch | BLOCKED (test-project Auth dashboard setting) |
 | STORAGE-01 | Media bucket privacy | Video, subtitles, and payment proofs are private; proof upload/read is scoped to owner or staff; posters and QR images are intentionally public | PASS |
 | STORAGE-02 | Upload constraints | Video 50 MB, subtitles 2 MB WebVTT-only, payment proofs 8 MB image/PDF, posters 10 MB image-only, QR images 5 MB image-only | PASS |
@@ -41,8 +42,8 @@ This matrix records what has been verified in the independent test environment a
 
 | ID | Area | Required input/action | Safe test condition |
 |---|---|---|---|
-| AUTH-02 | Ownership isolation | A second ordinary test account | Verify one user cannot read another user's orders/subscriptions |
-| AUTH-03 | Leaked password protection | Enable Supabase Auth leaked-password protection in the test project's dashboard | No production Auth setting changes |
+| AUTH-02 | Ownership isolation | Test DB currently has two confirmed accounts and both have admin role; no ordinary-user account is available | BLOCKED — need a non-admin test account before cross-user isolation can be meaningfully verified |
+| AUTH-03 | Leaked password protection | Enable Supabase Auth leaked-password protection in the test project's dashboard | BLOCKED — dashboard-only Auth setting; test project only |
 | STRIPE-01 | Stripe checkout | Configure test-only STRIPE_SECRET_KEY, test STRIPE_WEBHOOK_SECRET, exact test APP_ORIGIN, and test recurring Price IDs | sk_test_ only; no live keys or transactions |
 | STRIPE-02 | Stripe lifecycle | Run checkout, success/failure, duplicate webhook, renewal, refund, and dispute test events | Stripe test mode only |
 | ALIPAY-01 | Alipay | Configure genuine Alipay sandbox app ID/private key/public key and official sandbox gateway | Sandbox only; test method disabled until credentials are verified |
