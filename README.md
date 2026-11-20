@@ -112,6 +112,7 @@ python3 .github/scripts/validate_manual_payment_approval.py
 python3 .github/scripts/validate_payment_proof_storage.py
 python3 .github/scripts/validate_financial_rpc_contracts.py
 python3 .github/scripts/validate_payment_edge_security.py
+python3 .github/scripts/validate_ad_tracking_security.py
 python3 .github/scripts/validate_owner_rls_contracts.py
 python3 .github/scripts/validate_migrations.py
 ```
