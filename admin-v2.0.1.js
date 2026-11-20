@@ -190,6 +190,7 @@ async function loadAll() {
     ? `部分数据暂不可读取：${errors.join("；")}`
     : "数据库连接正常，概览数据已更新。";
   await loadPublicCatalogReadiness();
+  await loadAdditionalCatalogs();
 
   $("dramaRows").innerHTML = cache.dramas.map((drama) =>
     `<tr><td>${esc(drama.title)}</td><td><span class="status">${esc(drama.status)}</span></td><td>${drama.created_at ? new Date(drama.created_at).toLocaleDateString() : "—"}</td><td><button type="button" class="btn btn-secondary" data-toggle-drama="${esc(drama.id)}" data-next-status="${drama.status === "published" ? "draft" : "published"}">${drama.status === "published" ? "下架" : "发布"}</button></td></tr>`
@@ -220,6 +221,35 @@ async function loadAll() {
     return `<tr><td>${esc(promo.title)}</td><td>${esc(episode?.title || "—")}</td><td><span class="status">${promo.is_active ? "启用" : "关闭"}</span></td><td>${safeUrl ? `<a target="_blank" rel="noopener noreferrer" href="${esc(safeUrl)}">打开链接</a>` : "无有效链接"}</td></tr>`;
   }).join("") || `<tr><td colspan="4">${results[3].error ? "读取失败" : "暂无推广配置"}</td></tr>`;
 }
+
+
+async function loadAdditionalCatalogs() {
+ const [services,tutorials]=await Promise.all([
+  db.from("service_catalog").select("id,slug,title,category,is_published").order("created_at",{ascending:false}),
+  db.from("tutorials").select("id,slug,title,category,status").order("created_at",{ascending:false})
+ ]);
+ $("serviceCatalogRows").innerHTML=services.error?'<tr><td colspan="5">'+esc(services.error.message)+'</td></tr>':(services.data||[]).map(x=>'<tr><td>'+esc(x.title)+'</td><td>'+esc(x.slug)+'</td><td>'+esc(x.category)+'</td><td>'+(x.is_published?'已发布':'草稿')+'</td><td><button class="btn btn-outline" type="button" data-catalog-toggle="service" data-id="'+esc(x.id)+'" data-active="'+x.is_published+'">'+(x.is_published?'下架':'发布')+'</button></td></tr>').join('')||'<tr><td colspan="5">暂无数字服务</td></tr>';
+ $("tutorialRows").innerHTML=tutorials.error?'<tr><td colspan="5">'+esc(tutorials.error.message)+'</td></tr>':(tutorials.data||[]).map(x=>'<tr><td>'+esc(x.title)+'</td><td>'+esc(x.slug)+'</td><td>'+esc(x.category)+'</td><td>'+esc(x.status)+'</td><td><button class="btn btn-outline" type="button" data-catalog-toggle="tutorial" data-id="'+esc(x.id)+'" data-active="'+(x.status==='published')+'">'+(x.status==='published'?'下架':'发布')+'</button></td></tr>').join('')||'<tr><td colspan="5">暂无教程</td></tr>';
+}
+$("serviceCatalogForm").addEventListener("submit",async event=>{
+ event.preventDefault();const slug=$("serviceSlug").value.trim().toLowerCase();
+ if(!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug))return setMessage("serviceCatalogMsg","Slug 仅允许小写字母、数字和连字符。",true);
+ const {error}=await db.from("service_catalog").insert({slug,title:$("serviceTitle").value.trim(),category:$("serviceCategory").value.trim(),description:$("serviceDescription").value.trim()||null,is_published:false});
+ setMessage("serviceCatalogMsg",error?error.message:"数字服务已保存为草稿。",!!error);if(!error){event.target.reset();await loadAdditionalCatalogs();await loadPublicCatalogReadiness();}
+});
+$("tutorialForm").addEventListener("submit",async event=>{
+ event.preventDefault();const slug=$("tutorialSlug").value.trim().toLowerCase();
+ if(!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug))return setMessage("tutorialMsg","Slug 仅允许小写字母、数字和连字符。",true);
+ const {error}=await db.from("tutorials").insert({slug,title:$("tutorialTitle").value.trim(),category:$("tutorialCategory").value.trim(),summary:$("tutorialSummary").value.trim()||null,body_md:$("tutorialBody").value.trim()||null,resource_path:$("tutorialResource").value.trim()||null,status:"draft"});
+ setMessage("tutorialMsg",error?error.message:"教程已保存为草稿。",!!error);if(!error){event.target.reset();$("tutorialCategory").value="general";await loadAdditionalCatalogs();await loadPublicCatalogReadiness();}
+});
+document.addEventListener("click",async event=>{
+ const b=event.target.closest("[data-catalog-toggle]");if(!b)return;
+ const service=b.dataset.catalogToggle==="service",table=service?"service_catalog":"tutorials",next=b.dataset.active!=="true";
+ b.disabled=true;const {error}=await db.from(table).update(service?{is_published:next}:{status:next?"published":"draft"}).eq("id",b.dataset.id);
+ if(error)alert("目录状态更新失败："+error.message);
+ await loadAdditionalCatalogs();await loadPublicCatalogReadiness();
+});
 
 async function updateContentStatus(table, id, nextStatus, messageId) {
   const row = table === "dramas" ? cache.dramas.find((item) => item.id === id) : cache.episodes.find((item) => item.id === id);
