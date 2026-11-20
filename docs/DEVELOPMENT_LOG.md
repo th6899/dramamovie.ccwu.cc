@@ -371,4 +371,6 @@ Before each new session, read this log and inspect the current branch HEAD and l
 - Updated `.github/scripts/validate_ad_tracking_security.py` to assert the documented API call and request-scoped loader-error handling.
 - Commits: `cc2b92f` (player fix), `65199ae` (CI contract).
 - No deployment, database migration, Edge Function deployment, live ad request, or production change was made. Test ad inventory remains empty, so runtime IMA playback still requires an authorized test tag and published test episode.
-- Next: inspect/verify latest CI on the exact new HEAD; continue player lifecycle and backend reservation-race review.
+- GitHub Actions Push run `44731175319` for exact HEAD `5341a3a3107cde636a241f7c2e77d02257d4ce34`: **PASS**, all three jobs succeeded (frontend syntax/deployment isolation, migration source integrity, Supabase Edge Function type checks). The PR duplicate run `44731166880` was superseded/cancelled by the newer push; this is not a failed validation.
+- Cloudflare Preview was not redeployed; the fix remains branch-only. Runtime IMA playback is still unverified because the test database has no ad inventory/test tag.
+- Next: continue player lifecycle and backend reservation-race review.
