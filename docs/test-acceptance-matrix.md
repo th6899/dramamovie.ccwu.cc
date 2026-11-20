@@ -210,3 +210,10 @@ This matrix records what has been verified in the independent test environment a
 - Corrected CI-detected source-contract and duplicate declaration issues.
 - Push CI run `44734066839` passed all three jobs at source commit `93040d314db2fddd1635a909b5f05cd28f53c753`; Cloudflare Preview build also succeeded.
 - **NOT RUNTIME VERIFIED:** no test ad inventory was present/configured and the migration/Edge Functions remain unapplied/undeployed to Supabase. Browser IMA E2E still requires authorized test content and event-signing configuration.
+
+
+### CNY callback settlement audit — 2026-11-20
+
+- Read-only review of the test DB settlement function and branch Edge Function: order-row locking, provider/event validation, amount/currency checks, webhook event deduplication with payload-hash mismatch rejection, and entitlement source-order uniqueness are present.
+- Alipay decimal CNY and WeChat fen-to-yuan conversion both reach the same CNY amount comparison.
+- **SOURCE / TEST-DB REVIEW PASS; PROVIDER E2E NOT VERIFIED:** no signed sandbox callback was run and no provider credentials or payment data were changed.
