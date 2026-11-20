@@ -339,3 +339,6 @@ Before each new session, read this log and inspect the current branch HEAD and l
 - Updated acceptance matrix AD-02: implementation exists in branch source, but it is explicitly NOT DEPLOYED / NOT RUNTIME VERIFIED. No migration was applied to test or production DB, no Edge Function was deployed, and live IMA remains blocked pending authorized test tag.
 - Commits in this implementation sequence: `69430f0` (migration), `31dc74d` (playback eligibility), `1427fd2` (signed identity event ingestion), `754b385` (persistent anonymous session), `e09b863` (CI contracts), `c059c69` (acceptance matrix).
 - No production changes, database writes, secrets, paid services, or fabricated media/ad content.
+
+
+- Follow-up hardening: playback now returns no ad slots when the signing secret is absent/too short, rather than serving untracked ads that could bypass impression-based frequency caps. Added a CI contract for this fail-closed behavior. Commit: `34aa1c5` and CI assertion `3a91c38`.
