@@ -191,3 +191,9 @@ This matrix records what has been verified in the independent test environment a
 
 - Playback now checks for a sufficiently long `CCWU_EVENT_SIGNING_SECRET` before calling the reservation RPC. When absent, no capped slot is reserved and no ad is delivered; this avoids wasting the two-minute reservation window while preserving fail-closed behavior.
 - Added CI contract coverage. Source-only change; runtime behavior remains NOT VERIFIED until a test ad inventory and secret are configured in the test project.
+
+
+### Anonymous ad-session UUID compatibility
+
+- Player now reuses a stored viewer-session ID only if it matches the canonical UUID structure required by the playback Edge Function. A malformed legacy value is replaced automatically instead of causing a playback 400 response.
+- CI contract added. Runtime verification still depends on an authorized test catalog/media setup.
