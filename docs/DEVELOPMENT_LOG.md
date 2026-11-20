@@ -242,3 +242,12 @@ Before each new session, read this log and inspect the current branch HEAD and l
 - Application code commits: `af8b5ec` (runtime marker), `362a07b` (HTML cache key). Validator: `ef124a2`. Release manifest: `59a65f0`. README: `466f2ca`.
 - CI run `44714468108` for source release manifest commit `59a65f0` passed all three jobs: frontend syntax/deployment isolation, Supabase Edge Function type checks, and migration source integrity. README-only commit `466f2ca` has a queued follow-up CI run `44714514052`; do not label that later run passed until it completes.
 - The latest confirmed Cloudflare deployment is still the earlier Preview at `f55a4cf`; the new 2.0.8 application commits are not yet confirmed deployed. No production changes, data writes, payment/Auth changes, or Cloudflare settings changes were made.
+
+
+## 2026-11-20 — Final CI confirmation and deployment verification blocker
+
+- Rechecked branch HEAD `bc692dacfbc6b8105f75b143b84946b72d1aa2d5` and Actions run `44714550816`: all three jobs completed successfully — frontend syntax/deployment isolation, Supabase Edge Function type checks, and migration source integrity. Follow-up application workflow run `44714564459` also completed successfully.
+- Confirmed source build marker, admin HTML cache-busting key, and release manifest all consistently identify build `2.0.8`.
+- Attempted one read-only Cloudflare dashboard deployment verification using the connected TinyFish browser profile. The run did not start because the external TinyFish wallet balance is `-$0.088`; this is a non-retryable provider billing limit. No payment/top-up was made because the project owner requires free services. No further retries will be made against this blocked service.
+- Last directly verified Cloudflare Preview deployment remains commit `f55a4cf`; do not claim build 2.0.8 is deployed. The exact latest Preview deployment/URL must be confirmed through an available free Cloudflare dashboard session or by the owner viewing the Deployments list. No Cloudflare settings or deployments were changed.
+- CI/code gate is complete and green. Remaining external release gate is deployment verification followed by authenticated end-to-end save/publish test using genuine authorized catalog content. Production remains untouched and requires explicit owner approval.
