@@ -7,8 +7,9 @@ This matrix records what has been verified in the independent test environment a
 | ID | Area | Verification | Result |
 |---|---|---|---|
 | ENV-01 | Host isolation | Test Pages hosts resolve to test Supabase; known production hosts resolve to production; unknown hosts fail closed | PASS |
-| ENV-02 | Preview version | A previously inspected Preview URL served admin build/module v2.0.7; it is not verified against the current branch head | HISTORICAL ONLY |
-| ENV-03 | Deployment provenance | Latest Cloudflare Pages Preview source commit and test Supabase binding have not been verified; the available Cloudflare API token is read-only | BLOCKED |
+| ENV-02 | Preview version | On 2026-11-20, exact Preview host `7df8c744.ccwu-global-test.pages.dev` served Admin Build v2.0.7 but did not contain the newly committed `catalogReadiness` notice; cache-busted inspection confirmed the same result | STALE / NOT CURRENT |
+| ENV-03 | Deployment provenance | Branch `fix/portal-auth-errors-v2.0.3` is at `ca0039d354040ebe0b91eff27d7a7e800b2d8ef7`; CI passes, but Cloudflare Preview has not been shown to deploy that SHA. Stable project alias `ccwu-global-test.pages.dev` serves Admin Build v2.0.1 and is not the test Preview. Repository has CI only, no Cloudflare deploy workflow; available Pages API token is read-only | BLOCKED — OWNER ACTION |
+| ENV-04 | Cloudflare build source | Repository root contains the current v2.0.7 admin source and `catalogReadiness`; the nested legacy source folder is v2.0.1. Pages project root directory and connected Git branch must be checked before retrying deployment | BLOCKED — DASHBOARD CHECK |
 | DB-01 | Schema migrations | 75 source migrations match 75 applied test database versions, including Stripe/CNY idempotency and Auth profile-trigger search_path hardening | PASS (source filename/version set compared with the test database migration ledger) |
 | DB-02 | RLS baseline | All public tables have RLS enabled; private ledgers are RLS default-deny | PASS |
 | DB-03 | Owner reads | Orders, profiles, membership subscriptions, and VPN subscriptions have owner-scoped read policies | PASS |
