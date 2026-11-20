@@ -20,6 +20,7 @@ checks = {
     "Stripe checkout rejects CNY and mainland-China requests": 'body.currency==="CNY"||body.region==="mainland_cn"' in checkout,
     "Browser reuses a stable checkout request key on retry": "requestKey:crypto.randomUUID()" in app and "requestKey:pendingCheckout.requestKey" in app,
     "Stripe Edge Function uses the idempotent order RPC": 'userClient.rpc("create_stripe_subscription_order_idempotent"' in checkout,
+    "Stripe order failures do not expose database error text": 'console.error("stripe_order_creation_failed",orderError.message)' in checkout and 'message:orderError.message' not in checkout,
     "Stripe API session creation uses an idempotency key": '"Idempotency-Key":"ccwu-checkout-"+order.order_id' in checkout,
     "Stripe checkout validates provider price amount, currency and interval": all(x in checkout for x in ('stripePrice.currency!=="usd"', "stripePrice.unit_amount!==expectedMinor", "stripePrice.recurring?.interval!==order.billing_interval")),
     "Stripe webhook verifies timestamped HMAC before parsing JSON": stripe.index("verifyStripeSignature(raw") < stripe.index("JSON.parse(raw)") and "Math.abs(Date.now()/1000-ts)>300" in stripe and 'name:"HMAC",hash:"SHA-256"' in stripe,
