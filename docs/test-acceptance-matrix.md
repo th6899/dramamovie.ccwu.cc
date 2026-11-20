@@ -33,6 +33,7 @@ This matrix records what has been verified in the independent test environment a
 | PAY-02 | Stripe return route | Success and cancellation return to existing payment-result.html with the server-created order ID | PASS |
 | PAY-03 | CNY QR retry | Owner-scoped order lookup returns the stored provider QR/session values for retry recovery | PASS |
 | PAY-04 | Test payment fence | Test cn-payment rejects live CNY methods before order creation; admin blocks live CNY enablement and manual QR toggles | PASS |
+| PAY-05 | Stripe privileged RPC boundary | Checkout state changes, webhook settlement, refund/dispute processing, invoice lifecycle, and subscription mapping RPCs are executable only by service_role; browser roles have no EXECUTE grant | PASS (grant and code review; Stripe sandbox lifecycle remains blocked) |
 | UI-01 | Public routes | Homepage, membership/VPN anchors, player shell, payment result, and admin login shell render in read-only smoke tests | PASS |
 | UI-02 | Account access | Logged-out account visitors see only the login prompt; login return URL opens the login modal and preserves the account return | PASS |
 | MEDIA-00 | Admin media workflow | Poster upload, TUS resumable video upload, VTT upload, SRT-to-WebVTT conversion, explicit publish/unpublish, and published-subtitle-only playback contracts | PASS |
