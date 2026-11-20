@@ -374,3 +374,12 @@ Before each new session, read this log and inspect the current branch HEAD and l
 - GitHub Actions Push run `44731175319` for exact HEAD `5341a3a3107cde636a241f7c2e77d02257d4ce34`: **PASS**, all three jobs succeeded (frontend syntax/deployment isolation, migration source integrity, Supabase Edge Function type checks). The PR duplicate run `44731166880` was superseded/cancelled by the newer push; this is not a failed validation.
 - Cloudflare Preview was not redeployed; the fix remains branch-only. Runtime IMA playback is still unverified because the test database has no ad inventory/test tag.
 - Next: continue player lifecycle and backend reservation-race review.
+
+## 2026-11-20 — IMA unavailable post-roll fallback fix
+
+- Continued player lifecycle review after the request-context correction.
+- Found another concrete edge case: when IMA was unavailable or failed to initialize, `requestAd()` unconditionally called `video.play()`. For a post-roll triggered by the `ended` event, this could restart the episode from the beginning even though no ad was shown.
+- Fixed fallback to resume the video only for non-post-roll slots and only while the media has not ended.
+- Added a CI source contract asserting both the normal post-roll completion guard and the IMA-unavailable fallback guard.
+- Commits: `8bb7929` (player fix), `57339aa` (CI contract).
+- No deployment, database migration, Edge Function deployment, or real ad playback was performed.
