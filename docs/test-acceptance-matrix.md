@@ -21,6 +21,7 @@ This matrix records what has been verified in the independent test environment a
 | DB-08 | High-privilege RPC review | Five advisor-flagged public SECURITY DEFINER RPCs reviewed: all deny anon execution, use empty search_path, and enforce authenticated identity; payment approval additionally requires explicit admin role; order lookup is owner-scoped | PASS (code review; adversarial runtime tests pending) |
 | DB-10 | Client table-wide privilege hardening | Revoked TRUNCATE on all 27 public tables from anon/authenticated; verified both roles have no TRUNCATE privilege on any current public table | PASS |
 | DB-11 | Anonymous SQL privilege hardening | Revoked anonymous INSERT/UPDATE/DELETE/TRUNCATE/REFERENCES/TRIGGER on all public tables and all sequence privileges; removed postgres-owned default grants for future public tables/sequences; migration includes a fail-closed assertion | PASS (test DB verified by migration assertions; supabase_admin default privilege alteration is attempted only when permitted) |
+| DB-12 | Subscription write boundary | `membership_subscriptions` and `vpn_subscriptions` UPDATE policies are admin-only (USING and WITH CHECK); ordinary account UI performs reads only; CI now checks both policy definitions and forbids direct browser subscription mutations | PASS (test DB policy inspection and source contract; actual non-admin account write-denial test remains part of AUTH-02) |
 | DB-09 | Content readiness snapshot | Test DB currently has 1 drama and 1 episode, 0 ad configs, 0 promotions, 0 active membership/VPN plans, 0 orders, and 0 subscriptions | BLOCKED (requires authorized test media/content and test plans) |
 | SEC-01 | Security advisor follow-up | 27 private tables report RLS enabled without policies (private-schema default-deny design); leaked-password protection remains disabled and must be enabled before launch | BLOCKED (test-project Auth dashboard setting) |
 | STORAGE-01 | Media bucket privacy | Video, subtitles, and payment proofs are private; proof upload/read is scoped to owner or staff; posters and QR images are intentionally public | PASS |
@@ -41,7 +42,7 @@ This matrix records what has been verified in the independent test environment a
 | UI-02 | Account access | Logged-out account visitors see only the login prompt; login return URL opens the login modal and preserves the account return | PASS |
 | MEDIA-00 | Admin media workflow | Poster upload, TUS resumable video upload, VTT upload, SRT-to-WebVTT conversion, explicit publish/unpublish, and published-subtitle-only playback contracts | PASS |
 | MEDIA-01 | Free storage limit | Admin uploader and private Storage bucket both enforce 50 MB per file; subtitle bucket accepts private WebVTT only; free Storage quota remains 1 GB total | PASS |
-| CI-01 | Automated validation | Frontend syntax, DOM IDs, DB table/RPC/column contracts, admin/account/media/playback-security/financial-write/WebVTT contracts, payment contracts, Deno checks, and migration integrity | PASS |
+| CI-01 | Automated validation | Frontend syntax, DOM IDs, DB table/RPC/column contracts, admin/account/media/playback-security/financial-write/subscription-write/WebVTT contracts, payment contracts, Deno checks, and migration integrity | PASS |
 
 ## Blocked pending owner-controlled test inputs
 
