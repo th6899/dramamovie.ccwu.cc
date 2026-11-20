@@ -26,6 +26,7 @@ This matrix records what has been verified in the independent test environment a
 | STORAGE-02 | Upload constraints | Video 50 MB, subtitles 2 MB WebVTT-only, payment proofs 8 MB image/PDF, posters 10 MB image-only, QR images 5 MB image-only | PASS |
 | MEDIA-03 | Signed playback authorization | Playback function validates optional user JWT, requires active membership for premium episodes, and issues 5-minute signed URLs for private video/subtitles | PASS |
 | FN-03 | Payment endpoint authorization | `cn-payment` validates user JWT for checkout/status; provider notifications require Alipay RSA2 or WeChat Pay signature verification; service-only settlement RPCs are not executable by browser roles | PASS |
+| FN-04 | Edge Function RPC boundary | Reviewed all six deployed test Edge Functions and sensitive RPC grants; ad-event and promotion tracking writes are service-role-only, payment settlement and Stripe webhook RPCs are service-role-only, and browser-executable SECURITY DEFINER RPCs are limited to authenticated user/admin workflows | PASS (grant and code review; provider end-to-end tests remain blocked) |
 | FN-01 | Edge Function parity | Six deployed test functions match their branch source; get-episode-playback v6, create-checkout v3, and cn-payment v7 | PASS |
 | FN-02 | Function checks | All six Edge Functions pass Deno 2 type checking | PASS |
 | PAY-01 | Stripe mode | Checkout function requires sk_test_ and validates recurring USD Price ID/amount/currency/interval | PASS |
