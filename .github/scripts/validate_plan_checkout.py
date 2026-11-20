@@ -22,6 +22,16 @@ for field in required_fields:
     if f'id="{field}"' not in html:
         raise SystemExit(f"admin form is missing {field}")
 
+for field in ("memberPlanActive", "vpnPlanActive"):
+    match = re.search(rf'<input id="{field}"[^>]*>', html)
+    if not match:
+        raise SystemExit(f"admin form is missing {field}")
+    if "checked" in match.group(0).lower():
+        raise SystemExit(f"{field} must default to an inactive draft")
+
+if "测试环境仅使用沙盒凭证与沙盒价格" not in html or "禁止启用真实收款" not in html:
+    raise SystemExit("plan editor must warn against real-money test configuration")
+
 for prefix in ("memberPlan", "vpnPlan"):
     block = re.search(
         rf'<select id="{prefix}Currency">(.*?)</select>', html, re.S
