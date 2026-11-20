@@ -239,3 +239,11 @@ This matrix records what has been verified in the independent test environment a
 - **TEST INVENTORY BLOCKER:** test DB contains 0 ad configurations (0 active / 0 capped) and 0 event rows. The frequency reservation table is absent because the corresponding branch migration is pending. IMA insertion and frequency-cap E2E cannot be demonstrated without migration plus approved real test ad inventory/tag.
 - **CI PASS:** HEAD `21f96878bb56d0dbd8d1e9033b5d2ee95e01ef02`, Push `44735193264` and PR `44735204262`, all 3 jobs passed.
 - No database writes, migrations, or inventory seeding performed.
+
+
+### End-of-day checkpoint — 2026-11-20
+
+- Branch HEAD: `aa63abede5b5a9b215b9af4f70a73911cb8eaa5c`; exact-HEAD CI Push `44735598429`: **3/3 passed**.
+- Remaining: test-only migration application/compatibility verification (awaiting explicit authorization); real media + IMA + frequency-cap E2E (requires actual test media/ad inventory/tag and signing secret); payment provider sandbox callback E2E; final whole-site acceptance. Production rollout requires separate explicit approval.
+- No ad inventory, migration, payment data, or production state was modified in this checkpoint. Test ad inventory remains empty.
+- Resume tomorrow from this checkpoint; do not repeat completed auth/OAuth/Cloudflare work or passed source audits without new evidence.
