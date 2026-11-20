@@ -273,3 +273,12 @@ Before each new session, read this log and inspect the current branch HEAD and l
 - Commits: `f5c8ac9` (admin HTML labels), `0197e8a` (module version labels), `46ae11f` (CI consistency assertions).
 - GitHub Actions run `44721960491` for `46ae11f`: all three jobs completed successfully: frontend syntax/deployment isolation, Supabase Edge Function type checks, and migration source integrity. Workflow conclusion: SUCCESS (run `44721960491`).
 - No database writes, Auth/payment changes, production changes, Cloudflare settings changes, or paid services. Cloudflare Preview auto-deploy after these correction commits has not yet been independently confirmed. Once CI passes, verify the new Preview deployment and the visible 2.0.8 footer; do not mistake the earlier `bc8640b` deployment for the later correction commits.
+
+
+## 2026-11-20 — Post-fix CI verification
+
+- Latest branch checkpoint at this check: `cf49b17178f86061b7bd84ff0d5b58a717a8436c`.
+- GitHub Actions run `44722046291` completed successfully for that exact commit. All three jobs passed: frontend syntax/deployment isolation, Supabase Edge Function type checks, and migration source integrity.
+- The admin version consistency regression assertions are included in the passing frontend validation.
+- Cloudflare Preview for commits after the previously confirmed `bc8640b` deployment remains unverified. The connected browser tab still points at the earlier immutable deployment URL, and browser page-context retrieval failed due browser security context availability. No workaround, reauthorization, paid service, or production change was attempted.
+- Next required external check: Cloudflare Pages `ccwu-global-test` Deployments must show a successful Preview built from commit `cf49b17` (or a later branch commit); then verify the served admin footer/title displays 2.0.8. Do not call the earlier `5ceec4ca` deployment proof of the post-fix code.
