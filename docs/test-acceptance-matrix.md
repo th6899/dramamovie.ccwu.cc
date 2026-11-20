@@ -45,13 +45,14 @@ This matrix records what has been verified in the independent test environment a
 | UI-02 | Account access | Logged-out account visitors see only the login prompt; login return URL opens the login modal and preserves the account return | PASS |
 | MEDIA-00 | Admin media workflow | Poster upload, TUS resumable video upload, VTT upload, SRT-to-WebVTT conversion, explicit publish/unpublish, and published-subtitle-only playback contracts | PASS |
 | MEDIA-01 | Free storage limit | Admin uploader and private Storage bucket both enforce 50 MB per file; subtitle bucket accepts private WebVTT only; free Storage quota remains 1 GB total | PASS |
-| CI-01 | Automated validation | Frontend syntax, DOM IDs, DB table/RPC/column contracts, admin/account/media/playback-security/financial-write/subscription-write/WebVTT contracts, payment contracts, Deno checks, and migration integrity | PASS |
+| CI-01 | Automated validation | Frontend syntax, DOM IDs, DB table/RPC/column contracts, admin/account/media/playback-security/financial-write/subscription-write/manual-payment/proof-storage/financial-RPC/WebVTT contracts, Deno checks, and migration integrity | PASS |
 
 ## Blocked pending owner-controlled test inputs
 
 | ID | Area | Required input/action | Safe test condition |
 |---|---|---|---|
 | AUTH-02 | Ownership isolation | Synthetic authenticated JWT context for a random non-staff UID returned zero rows from profiles, service_orders, membership_subscriptions, vpn_subscriptions, and premium episodes; transaction rolled back. Test DB still has two confirmed accounts and both have admin role | PARTIAL — RLS default-deny/owner filters verified in a synthetic transaction; real two-user IDOR and positive owner-access tests need a non-admin test account |
+| CATALOG-01 | Test plan catalog | One inactive CNY monthly membership plan, zero VPN plans, zero active payment methods, and no manual QR settings; owner-approved product names, prices, durations, currency, device limits and Stripe test Price IDs are required before activation | BLOCKED — no plan/pricing assumptions or real payment methods will be invented |
 | AUTH-03 | Leaked password protection | Enable Supabase Auth leaked-password protection in the test project's dashboard | BLOCKED — dashboard-only Auth setting; test project only |
 | STRIPE-01 | Stripe checkout | Configure test-only STRIPE_SECRET_KEY, test STRIPE_WEBHOOK_SECRET, exact test APP_ORIGIN, and test recurring Price IDs | sk_test_ only; no live keys or transactions |
 | STRIPE-02 | Stripe lifecycle | Run checkout, success/failure, duplicate webhook, renewal, refund, and dispute test events | Stripe test mode only |
