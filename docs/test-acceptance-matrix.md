@@ -197,3 +197,9 @@ This matrix records what has been verified in the independent test environment a
 
 - Player now reuses a stored viewer-session ID only if it matches the canonical UUID structure required by the playback Edge Function. A malformed legacy value is replaced automatically instead of causing a playback 400 response.
 - CI contract added. Runtime verification still depends on an authorized test catalog/media setup.
+
+
+### Ad reservation guard — CI correction pending rerun
+
+- Initial CI correctly caught a duplicate TypeScript declaration and an invalid Python contract assertion after the guard refactor. Both source issues were corrected in follow-up commits `0d1e0a4` and `b9a6403`.
+- Previous CI run is not accepted as a pass. Awaiting a fresh full CI run on the corrected branch HEAD.
