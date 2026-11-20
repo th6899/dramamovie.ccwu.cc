@@ -22,6 +22,8 @@ checks = {
     "ad-event endpoint restricts config IDs to signed token contents": "payload.config_ids.includes(event.config_id)" in ad_events,
     "ad-event endpoint allowlists IMA event types": all(x in ad_events for x in ('"ad_request"', '"first_quartile"', '"midpoint"', '"third_quartile"', '"complete"', '"error"')),
     "ad-event writes use service-role RPC": 'admin.rpc("record_video_ad_events"' in ad_events,
+    "player retains queued ad events until ingestion succeeds": "adEventQueue.slice(0, 30)" in read("player.js") and "adEventQueue.splice(0, batch.length)" in read("player.js") and "if (error) throw error" in read("player.js"),
+    "player serializes event batches and retries failed ingestion": "adEventFlushInFlight" in read("player.js") and "adEventRetryTimer" in read("player.js") and "adEventQueue.splice(0, 30)" not in read("player.js"),
     "promotion token is HMAC-verified and expires": all(x in promotion for x in ("crypto.subtle.verify", "payload.exp < Math.floor(Date.now() / 1000)", 'payload.type !== "promotion_click"')),
     "promotion token binds promotion, episode and nonce UUIDs": all(x in promotion for x in ("payload.promotion_id", "payload.episode_id", "payload.nonce")),
     "promotion redirect rejects unsafe schemes, credentials, local hosts and IPs": all(x in promotion for x in ('destination.protocol !== "https:"', "destination.username", "host === \"localhost\"", "isIp")),
