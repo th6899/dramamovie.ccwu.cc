@@ -223,17 +223,21 @@ function requestAd(slot) {
     imaDisplay.initialize();
     const request = new google.ima.AdsRequest();
     request.adTagUrl = slot.ad_tag_url;
-    request.userRequestContext = requestId;
     if (activeLoaderErrorHandler) {
       adsLoader.removeEventListener(google.ima.AdErrorEvent.Type.AD_ERROR, activeLoaderErrorHandler);
     }
-    activeLoaderErrorHandler = () => resumeContent(requestId);
+    activeLoaderErrorHandler = (event) => {
+      const errorRequestId = event.getUserRequestContext?.();
+      if (errorRequestId !== requestId || errorRequestId !== activeAdRequestId) return;
+      resumeContent(errorRequestId);
+    };
     adsLoader.addEventListener(google.ima.AdErrorEvent.Type.AD_ERROR, activeLoaderErrorHandler);
     request.linearAdSlotWidth = video.clientWidth || 640;
     request.linearAdSlotHeight = video.clientHeight || 360;
     request.nonLinearAdSlotWidth = video.clientWidth || 640;
     request.nonLinearAdSlotHeight = Math.max(90, Math.round((video.clientHeight || 360) / 3));
-    adsLoader.requestAds(request);
+    // IMA HTML5 associates request context through requestAds()'s second argument.
+    adsLoader.requestAds(request, requestId);
   } catch {
     resumeContent(requestId);
   }
