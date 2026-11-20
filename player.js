@@ -14,7 +14,20 @@ let imaDisplay = null;
 let activeAdRequest = false;
 let midrollDone = new Set();
 let postrollDone = false;
-const adSessionFingerprint = crypto.randomUUID();
+function getAdViewerSessionId() {
+  const key = "ccwu_ad_viewer_session_v1";
+  try {
+    const existing = localStorage.getItem(key);
+    if (existing && /^[0-9a-f-]{36}$/i.test(existing)) return existing;
+    const created = crypto.randomUUID();
+    localStorage.setItem(key, created);
+    return created;
+  } catch {
+    // Private browsing/storage restrictions limit anonymous caps to this page session.
+    return crypto.randomUUID();
+  }
+}
+const adSessionFingerprint = getAdViewerSessionId();
 let adEventQueue = [];
 let adEventFlushInFlight = false;
 let adEventRetryTimer = null;
@@ -208,7 +221,7 @@ async function loadPlayback() {
   if (!episodeId) return showEpisodeList();
   setStatus("正在验证观看权限并获取安全播放链接…");
   const { data, error } = await db.functions.invoke("get-episode-playback", {
-    body: { episode_id: episodeId }
+    body: { episode_id: episodeId, viewer_session_id: adSessionFingerprint }
   });
   if (error || !data?.ok) {
     const status = error?.context?.status;
