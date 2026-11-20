@@ -217,3 +217,10 @@ This matrix records what has been verified in the independent test environment a
 - Read-only review of the test DB settlement function and branch Edge Function: order-row locking, provider/event validation, amount/currency checks, webhook event deduplication with payload-hash mismatch rejection, and entitlement source-order uniqueness are present.
 - Alipay decimal CNY and WeChat fen-to-yuan conversion both reach the same CNY amount comparison.
 - **SOURCE / TEST-DB REVIEW PASS; PROVIDER E2E NOT VERIFIED:** no signed sandbox callback was run and no provider credentials or payment data were changed.
+
+
+### Stripe settlement and RPC privilege audit — 2026-11-20
+
+- **SOURCE REVIEW PASS:** webhook HMAC/timestamp validation precedes JSON parsing; provider minor amounts are normalized by currency exponent; settlement is delegated to server-side RPCs.
+- **TEST DATABASE PRIVILEGE REVIEW PASS:** anon/authenticated cannot execute payment settlement, subscription event, refund/dispute, or CNY settlement RPCs. Authenticated can invoke only the idempotent order-creation RPC; anon cannot.
+- **NOT VERIFIED:** no signed Stripe sandbox event was sent. Production payment configuration and database were not changed.
