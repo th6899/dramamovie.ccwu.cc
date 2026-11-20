@@ -7,9 +7,9 @@ This matrix records what has been verified in the independent test environment a
 | ID | Area | Verification | Result |
 |---|---|---|---|
 | ENV-01 | Host isolation | Test Pages hosts resolve to test Supabase; known production hosts resolve to production; unknown hosts fail closed | PASS |
-| ENV-02 | Preview version | Cloudflare Preview deployment `18b8dd11.ccwu-global-test.pages.dev` serves admin build/module v2.0.7; OAuth callback targets `/admin.html` | PASS |
+| ENV-02 | Preview version | Cloudflare Preview deployment `7df8c744.ccwu-global-test.pages.dev` serves admin build/module v2.0.7; OAuth callback targets `/admin.html` | PASS |
 | ENV-03 | Deployment provenance | Cloudflare Pages Preview deployment source shows commit `0f1c3f2` (full commit `0f1c3f20ce998661d584e3bceab2f133109d8934`) | PASS |
-| DB-01 | Schema migrations | 58 source migrations match 58 applied test database versions | PASS |
+| DB-01 | Schema migrations | 60 source migrations match 60 applied test database versions | PASS |
 | DB-02 | RLS baseline | All public tables have RLS enabled; private ledgers are RLS default-deny | PASS |
 | DB-03 | Owner reads | Orders, profiles, membership subscriptions, and VPN subscriptions have owner-scoped read policies | PASS |
 | DB-04 | Profile editing | Authenticated users can update only profiles.display_name; role-column UPDATE remains denied | PASS |
@@ -17,6 +17,10 @@ This matrix records what has been verified in the independent test environment a
 | AUTH-01 | Staff admin | Owner-created and verified test account `tianhon027@gmail.com`; `private.user_roles` role is `admin`; JWT-context checks return `is_staff() = true` and `is_ccwu_admin() = true` | PASS |
 | UI-03 | Operations privacy | Operations console no longer queries other users' profiles; displays shortened user IDs without broadening profile access | PASS |
 | DB-06 | Public table RLS audit | All 27 public business tables have RLS enabled; order reads are owner/admin/support scoped; privileged approval RPC requires explicit admin role | PASS |
+| DB-07 | Private schema grants | 28 private tables; anon has no SELECT grants; authenticated can SELECT only `private.user_roles`; no other private table grants detected | PASS |
+| DB-08 | High-privilege RPC review | Five flagged public SECURITY DEFINER RPCs reviewed: all deny anon execution, use empty search_path, and enforce authenticated identity; payment approval additionally requires explicit admin role; order lookup is owner-scoped | PASS (code review; adversarial runtime tests pending) |
+| DB-09 | Content readiness snapshot | Test DB currently has 1 drama and 1 episode, 0 ad configs, 0 promotions, 0 active membership/VPN plans, 0 orders, and 0 subscriptions | BLOCKED (requires authorized test media/content and test plans) |
+| SEC-01 | Security advisor follow-up | 27 private tables report RLS enabled without policies (private-schema default-deny design); leaked-password protection remains disabled and must be enabled before launch | BLOCKED (test-project Auth dashboard setting) |
 | STORAGE-01 | Media bucket privacy | Video, subtitles, and payment proofs are private; proof upload/read is scoped to owner or staff; posters and QR images are intentionally public | PASS |
 | STORAGE-02 | Upload constraints | Video 50 MB, subtitles 2 MB WebVTT-only, payment proofs 8 MB image/PDF, posters 10 MB image-only, QR images 5 MB image-only | PASS |
 | MEDIA-03 | Signed playback authorization | Playback function validates optional user JWT, requires active membership for premium episodes, and issues 5-minute signed URLs for private video/subtitles | PASS |
