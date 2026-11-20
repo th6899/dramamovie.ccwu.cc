@@ -1,4 +1,4 @@
-# CCWU Global v2.0.7 — test acceptance matrix
+# CCWU Global v2.0.8 — test acceptance matrix
 
 This matrix records what has been verified in the independent test environment and what remains blocked by missing owner-controlled credentials, accounts, or authorized media. A code check or a rendered page is not equivalent to an end-to-end acceptance test.
 
@@ -7,9 +7,9 @@ This matrix records what has been verified in the independent test environment a
 | ID | Area | Verification | Result |
 |---|---|---|---|
 | ENV-01 | Host isolation | Test Pages hosts resolve to test Supabase; known production hosts resolve to production; unknown hosts fail closed | PASS |
-| ENV-02 | Preview version | On 2026-11-20, exact Preview host `7df8c744.ccwu-global-test.pages.dev` served Admin Build v2.0.7 but did not contain the newly committed `catalogReadiness` notice; cache-busted inspection confirmed the same result | STALE / NOT CURRENT |
-| ENV-03 | Deployment provenance | Feature source commit `ca0039d354040ebe0b91eff27d7a7e800b2d8ef7` on `fix/portal-auth-errors-v2.0.3` passed CI; subsequent commits `f29ceb3` and `2770ce4` only document the deployment blocker and recovery steps. Cloudflare Preview has not been shown to deploy the feature source SHA. Stable project alias `ccwu-global-test.pages.dev` serves Admin Build v2.0.1 and is not the test Preview. Repository has CI only, no Cloudflare deploy workflow; available Pages API token is read-only | BLOCKED — OWNER ACTION |
-| ENV-04 | Cloudflare build source | Repository root contains the current v2.0.7 admin source and `catalogReadiness`; the nested legacy source folder is v2.0.1. Pages project root directory and connected Git branch must be checked before retrying deployment | BLOCKED — DASHBOARD CHECK |
+| ENV-02 | Preview version | Owner confirmed the current Cloudflare Preview deployment includes branch commit `607b0e3`, which contains the v2.0.8 admin label/module consistency corrections and the passing CI record. The visible v2.0.8 marker still requires a final browser refresh check. | DEPLOYED — RUNTIME MARKER CHECK PENDING |
+| ENV-03 | Deployment provenance | Owner-confirmed Cloudflare Preview deployment includes commit `607b0e3` on `fix/portal-auth-errors-v2.0.3`; branch alias is `fix-portal-auth-errors-v-2-0.ccwu-global-test.pages.dev`. This is Preview only; production domain is unchanged. | PASS — OWNER CONFIRMED |
+| ENV-04 | Cloudflare build source | Preview deployment is confirmed to include the current branch checkpoint `607b0e3`; HTML footer/title and JS module labels were aligned to v2.0.8 in ancestor commits `f5c8ac9` and `0197e8a`. Browser-visible served marker remains the final runtime check. | DEPLOYED — RUNTIME MARKER CHECK PENDING |
 | DB-01 | Schema migrations | 75 source migrations match 75 applied test database versions, including Stripe/CNY idempotency and Auth profile-trigger search_path hardening | PASS (source filename/version set compared with the test database migration ledger) |
 | DB-02 | RLS baseline | All public tables have RLS enabled; private ledgers are RLS default-deny | PASS |
 | DB-03 | Owner reads | Orders, profiles, membership subscriptions, and VPN subscriptions have owner-scoped read policies | PASS |
@@ -106,3 +106,12 @@ This matrix records what has been verified in the independent test environment a
 - **CI-01 | Current branch code gate — PASS:** HEAD `942efc12c54270f67497fd21fb6b84343fbfbb13`; Actions run `44713275646` passed all three jobs (frontend syntax/deployment isolation, Edge Function type checks, migration source integrity). Documentation validation run `44713267306` also passed.
 - **ENV-04 | Latest app-code Preview deployment — PENDING:** last directly verified Cloudflare Preview remains commit `f55a4cf`. Browser session unavailable during the latest check; do not infer that newer application commits are deployed solely from green CI or prior auto-deploy setting.
 - **Release gate:** no production release until latest Preview is verified, authenticated save/publish is tested with genuine authorized content, and owner explicitly approves production release.
+
+
+## 2026-11-20 — Latest Preview deployment confirmed by owner
+
+- Owner confirmed Cloudflare's latest successful `ccwu-global-test` Preview deployment includes commit `607b0e3` from `fix/portal-auth-errors-v2.0.3`.
+- This deployment includes the version-label fixes: admin HTML title/footer changed in `f5c8ac9`; JavaScript module marker/banner/comment changed in `0197e8a`; CI assertions added in `46ae11f`; all three CI jobs passed for `46ae11f` (run `44721960491`) and documentation checkpoint `cf49b17` (run `44722046291`).
+- Preview branch alias previously visible in Cloudflare details: `https://fix-portal-auth-errors-v-2-0.ccwu-global-test.pages.dev`. The deployment is not production.
+- Remaining acceptance items are actual browser-visible confirmation that the served admin footer/title reads 2.0.8, plus owner-authorized real catalog/media/payment-provider inputs for their respective end-to-end tests. No placeholder content or live payment configuration will be invented.
+- No production changes, database mutations, credentials changes, paid services, or additional authorizations.
