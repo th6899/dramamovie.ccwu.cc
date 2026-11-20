@@ -438,3 +438,11 @@ Before each new session, read this log and inspect the current branch HEAD and l
 - Added a playback source contract to prevent regression.
 - Commits: `1021072` (Edge Function), `7c6747b` (CI contract).
 - No database writes, migration application, provider calls, or production changes.
+
+
+## 2026-11-20 — Canonical anonymous ad-session reuse
+
+- Media endpoint UUID validation is now canonical. Player localStorage previously reused any 36-character hex/hyphen value; a legacy malformed value could therefore be sent to playback and rejected with HTTP 400 rather than being regenerated.
+- Tightened the stored session check to the same UUID version/variant structure; invalid legacy values are replaced with a fresh `crypto.randomUUID()`.
+- Added CI source contract coverage. No user identity data was read or changed; no database or deployment actions performed.
+- Commits: `e2198bd` (player), `fe56dad` (CI contract).
