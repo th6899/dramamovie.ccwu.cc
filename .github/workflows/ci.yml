@@ -58,6 +58,8 @@ jobs:
         run: python3 .github/scripts/validate_payment_proof_storage.py
       - name: Check authenticated financial RPC ownership and grants
         run: python3 .github/scripts/validate_financial_rpc_contracts.py
+      - name: Check ancillary owner-scoped RLS policies
+        run: python3 .github/scripts/validate_owner_rls_contracts.py
 
   edge-functions:
     name: Supabase Edge Function type checks
