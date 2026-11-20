@@ -34,6 +34,7 @@ let adEventRetryTimer = null;
 let activeSlot = null;
 let adRequestSequence = 0;
 let activeAdRequestId = 0;
+let activeLoaderErrorHandler = null;
 
 const esc = (value) => String(value ?? "").replace(/[&<>"']/g, (char) => ({
   "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
@@ -105,6 +106,10 @@ function resumeContent(requestId = activeAdRequestId) {
   // Ignore callbacks from a stale IMA request after a newer slot has started.
   if (requestId !== activeAdRequestId) return;
   activeAdRequest = false;
+  if (activeLoaderErrorHandler && adsLoader) {
+    adsLoader.removeEventListener(google.ima.AdErrorEvent.Type.AD_ERROR, activeLoaderErrorHandler);
+    activeLoaderErrorHandler = null;
+  }
   if (adsManager) {
     try { adsManager.destroy(); } catch {}
     adsManager = null;
@@ -193,10 +198,6 @@ function setupIma() {
         }
       }
     );
-    adsLoader.addEventListener(google.ima.AdErrorEvent.Type.AD_ERROR, (event) => {
-      const requestId = event.getUserRequestContext?.();
-      if (Number.isInteger(requestId)) resumeContent(requestId);
-    });
     return true;
   } catch (error) {
     console.warn("[CCWU Player] IMA initialization failed", error);
@@ -223,6 +224,11 @@ function requestAd(slot) {
     const request = new google.ima.AdsRequest();
     request.adTagUrl = slot.ad_tag_url;
     request.userRequestContext = requestId;
+    if (activeLoaderErrorHandler) {
+      adsLoader.removeEventListener(google.ima.AdErrorEvent.Type.AD_ERROR, activeLoaderErrorHandler);
+    }
+    activeLoaderErrorHandler = () => resumeContent(requestId);
+    adsLoader.addEventListener(google.ima.AdErrorEvent.Type.AD_ERROR, activeLoaderErrorHandler);
     request.linearAdSlotWidth = video.clientWidth || 640;
     request.linearAdSlotHeight = video.clientHeight || 360;
     request.nonLinearAdSlotWidth = video.clientWidth || 640;
