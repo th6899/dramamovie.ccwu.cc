@@ -316,3 +316,13 @@ Before each new session, read this log and inspect the current branch HEAD and l
 - Corrected `docs/test-acceptance-matrix.md` to record the visible v2.0.8 confirmation and remove the stale pending runtime-marker / Preview redeployment entries. Matrix update commit: `c37c12f`.
 - No production deployment, payment activation, credential change, database mutation, paid service, or fabricated catalog/media content was used.
 - Remaining release acceptance is limited to owner-controlled genuine media/catalog inputs and provider-specific sandbox credentials/contracts for media playback, Google IMA, Stripe lifecycle, and VPN provisioning; production release still requires explicit owner approval.
+
+
+## 2026-11-20 — Ad tracking and frequency-cap audit
+
+- Re-audited playback authorization, signed ad-event ingestion, promotion click tracking, and Stripe/CNY payment entrypoints directly from branch source.
+- Confirmed the ad-event path uses a short-lived HMAC token scoped to episode/config IDs, validates event allowlists and batch size, writes through a service-role-only RPC, and deduplicates by token/config/event type. Promotion clicks use signed expiring tokens, a service-role-only RPC with unique click nonce, and HTTPS destination validation.
+- Found a real unfinished behavior: `frequency_cap_hours` is returned by playback and stored on ad configuration, but `player.js` does not enforce it when selecting preroll/midroll/postroll slots. Updated the acceptance matrix to explicitly mark this as NOT IMPLEMENTED/VERIFIED rather than imply the setting works. Do not silently ship this as an operational control.
+- Corrected stale ENV-04 matrix wording: the owner-confirmed app deployment is `e7dfcf3` and the owner-confirmed runtime marker is v2.0.8; later branch commits are documentation checkpoints, not the source SHA of that deployment.
+- No database writes, secrets, payment settings, production resources, or live ad settings changed. A robust frequency-cap implementation needs a defined privacy-safe identity and server-side enforcement contract; do not rely on browser localStorage as a security boundary.
+- Matrix audit update commit: `310b2e7`.
