@@ -231,24 +231,54 @@ async function loadAdditionalCatalogs() {
  $("serviceCatalogRows").innerHTML=services.error?'<tr><td colspan="5">'+esc(services.error.message)+'</td></tr>':(services.data||[]).map(x=>'<tr><td>'+esc(x.title)+'</td><td>'+esc(x.slug)+'</td><td>'+esc(x.category)+'</td><td>'+(x.is_published?'已发布':'草稿')+'</td><td><button class="btn btn-outline" type="button" data-catalog-toggle="service" data-id="'+esc(x.id)+'" data-active="'+x.is_published+'">'+(x.is_published?'下架':'发布')+'</button></td></tr>').join('')||'<tr><td colspan="5">暂无数字服务</td></tr>';
  $("tutorialRows").innerHTML=tutorials.error?'<tr><td colspan="5">'+esc(tutorials.error.message)+'</td></tr>':(tutorials.data||[]).map(x=>'<tr><td>'+esc(x.title)+'</td><td>'+esc(x.slug)+'</td><td>'+esc(x.category)+'</td><td>'+esc(x.status)+'</td><td><button class="btn btn-outline" type="button" data-catalog-toggle="tutorial" data-id="'+esc(x.id)+'" data-active="'+(x.status==='published')+'">'+(x.status==='published'?'下架':'发布')+'</button></td></tr>').join('')||'<tr><td colspan="5">暂无教程</td></tr>';
 }
-$("serviceCatalogForm").addEventListener("submit",async event=>{
- event.preventDefault();const slug=$("serviceSlug").value.trim().toLowerCase();
- if(!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug))return setMessage("serviceCatalogMsg","Slug 仅允许小写字母、数字和连字符。",true);
- const {error}=await db.from("service_catalog").insert({slug,title:$("serviceTitle").value.trim(),category:$("serviceCategory").value.trim(),description:$("serviceDescription").value.trim()||null,is_published:false});
- setMessage("serviceCatalogMsg",error?error.message:"数字服务已保存为草稿。",!!error);if(!error){event.target.reset();await loadAdditionalCatalogs();await loadPublicCatalogReadiness();}
-});
-$("tutorialForm").addEventListener("submit",async event=>{
- event.preventDefault();const slug=$("tutorialSlug").value.trim().toLowerCase();
- if(!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug))return setMessage("tutorialMsg","Slug 仅允许小写字母、数字和连字符。",true);
- const {error}=await db.from("tutorials").insert({slug,title:$("tutorialTitle").value.trim(),category:$("tutorialCategory").value.trim(),summary:$("tutorialSummary").value.trim()||null,body_md:$("tutorialBody").value.trim()||null,resource_path:$("tutorialResource").value.trim()||null,status:"draft"});
- setMessage("tutorialMsg",error?error.message:"教程已保存为草稿。",!!error);if(!error){event.target.reset();$("tutorialCategory").value="general";await loadAdditionalCatalogs();await loadPublicCatalogReadiness();}
-});
+async function submitCatalogDraft(event,{formId,messageId,table,buildRow,successMessage,resetForm}) {
+ event.preventDefault();
+ const form=$(formId),submit=form.querySelector('button[type="submit"]');
+ if(submit)submit.disabled=true;
+ try {
+  const slug=$(formId==="serviceCatalogForm"?"serviceSlug":"tutorialSlug").value.trim().toLowerCase();
+  if(!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)){
+   setMessage(messageId,"Slug 仅允许小写字母、数字和连字符。",true);return;
+  }
+  const {error}=await db.from(table).insert(buildRow(slug));
+  if(error)throw error;
+  setMessage(messageId,successMessage);
+  form.reset();
+  if(resetForm)resetForm();
+  await loadAdditionalCatalogs();
+  await loadPublicCatalogReadiness();
+ } catch(error) {
+  setMessage(messageId,error?.message||"保存失败，请稍后重试。",true);
+ } finally {
+  if(submit)submit.disabled=false;
+ }
+}
+$("serviceCatalogForm").addEventListener("submit",event=>submitCatalogDraft(event,{
+ formId:"serviceCatalogForm",messageId:"serviceCatalogMsg",table:"service_catalog",
+ buildRow:slug=>({slug,title:$("serviceTitle").value.trim(),category:$("serviceCategory").value.trim(),description:$("serviceDescription").value.trim()||null,is_published:false}),
+ successMessage:"数字服务已保存为草稿。"
+}));
+$("tutorialForm").addEventListener("submit",event=>submitCatalogDraft(event,{
+ formId:"tutorialForm",messageId:"tutorialMsg",table:"tutorials",
+ buildRow:slug=>({slug,title:$("tutorialTitle").value.trim(),category:$("tutorialCategory").value.trim(),summary:$("tutorialSummary").value.trim()||null,body_md:$("tutorialBody").value.trim()||null,resource_path:$("tutorialResource").value.trim()||null,status:"draft"}),
+ successMessage:"教程已保存为草稿。",
+ resetForm:()=>{$("tutorialCategory").value="general";}
+}));
 document.addEventListener("click",async event=>{
- const b=event.target.closest("[data-catalog-toggle]");if(!b)return;
+ const b=event.target instanceof Element?event.target.closest("[data-catalog-toggle]"):null;
+ if(!b||b.disabled)return;
  const service=b.dataset.catalogToggle==="service",table=service?"service_catalog":"tutorials",next=b.dataset.active!=="true";
- b.disabled=true;const {error}=await db.from(table).update(service?{is_published:next}:{status:next?"published":"draft"}).eq("id",b.dataset.id);
- if(error)alert("目录状态更新失败："+error.message);
- await loadAdditionalCatalogs();await loadPublicCatalogReadiness();
+ b.disabled=true;
+ try {
+  const {error}=await db.from(table).update(service?{is_published:next}:{status:next?"published":"draft"}).eq("id",b.dataset.id);
+  if(error)throw error;
+  await loadAdditionalCatalogs();
+  await loadPublicCatalogReadiness();
+ } catch(error) {
+  alert("目录状态更新失败："+(error?.message||"请稍后重试。"));
+ } finally {
+  b.disabled=false;
+ }
 });
 
 async function updateContentStatus(table, id, nextStatus, messageId) {
