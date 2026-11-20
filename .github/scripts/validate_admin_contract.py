@@ -16,6 +16,8 @@ checks = {
     "admin uses ES module entrypoint": '<script type="module" src="admin-v2.0.1.js?v=2.0.8"></script>' in html,
 }
 checks["admin build marker matches release"] = 'window.CCWU_BUILD_VERSION = "2.0.8";' in source
+checks["admin module version matches release"] = 'window.CCWU_ADMIN_MODULE_VERSION = "2.0.8";' in source
+checks["admin document title and footer match release"] = '<title>CCWU Global 管理后台 v2.0.8</title>' in html and "CCWU Global · Admin Build v2.0.8" in html
 checks["operations console avoids cross-user profile reads"] = 'db.from("profiles").select("id,display_name")' not in source and "Profiles are intentionally owner-readable only" in source
 checks["operations console falls back to user IDs"] = source.count('x.user_id?.slice(0, 8) || "—"') >= 3
 checks["OAuth callback returns to explicit admin page"] = 'new URL("/admin.html", location.origin).toString()' in source
