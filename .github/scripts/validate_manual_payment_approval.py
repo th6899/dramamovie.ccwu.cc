@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Guard manual payment approval against mismatched ledger state."""
 from pathlib import Path
-path = Path("supabase/migrations/20261120062000_require_nonnull_cny_asset_manual_approval.sql")
+path = Path("supabase/migrations/20261120053654_require_nonnull_cny_asset_manual_approval.sql")
 if not path.is_file():
     raise SystemExit("Null-safe manual payment approval migration is missing.")
 sql = path.read_text(encoding="utf-8").lower()
