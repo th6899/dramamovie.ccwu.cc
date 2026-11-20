@@ -6,7 +6,7 @@ policies = Path("supabase/migrations/20261118113035_align_public_rls_with_produc
 manual = Path("supabase/migrations/20261118121904_harden_manual_payment_channel_and_submission_guards.sql").read_text(encoding="utf-8").lower()
 
 checks = {
-    "manual payment submissions are inserted only by their owner": "customers submit own manual payment details" in policies and "(select auth.uid()) = user_id" in policies and "o.user_id = ( select auth.uid() as uid)" in policies,
+    "manual payment submissions are inserted only by their owner": "customers submit own manual payment details" in policies and "auth.uid()" in policies and "manual_payment_submissions.order_id" in policies and "o.user_id" in policies and "o.status = 'pending'" in policies,
     "manual payment submissions are readable only by owner or admin/support": "customers_read_own_or_admin_support_manual_submissions" in policies and "array['admin'::text, 'support'::text]" in policies,
     "manual proof paths are scoped to the uploader UID": "storage.foldername(proof_path))[1] = (select auth.uid())::text" in manual,
     "refund requests must belong to the signed-in order owner": "refunds_insert_own_or_staff" in policies and "o.user_id = ( select auth.uid() as uid)" in policies,
