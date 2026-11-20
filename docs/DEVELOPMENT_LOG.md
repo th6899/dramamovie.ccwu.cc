@@ -342,3 +342,8 @@ Before each new session, read this log and inspect the current branch HEAD and l
 
 
 - Follow-up hardening: playback now returns no ad slots when the signing secret is absent/too short, rather than serving untracked ads that could bypass impression-based frequency caps. Added a CI contract for this fail-closed behavior. Commit: `34aa1c5` and CI assertion `3a91c38`.
+
+
+- Database compatibility follow-up (read-only inspection of test project `uvtzhzgirgwjzsmcdgej`): confirmed `public.video_ad_configs` has the expected `id`, `episode_id`, `slot_key`, `frequency_cap_hours`, `is_active`, `starts_at`, and `ends_at` columns; `private.video_ad_events` currently has the original event columns plus `event_token_id`, but not the new viewer identity columns yet. The existing event dedupe index is present; current event row count is zero. PostgreSQL advisory-lock functions used by the new migration resolve successfully. This was read-only; no migration was applied.
+- Hardened `record_video_ad_events_v2`: impression writes for the same viewer/config are serialized with a transaction advisory lock and the frequency window is rechecked inside the event-write transaction, so simultaneous event-ingestion requests cannot both create qualifying impression rows. This protects event accounting; simultaneous ad playback already in progress may still occur before the first impression reaches the server.
+- Added CI contract for transactional impression serialization and cap recheck. Commit: `e598bbd` (migration), `2086c07` (CI assertion).
