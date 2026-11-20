@@ -8,6 +8,7 @@ manual = Path("supabase/migrations/20261118114558_restore_manual_payment_order_a
 manual_guard = Path("supabase/migrations/20261118121904_harden_manual_payment_channel_and_submission_guards.sql").read_text(encoding="utf-8").lower()
 cn_lookup = Path("supabase/migrations/20261119075802_restore_cn_payment_qr_on_order_lookup.sql").read_text(encoding="utf-8").lower()
 stripe_idempotent = " ".join(Path("supabase/migrations/20261120061200_add_idempotent_stripe_checkout_order_creation.sql").read_text(encoding="utf-8").lower().split())
+cn_idempotent = " ".join(Path("supabase/migrations/20261120062700_harden_cn_payment_request_key_conflicts.sql").read_text(encoding="utf-8").lower().split())
 
 checks = {
     "Stripe order creation requires an authenticated owner": "v_user uuid := auth.uid()" in stripe and "p_currency is distinct from 'usd'" in stripe,
@@ -19,6 +20,8 @@ checks = {
     "Stripe plan must be active and USD": "where id = p_item_id and is_active = true" in stripe and "v_currency is distinct from 'usd'" in stripe,
     "Stripe order RPC is authenticated-only, not anonymous": "revoke all on function public.create_stripe_subscription_order(text,uuid,text) from public,anon,authenticated,service_role" in stripe and "grant execute on function public.create_stripe_subscription_order(text,uuid,text) to authenticated,service_role" in stripe,
     "CNY order creation requires an authenticated owner": "v_user uuid := auth.uid()" in cn and "o.user_id=v_user" in cn,
+    "CNY request-key retries bind to the same item type and item ID": "o.item_type,o.item_id" in cn_idempotent and "v_existing.item_type is distinct from p_item_type" in cn_idempotent and "v_existing.item_id is distinct from p_item_id" in cn_idempotent,
+    "CNY request-key conflict is checked on normal and unique-violation retry paths": cn_idempotent.count("request_key_conflict") >= 2,
     "CNY plan and provider are validated": "p_provider not in ('alipay','wechat_pay')" in cn and "v_currency<>'cny'" in cn,
     "CNY order RPC is authenticated-only, not anonymous": "revoke all on function public.create_cn_payment_order(text,uuid,text,text) from public,anon,authenticated,service_role" in cn and "grant execute on function public.create_cn_payment_order(text,uuid,text,text) to authenticated,service_role" in cn,
     "Manual QR order requires owner and enabled channel": "v_user uuid := auth.uid()" in manual_guard and "manual_payment_unavailable" in manual_guard and "v_currency is distinct from 'cny'" in manual_guard,
