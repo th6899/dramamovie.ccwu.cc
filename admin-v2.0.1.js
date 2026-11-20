@@ -276,8 +276,12 @@ document.addEventListener("click",async event=>{
  try {
   const {error}=await db.from(table).update(service?{is_published:next}:{status:next?"published":"draft"}).eq("id",b.dataset.id);
   if(error)throw error;
-  await loadAdditionalCatalogs();
-  await loadPublicCatalogReadiness();
+  try {
+   await loadAdditionalCatalogs();
+   await loadPublicCatalogReadiness();
+  } catch(refreshError) {
+   alert("目录状态已更新，但列表刷新失败："+(refreshError?.message||"请手动刷新页面。"));
+  }
  } catch(error) {
   alert("目录状态更新失败："+(error?.message||"请稍后重试。"));
  } finally {
