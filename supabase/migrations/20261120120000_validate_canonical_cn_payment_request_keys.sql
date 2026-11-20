@@ -30,8 +30,8 @@ begin
   if p_provider not in ('alipay','wechat_pay') then
     raise exception 'unsupported_cn_provider';
   end if;
-  if coalesce(p_request_key,'') !~* '^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}
-  end if;
+  if coalesce(p_request_key,'') !~* '^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$' then
+    raise exception 'invalid_request_key';
 
   select o.id,o.order_no,o.amount,o.currency,o.status,o.item_type,o.item_id
     into v_existing
