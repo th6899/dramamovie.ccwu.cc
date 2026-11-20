@@ -4,6 +4,7 @@ from pathlib import Path
 
 policies = Path("supabase/migrations/20261118113035_align_public_rls_with_production.sql").read_text(encoding="utf-8").lower()
 manual = Path("supabase/migrations/20261118121904_harden_manual_payment_channel_and_submission_guards.sql").read_text(encoding="utf-8").lower()
+notification_hardening = Path("supabase/migrations/20261120060036_restrict_customer_notification_updates_to_read_at.sql").read_text(encoding="utf-8").lower()
 
 checks = {
     "manual payment submissions are inserted only by their owner": "customers submit own manual payment details" in policies and "auth.uid()" in policies and "manual_payment_submissions.order_id" in policies and "o.user_id" in policies and "o.status = 'pending'" in policies,
@@ -15,6 +16,9 @@ checks = {
     "VPN device bindings are owner-scoped for read": "vpn_device_bindings_read_owner_or_staff" in policies and "user_id = ( select auth.uid() as uid)" in policies,
     "VPN device staff reads are limited to admin/support": "array['admin'::text, 'support'::text]" in policies,
 }
+checks["notification content cannot be updated by customers"] = "revoke insert, update, delete, truncate, references, trigger" in notification_hardening and "grant update (read_at) on table public.user_notifications to authenticated" in notification_hardening
+checks["notification hardening asserts only read_at is updateable"] = "notification_content_update_not_revoked" in notification_hardening and "notification_read_at_update_missing" in notification_hardening
+
 failed = [name for name, ok in checks.items() if not ok]
 for name, ok in checks.items():
     print(f'{"PASS" if ok else "FAIL"}: {name}')
