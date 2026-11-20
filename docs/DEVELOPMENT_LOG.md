@@ -478,3 +478,10 @@ Before each new session, read this log and inspect the current branch HEAD and l
 - Read-only inspection of the test database confirmed the financial RPC privilege boundary: anonymous and authenticated roles cannot execute checkout settlement, subscription event, refund/dispute, or CNY settlement functions; service_role can. The idempotent Stripe order-creation RPC is executable by authenticated users and service_role, not anon.
 - Reviewed checkout settlement locking, order/session association, payment amount/currency matching, subscription event ordering, and refund/dispute cumulative amount checks. No confirmed source defect in this pass.
 - No SQL was changed or applied; no payment/provider records or secrets were read or modified. Real signed Stripe sandbox callbacks remain an external E2E gate.
+
+
+## 2026-11-20 — Test database migration drift checkpoint
+
+- Compared the branch migration source tree with the test project's applied migration ledger using read-only queries.
+- Branch source contains 77 migration files; the test database has 75 applied records through `20261120064221`. Exactly two later branch migrations are unapplied in the test DB: `20261120100000_enforce_server_side_video_ad_frequency_caps.sql` and `20261120120000_validate_canonical_cn_payment_request_keys.sql`.
+- This is intentional pending explicit authorization for database DDL. Neither migration was applied to test or production. The branch CI migration integrity check passes at the current source checkpoint.
