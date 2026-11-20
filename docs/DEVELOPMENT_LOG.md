@@ -233,3 +233,12 @@ Before each new session, read this log and inspect the current branch HEAD and l
 - Application change in this batch: catalog insert/update success is now reported separately from a subsequent list/readiness refresh failure, preventing false failure messages and accidental duplicate retries. Regression assertions cover both save and publish refresh paths.
 - Code/CI gate for current branch is green. Cloudflare's last directly verified deployment remains Preview commit `f55a4cf`; browser session became unavailable during this check, so deployment of later app-code commits is not claimed. The Pages auto-deploy setting was previously observed enabled; exact new deployment must still be confirmed in Cloudflare before live Preview acceptance.
 - Production release remains intentionally blocked pending: (1) confirmation of latest Preview deployment and authenticated mutation acceptance; (2) owner-provided genuine, authorized catalog content to exercise real save/publish lifecycle; (3) explicit production release approval. Leaked-password protection is unavailable on the current Supabase Free plan and is documented as a known security limitation. No paid upgrade, fabricated content, production change, or payment configuration change was made.
+
+
+## 2026-11-20 — Admin build 2.0.8 release identification
+
+- Bumped the admin runtime build marker from `2.0.7` to `2.0.8`, and updated the `admin.html` module cache-busting query from `v=2.0.7` to `v=2.0.8`. This gives the next Preview deployment a definitive browser-visible build identifier and avoids confusing cached 2.0.7 assets with the current code.
+- Updated `.github/scripts/validate_admin_contract.py` to enforce the matching build marker, `SOURCE_RELEASE.json` to release `2.0.8` and current 75-migration ledger count, and README release heading/description.
+- Application code commits: `af8b5ec` (runtime marker), `362a07b` (HTML cache key). Validator: `ef124a2`. Release manifest: `59a65f0`. README: `466f2ca`.
+- CI run `44714468108` for source release manifest commit `59a65f0` passed all three jobs: frontend syntax/deployment isolation, Supabase Edge Function type checks, and migration source integrity. README-only commit `466f2ca` has a queued follow-up CI run `44714514052`; do not label that later run passed until it completes.
+- The latest confirmed Cloudflare deployment is still the earlier Preview at `f55a4cf`; the new 2.0.8 application commits are not yet confirmed deployed. No production changes, data writes, payment/Auth changes, or Cloudflare settings changes were made.
