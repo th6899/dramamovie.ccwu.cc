@@ -8,7 +8,7 @@ This matrix records what has been verified in the independent test environment a
 |---|---|---|---|
 | ENV-01 | Host isolation | Test Pages hosts resolve to test Supabase; known production hosts resolve to production; unknown hosts fail closed | PASS |
 | ENV-02 | Preview version | Cloudflare Preview deployment `18b8dd11.ccwu-global-test.pages.dev` serves admin build/module v2.0.7; OAuth callback targets `/admin.html` | PASS |
-| ENV-03 | Deployment provenance | Cloudflare Pages Preview deployment source shows commit `b8a8c18` (full commit `b8a8c1896fa85703519751478b2ce276eaa7be67`) with successful status | PASS |
+| ENV-03 | Deployment provenance | Cloudflare Pages Preview deployment source shows commit `0f1c3f2` (full commit `0f1c3f20ce998661d584e3bceab2f133109d8934`) | PASS |
 | DB-01 | Schema migrations | 58 source migrations match 58 applied test database versions | PASS |
 | DB-02 | RLS baseline | All public tables have RLS enabled; private ledgers are RLS default-deny | PASS |
 | DB-03 | Owner reads | Orders, profiles, membership subscriptions, and VPN subscriptions have owner-scoped read policies | PASS |
