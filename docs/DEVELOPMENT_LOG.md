@@ -214,3 +214,13 @@ Before each new session, read this log and inspect the current branch HEAD and l
 - Confirmed all CI checks for current code HEAD `c58a22c` completed successfully (run `44712828657`): frontend syntax/deployment isolation, Edge Function type checks, and migration source integrity.
 - Completed read-only RLS/table privilege audit for six public catalog tables. RLS is enabled for all six. Anonymous has SELECT but no write grants; anonymous row policies expose only published/active rows. Episode visibility is further restricted to free published episodes whose parent drama is published. Authenticated writes are gated by staff-role policies. No database policy or grant changes were made.
 - Added this audit result and successful CI status to the acceptance matrix. Remaining gates are now concentrated on authenticated mutation lifecycle with a real owner-provided draft and the documented Free-plan leaked-password protection limitation. No test data was fabricated, no payment or Auth configuration changed, and production remains untouched.
+
+
+## 2026-11-20 — Catalog mutation feedback hardening
+
+- Source review found a misleading error path: if an insert/update succeeded but the subsequent list/readiness refresh failed, the UI reported the entire mutation as failed. That could cause an administrator to retry and create a duplicate record or misinterpret a successful publish action.
+- Updated `admin-v2.0.1.js`: draft save now reports successful persistence separately from a failed refresh; publish/unpublish now distinguishes successful status change from failed refresh. Mutation failures still report as failures, and submit/button states are restored in `finally`.
+- Expanded `.github/scripts/validate_admin_contract.py` to assert both distinct refresh-failure messages.
+- Commits: `24a7223` (save handling), `2a2b322` (publish handling), `d58fa13` and `0733bc2` (regression assertions). Latest application branch HEAD before this log entry: `0733bc2a18c9df588b2065c434955cf477c3ec07`.
+- CI for latest code/validator commit `0733bc2` is queued as run `44713218077`; do not mark as passed until all three jobs finish.
+- No database rows, production data, payment configuration, Auth settings, Cloudflare settings, or real content were changed. Preview still points to the previously verified deployment until a new successful Preview deployment is confirmed.
