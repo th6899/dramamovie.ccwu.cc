@@ -197,3 +197,13 @@ Before each new session, read this log and inspect the current branch HEAD and l
 - CI run `44712280363` for `139f2f5` passed. Documentation updates at `77c027a`, `427edf4`, and `0f310bf` are validation-only; newest runs must be checked before marking documentation CI complete.
 - No application code, database rows, grants, Auth settings, payment config, production resources, or Cloudflare settings were changed.
 - Next: verify latest documentation CI; then complete authenticated Preview acceptance with the user's existing login session. Do not invent records or publish content. Production remains untouched.
+
+
+## 2026-11-20 — Authenticated admin catalog read-only acceptance
+
+- Used the already-connected browser tab for the exact Preview hostname `61e6e8eb.ccwu-global-test.pages.dev`. The existing test-admin session is authenticated as `tianhon027@gmail.com`; the admin overview reports database connection normal and refreshed data. The Digital Services and Tutorials forms and list tables are both rendered in the authenticated admin page.
+- No credentials were requested or submitted; no form was saved, no publish toggle was clicked, and no records were modified.
+- Live read-only test database counts: `service_catalog` 0 total / 0 published; `tutorials` 0 total / 0 published; `dramas` 1 total / 0 published; `episodes` 1 total / 0 published. Empty public catalog is intentional until real authorized material is supplied.
+- CI run `44712672939` for prior HEAD `8c60fae` completed successfully: all three jobs passed (frontend syntax/deployment isolation, Edge Function type checks, migration source integrity).
+- Acceptance matrix updated with authenticated UI read-only PASS and catalog empty-state snapshot. Next meaningful app-level acceptance requires an owner-provided real service/tutorial draft to test save/update/publish lifecycle; do not invent or seed fake content. Existing code contract checks already cover save error handling, duplicate-submit prevention, draft defaults, publish toggles, and readiness refresh.
+- No code, database rows, Auth settings, grants, payments, Cloudflare settings, or production resources changed.
