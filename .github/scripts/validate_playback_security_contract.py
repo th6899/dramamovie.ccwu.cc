@@ -14,7 +14,7 @@ checks = {
     "only serves episodes under published dramas": 'drama.status!=="published"' in playback,
     "checks active membership start time": '.lte("starts_at",now)' in playback,
     "checks membership expiry": '.gt("ends_at",now)' in playback,
-    "does not reserve capped ads when event signing is unavailable": playback.index('if(eventSecret.length>=32&&candidateConfigIds.length)') < playback.indexOf('admin.rpc("get_eligible_video_ad_config_ids"'),
+    "does not reserve capped ads when event signing is unavailable": playback.index('if(eventSecret.length>=32&&candidateConfigIds.length)') < playback.index('admin.rpc("get_eligible_video_ad_config_ids"'),
     "signs private video URLs": '.from("ccwu-cinema-videos").createSignedUrl(' in playback,
     "signs private subtitle URLs": '.from("ccwu-cinema-subtitles").createSignedUrl(' in playback,
     "rejects unsafe object paths": 'const safePath=' in playback and 'part===".."' in playback,
