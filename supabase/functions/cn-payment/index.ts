@@ -330,9 +330,9 @@ async function handleCreate(req: Request) {
   const provider = String((body as Record<string, unknown>).provider || "");
   const itemType = String((body as Record<string, unknown>).item_type || "");
   const itemId = String((body as Record<string, unknown>).item_id || "");
-  const requestKey = validUuid((body as Record<string, unknown>).request_key)
-    ? String((body as Record<string, unknown>).request_key) : crypto.randomUUID();
-  if (!["alipay", "wechat_pay"].includes(provider) || !["membership", "vpn"].includes(itemType) || !validUuid(itemId)) {
+  const requestKey = (body as Record<string, unknown>).request_key;
+  if (!["alipay", "wechat_pay"].includes(provider) || !["membership", "vpn"].includes(itemType) ||
+      !validUuid(itemId) || !validUuid(requestKey)) {
     return json(400, { error: "invalid_payment_request" });
   }
   const user = userClient(authorization);
