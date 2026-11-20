@@ -1,5 +1,5 @@
 {
-  "release": "2.0.7",
+  "release": "2.0.8",
   "source_basis": "user-provided v1.9.1 Native QR Picker ZIP, subsequently extended with the CCWU Global portal frontend and Supabase backend",
   "files": [
     "README.md",
@@ -55,8 +55,9 @@
     "The admin video uploader enforces Supabase Free's 50 MB per-file upload limit and uses TUS resumable uploads.",
     "The test project's private video Storage bucket now enforces a 50 MB per-file maximum server-side, matching the admin uploader and Supabase Free plan.",
     "Version 2.0.5 converts SRT subtitle uploads to WebVTT and restricts the private subtitle bucket to text/vtt objects.",
-    "The source tree contains 58 migrations, matching all 58 applied migration versions in the independent test database.",
     "Direct browser DML on service_orders is revoked; VPN plan writes require admin/editor; subtitle Storage accepts only private WebVTT objects.",
-    "Latest CI run #315 (`44493973041`) passed all three jobs, including financial write-permission, playback authorization, WebVTT, and private storage security contracts."
+    "The source tree contains 75 migrations, matching all 75 applied migration versions in the independent test database; latest applied migration is 20261120064221_harden_profile_trigger_search_path.",
+    "Version 2.0.8 distinguishes successful catalog inserts and publish-state updates from subsequent list-refresh failures, preventing misleading failure reports and accidental duplicate retries.",
+    "The latest verified application-code CI run is tracked in docs/DEVELOPMENT_LOG.md; production merge and deployment remain separate release gates requiring explicit authorization."
   ]
 }
