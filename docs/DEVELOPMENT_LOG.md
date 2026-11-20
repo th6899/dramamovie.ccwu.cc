@@ -262,3 +262,14 @@ Before each new session, read this log and inspect the current branch HEAD and l
 - The branch history includes the admin 2.0.8 runtime marker, HTML cache-busting key, validator, and release manifest updates. However, the screenshot itself does not expose the rendered runtime build marker; do not claim browser-level 2.0.8 verification until the deployed admin page visibly reports it.
 - No production deployment, database mutation, Cloudflare setting change, payment/Auth change, or paid service was used.
 - Next acceptance: open the exact Preview deployment URL, sign in with the already-working test admin session, and confirm the admin build marker reads 2.0.8. Then perform authenticated save/publish only with genuine owner-authorized catalog content; empty catalog remains intentional until such content is supplied.
+
+
+## 2026-11-20 — Admin version label mismatch corrected
+
+- Starting branch: `fix/portal-auth-errors-v2.0.3`; starting HEAD: `bc8640bf8341a5cf6ee4a6174ae0be6ac6e8fd14` plus the preceding deployment-verification log commit.
+- Investigated owner report that Preview footer displayed `CCWU Global · Admin Build v2.0.7` despite the deployment being based on the current branch checkpoint.
+- Root cause confirmed in source: `admin.html` title and footer still displayed 2.0.7; `admin-v2.0.1.js` module version constant, console banner, and header comment also displayed 2.0.7, while the actual runtime build marker and HTML cache-busting query were already 2.0.8.
+- Corrected the admin HTML title/footer and JS module version/banner/comment to 2.0.8. Extended `.github/scripts/validate_admin_contract.py` to fail if the module marker, document title, or footer drifts from 2.0.8.
+- Commits: `f5c8ac9` (admin HTML labels), `0197e8a` (module version labels), `46ae11f` (CI consistency assertions).
+- GitHub Actions run `44721960491` for `46ae11f`: frontend syntax/deployment isolation PASS; migration source integrity PASS; Supabase Edge Function type checks were still running at the time of this log update. Do not mark the whole workflow passed until the run concludes successfully.
+- No database writes, Auth/payment changes, production changes, Cloudflare settings changes, or paid services. Cloudflare Preview auto-deploy after these correction commits has not yet been independently confirmed. Once CI passes, verify the new Preview deployment and the visible 2.0.8 footer; do not mistake the earlier `bc8640b` deployment for the later correction commits.
