@@ -25,6 +25,9 @@ checks["login prompt remains visible without JavaScript"] = 'id="accountLoginPro
 
 checks["login modal opens before async homepage data loading"] = home.index('get("auth")==="login"') < home.index("await render();await refreshUser();")
 
+checks["legacy username/avatar UPDATE grants are revoked"] = "REVOKE UPDATE (username, avatar_url) ON TABLE public.profiles FROM authenticated" in profile_hardening
+checks["profile hardening has fail-closed assertions"] = "profile_column_update_privilege_not_revoked" in profile_hardening and "profile_display_name_update_privilege_missing" in profile_hardening
+
 failed = [label for label, ok in checks.items() if not ok]
 for label, ok in checks.items():
     print(f"{'OK' if ok else 'FAIL'}: {label}")
