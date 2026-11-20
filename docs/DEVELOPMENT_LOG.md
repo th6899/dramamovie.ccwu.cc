@@ -413,3 +413,11 @@ Before each new session, read this log and inspect the current branch HEAD and l
 - Added CI source contracts for reservation creation and release.
 - Commits: `03615e3` (migration), `8797743` (CI).
 - Migration is branch-only and has not been applied to either Supabase project. No deployment or production changes.
+
+
+## 2026-11-20 — Canonical UUID validation for CNY order idempotency keys
+
+- Payment audit found the Edge Function already rejected malformed request UUIDs, but the authenticated SQL RPC still accepted any 36-character string made of hex digits and hyphens. Direct authenticated RPC callers could therefore bypass the stricter Edge Function format guard.
+- Added a forward-only migration replacing the CNY order RPC with the same canonical UUID version/variant validation used by the Edge Function. Existing request-key conflict protection and retry behavior are preserved.
+- Added CI contract coverage to keep the SQL guard aligned with the Edge Function.
+- Branch-only migration; not applied to test or production databases. No payment orders, provider credentials, or live payment settings changed.
