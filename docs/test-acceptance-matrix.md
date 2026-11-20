@@ -160,3 +160,13 @@ This matrix records what has been verified in the independent test environment a
 - The SQL order-creation RPC independently validates the key and handles unique-key collisions; existing request keys cannot be reused for a different plan/item.
 - CI passed for Edge Function + frontend + migration source checks on `c0d2064` (Push `44729893567`, PR `44729885991`). The subsequent documentation-only checkpoint is running separately.
 - No payment credentials, orders, or database records were changed; provider E2E remains gated on real sandbox credentials.
+
+
+### Atomic ad-slot frequency reservation — 2026-11-20
+
+- Supersedes the earlier concurrency limitation note above: capped slots are now reserved atomically inside the server-side eligibility RPC before ad configuration is returned to the player.
+- Reservations are keyed by ad config plus authenticated-user UUID or anonymous browser-session UUID, expire after two minutes, and are released transactionally when a qualifying impression is ingested.
+- Concurrent playback requests for the same capped config/viewer serialize on an advisory transaction lock; only the request that successfully creates the reservation receives that capped slot.
+- CI Push run `44732327460` and PR run `44732338138` both passed all three jobs at HEAD `f92a98f4591676e8b5216e57ce91be5e7acf2e87`.
+- **Still NOT DEPLOYED / NOT RUNTIME VERIFIED:** migration remains branch-only. Test DB has no real ad inventory, so behavioral IMA acceptance remains blocked until an authorized real test ad configuration exists.
+- A browser that obtains a reservation but never emits an impression can temporarily suppress that slot for up to two minutes. This is a conservative fail-closed tradeoff.
