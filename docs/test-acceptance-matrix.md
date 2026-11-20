@@ -104,8 +104,8 @@ This matrix records what has been verified in the independent test environment a
 
 
 - **CI-01 | Current branch code gate — PASS:** HEAD `942efc12c54270f67497fd21fb6b84343fbfbb13`; Actions run `44713275646` passed all three jobs (frontend syntax/deployment isolation, Edge Function type checks, migration source integrity). Documentation validation run `44713267306` also passed.
-- **ENV-04 | Latest app-code Preview deployment — PENDING:** last directly verified Cloudflare Preview remains commit `f55a4cf`. Browser session unavailable during the latest check; do not infer that newer application commits are deployed solely from green CI or prior auto-deploy setting.
-- **Release gate:** no production release until latest Preview is verified, authenticated save/publish is tested with genuine authorized content, and owner explicitly approves production release.
+- **ENV-04 | Latest app-code Preview deployment — SUPERSEDED:** owner subsequently confirmed the latest Cloudflare Preview deployment includes commit `e7dfcf3` at `https://53d0dac2.ccwu-global-test.pages.dev`; see the latest deployment record below. Do not use the earlier `f55a4cf` status as current.
+- **Release gate remains:** no production release until the visible v2.0.8 runtime marker is verified, authenticated save/publish is tested with genuine authorized content, and owner explicitly approves production release.
 
 
 ## 2026-11-20 — Latest Preview deployment confirmed by owner
@@ -115,3 +115,11 @@ This matrix records what has been verified in the independent test environment a
 - Preview branch alias previously visible in Cloudflare details: `https://fix-portal-auth-errors-v-2-0.ccwu-global-test.pages.dev`. The deployment is not production.
 - Remaining acceptance items are actual browser-visible confirmation that the served admin footer/title reads 2.0.8, plus owner-authorized real catalog/media/payment-provider inputs for their respective end-to-end tests. No placeholder content or live payment configuration will be invented.
 - No production changes, database mutations, credentials changes, paid services, or additional authorizations.
+
+
+## 2026-11-20 — Current CI and acceptance matrix cleanup
+
+- Current branch HEAD at this check: `a5c39c0a34dfa7783845416fd08bd0c66ffec87b`.
+- GitHub Actions run `44723885965` for the latest development-log commit completed successfully; all three jobs passed: frontend syntax/deployment isolation, Supabase Edge Function type checks, and migration source integrity.
+- Replaced the stale historical ENV-04 pending statement with an explicit superseded note pointing to the owner-confirmed latest Preview deployment `e7dfcf3` at `https://53d0dac2.ccwu-global-test.pages.dev`. The runtime footer check and real-content E2E release gates remain open.
+- No production changes, database writes, credentials changes, or paid services.
