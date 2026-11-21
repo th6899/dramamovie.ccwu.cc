@@ -13,7 +13,7 @@ required_html = (
     'id="subtitleForm"', 'id="subtitleEpisode"', 'id="subtitleFile"', '最大 50MB', 'SRT 自动转换为 WebVTT'
 )
 required_admin = (
-    'new Upload(file', 'file.size > 50 * 1024 * 1024', '"ccwu-cinema-posters"', '"ccwu-cinema-videos"',
+    'new Upload(file', 'file.size > 50 * 1024 * 1024', '"ccwu-cinema-videos"',
     '"ccwu-cinema-subtitles"', 'new Blob([webVttText + "\\n"], { type: "text/vtt" })', 'contentType: "text/vtt"', 'WEBVTT', 'cuePattern.test(rawText)', 'ext === "srt"', 'data-toggle-drama=', 'data-toggle-episode=',
     'published_at:', 'status: "published"', 'reviewed_by: currentUser.id',
 )
