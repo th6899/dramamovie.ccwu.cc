@@ -573,3 +573,14 @@ Before each new session, read this log and inspect the current branch HEAD and l
 - **Log visibility:** latest available edge-log rows returned by the read-only log query are timestamped 2026-11-20 10:56 UTC; no post-deployment invocation was evidenced in the queried recent window.
 - **Security advisory remains open:** Supabase flags `private.video_ad_frequency_reservations` as RLS-disabled (critical). Existing grants review found no direct SELECT grants to anon/authenticated/service_role and anon lacks private-schema USAGE, but the advisor warning must remain visible. Do not auto-enable RLS without reviewing SECURITY DEFINER owner access and explicit policy design.
 - No secret values were inspected or changed. Production remains untouched.
+
+
+## 2026-11-21 — security advisor follow-up (read-only)
+
+- Supabase TEST security advisor reports: 1 critical `rls_disabled` table (`private.video_ad_frequency_reservations`), 27 private tables with RLS enabled but no policies, 5 authenticated-executable SECURITY DEFINER RPCs, and leaked-password protection disabled.
+- Rechecked table access using PostgreSQL privilege predicates: anon has no USAGE on schema `private`; anon/authenticated/service_role all have no SELECT or INSERT on `private.video_ad_frequency_reservations`. This reduces direct client exposure but does not clear the advisor finding or replace RLS.
+- The 27 no-policy findings are in the private schema and appear consistent with service-only access patterns; retain as review items, not automatic policy additions.
+- Five flagged public SECURITY DEFINER RPCs were previously inspected for empty search_path and auth.uid/ownership/admin checks. Keep the advisor findings visible until a deliberate RPC exposure review is completed.
+- Leaked-password protection is currently disabled in TEST Auth. No Auth setting was changed.
+- Candidate RLS enablement SQL shown by Supabase is `ALTER TABLE private.video_ad_frequency_reservations ENABLE ROW LEVEL SECURITY;`; **not executed**. Before applying, review whether SECURITY DEFINER functions owned by the table owner continue to work and define any required policies explicitly.
+- No schema, grants, policies, Auth settings, or production resources were modified in this read-only follow-up.
