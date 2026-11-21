@@ -319,3 +319,12 @@ Scope was TEST project `uvtzhzgirgwjzsmcdgej` only. Production was not changed. 
 - **NOT VERIFIED — playback/IMA E2E:** no published media asset or ad inventory; do not mark playback, ad delivery, or frequency caps as end-to-end tested.
 - **SECURITY WARNING — OPEN:** Supabase advisor still reports RLS disabled on `private.video_ad_frequency_reservations` (critical). Direct table grants were previously checked and are absent for anon/authenticated/service_role, and anon lacks private-schema USAGE; nevertheless do not describe this as resolved. RLS remediation requires explicit policy and SECURITY DEFINER owner-path review.
 - No content or events were inserted/modified; no secret values inspected or changed. Production untouched.
+
+
+## 2026-11-21 — TEST security advisor follow-up
+
+- **OPEN — CRITICAL RLS:** `private.video_ad_frequency_reservations` has RLS disabled. Direct privilege recheck: anon has no private-schema USAGE; anon/authenticated/service_role have no SELECT or INSERT grants on the table. This is not marked resolved; explicit RLS/policy and SECURITY DEFINER owner-path review is required.
+- **REVIEW — 27 private tables:** RLS enabled but no policies; review service-only design and grants, do not auto-create broad policies.
+- **REVIEW — 5 SECURITY DEFINER RPCs:** authenticated EXECUTE advisor findings remain. Previously reviewed for empty search_path and auth.uid/ownership/admin checks; no grant changes made.
+- **WARN — TEST Auth leaked-password protection disabled.** No Auth configuration changed.
+- Supabase suggested candidate statement: `ALTER TABLE private.video_ad_frequency_reservations ENABLE ROW LEVEL SECURITY;`. Not applied pending explicit security design review.
