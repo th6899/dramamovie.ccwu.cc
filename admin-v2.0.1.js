@@ -234,7 +234,10 @@ async function loadAll() {
     value: episode.id,
     label: `${dramaById.get(episode.drama_id) || "未命名作品"} · ${episode.title || `第${episode.episode_number}集`}`
   }));
-  fillSelect("promoEpisode", episodeOptions, "请先新增剧集");
+  const latestEpisode = cache.episodes[0];
+  $("promoEpisodeContext").textContent = latestEpisode
+    ? `当前自动关联最近上传剧集：${dramaById.get(latestEpisode.drama_id) || "未命名作品"} · 第${latestEpisode.episode_number}集 · ${latestEpisode.title || "未命名剧集"}`
+    : "请先上传至少一集视频，推广链接会自动关联最近上传的剧集。";
   fillSelect("subtitleEpisode", episodeOptions, "请先新增剧集");
   fillSelect("adEpisode", episodeOptions, "全站默认");
 
@@ -473,22 +476,38 @@ $("adForm").addEventListener("submit", async (event) => {
 
 $("promoForm").addEventListener("submit", async (event) => {
   event.preventDefault();
-  if (!$("promoEpisode").value) {
-    setMessage("promoMsg", "请先新增至少一集剧集。", true);
+  const episode = cache.episodes[0];
+  if (!episode) {
+    setMessage("promoMsg", "请先上传至少一集视频，再添加推广链接。", true);
     return;
   }
-  const { error } = await db.from("episode_promotions").insert({
-    episode_id: $("promoEpisode").value,
-    title: $("promoTitle").value.trim(),
-    description: $("promoDesc").value.trim() || null,
-    target_url: $("promoUrl").value.trim(),
-    button_label: $("promoButton").value.trim() || "立即了解",
-    placement: $("promoPlacement").value,
-    affiliate_network: $("promoNetwork").value.trim() || null,
-    disclosure_text: "推广链接可能产生佣金",
-    sort_order: 0,
-    is_active: $("promoActive").checked
-  });
+  const submit = event.submitter || event.target.querySelector("button");
+  if (submit) submit.disabled = true;
+  try {
+    const targetUrl = $("promoUrl").value.trim();
+    if (!/^https:\/\//i.test(targetUrl)) throw new Error("推广链接必须使用 HTTPS 地址。");
+    const { error } = await db.from("episode_promotions").insert({
+      episode_id: episode.id,
+      title: $("promoTitle").value.trim(),
+      description: $("promoDesc").value.trim() || null,
+      target_url: targetUrl,
+      button_label: "立即了解",
+      placement: $("promoPlacement").value,
+      affiliate_network: null,
+      disclosure_text: "推广链接可能产生佣金",
+      sort_order: 0,
+      is_active: true
+    });
+    if (error) throw error;
+    setMessage("promoMsg", "推广配置已保存，并自动关联最近上传的剧集。");
+    event.target.reset();
+    await loadAll();
+  } catch (error) {
+    setMessage("promoMsg", error?.message || "保存推广配置失败。", true);
+  } finally {
+    if (submit) submit.disabled = false;
+  }
+});
   setMessage("promoMsg", error ? error.message : "推广配置已保存。当前版本尚未统计点击或佣金。", !!error);
   if (!error) {
     event.target.reset();
