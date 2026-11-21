@@ -14,6 +14,27 @@ let imaDisplay = null;
 let activeAdRequest = false;
 let midrollDone = new Set();
 let postrollDone = false;
+function getAdViewerSessionId() {
+  const key = "ccwu_ad_viewer_session_v1";
+  try {
+    const existing = localStorage.getItem(key);
+    if (existing && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(existing)) return existing;
+    const created = crypto.randomUUID();
+    localStorage.setItem(key, created);
+    return created;
+  } catch {
+    // Private browsing/storage restrictions limit anonymous caps to this page session.
+    return crypto.randomUUID();
+  }
+}
+const adSessionFingerprint = getAdViewerSessionId();
+let adEventQueue = [];
+let adEventFlushInFlight = false;
+let adEventRetryTimer = null;
+let activeSlot = null;
+let adRequestSequence = 0;
+let activeAdRequestId = 0;
+let activeLoaderErrorHandler = null;
 
 const esc = (value) => String(value ?? "").replace(/[&<>"']/g, (char) => ({
   "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
@@ -81,14 +102,72 @@ function renderPromotions(rows) {
   });
 }
 
-function resumeContent() {
+function resumeContent(requestId = activeAdRequestId) {
+  // Ignore callbacks from a stale IMA request after a newer slot has started.
+  if (requestId !== activeAdRequestId) return;
   activeAdRequest = false;
+  if (activeLoaderErrorHandler && adsLoader) {
+    adsLoader.removeEventListener(google.ima.AdErrorEvent.Type.AD_ERROR, activeLoaderErrorHandler);
+    activeLoaderErrorHandler = null;
+  }
   if (adsManager) {
     try { adsManager.destroy(); } catch {}
     adsManager = null;
   }
   $("adContainer").replaceChildren();
-  video.play().catch(() => {});
+  // A post-roll runs after the content has ended; resuming the media element
+  // here would restart the episode from the beginning.
+  if (activeSlot?.ad_type !== "postroll" && !video.ended) {
+    video.play().catch(() => {});
+  }
+  activeSlot = null;
+}
+
+async function flushAdEvents() {
+  if (adEventFlushInFlight || !playback?.ad_event_token || !adEventQueue.length) return;
+  adEventFlushInFlight = true;
+  try {
+    while (adEventQueue.length) {
+      const batch = adEventQueue.slice(0, 30);
+      const { error } = await db.functions.invoke("record-video-ad-events", {
+        body: { token: playback.ad_event_token, events: batch }
+      });
+      if (error) throw error;
+      // Remove events only after the server confirms the batch was accepted.
+      adEventQueue.splice(0, batch.length);
+    }
+  } catch (error) {
+    console.warn("[CCWU Player] Ad event ingestion failed; queued events will be retried", error);
+    if (!adEventRetryTimer) {
+      adEventRetryTimer = setTimeout(() => {
+        adEventRetryTimer = null;
+        void flushAdEvents();
+      }, 5000);
+    }
+  } finally {
+    adEventFlushInFlight = false;
+  }
+}
+function queueAdEvent(slot, eventType, errorCode = "") {
+  if (!playback?.ad_event_token || !slot?.id) return;
+  adEventQueue.push({ config_id: slot.id, event_type: eventType, session_fingerprint: adSessionFingerprint, error_code: errorCode });
+  void flushAdEvents();
+}
+function attachImaTracking(manager, slot, requestId) {
+  const map = [
+    [google.ima.AdEvent.Type.IMPRESSION, "impression"],
+    [google.ima.AdEvent.Type.STARTED, "start"],
+    [google.ima.AdEvent.Type.FIRST_QUARTILE, "first_quartile"],
+    [google.ima.AdEvent.Type.MIDPOINT, "midpoint"],
+    [google.ima.AdEvent.Type.THIRD_QUARTILE, "third_quartile"],
+    [google.ima.AdEvent.Type.COMPLETE, "complete"],
+    [google.ima.AdEvent.Type.SKIPPED, "skip"],
+    [google.ima.AdEvent.Type.CLICK, "click"]
+  ];
+  map.forEach(([imaType, eventType]) => manager.addEventListener(imaType, () => {
+    if (requestId !== activeAdRequestId || !activeAdRequest) return;
+    queueAdEvent(slot, eventType);
+  }));
 }
 
 function setupIma() {
@@ -100,19 +179,29 @@ function setupIma() {
     adsLoader.addEventListener(
       google.ima.AdsManagerLoadedEvent.Type.ADS_MANAGER_LOADED,
       (event) => {
+        const requestId = event.getUserRequestContext?.();
+        if (!Number.isInteger(requestId) || requestId !== activeAdRequestId || !activeAdRequest || !activeSlot) {
+          try { event.getAdsManager(video).destroy(); } catch {}
+          return;
+        }
+        const slot = activeSlot;
         try {
           adsManager = event.getAdsManager(video);
-          adsManager.addEventListener(google.ima.AdErrorEvent.Type.AD_ERROR, resumeContent);
-          adsManager.addEventListener(google.ima.AdEvent.Type.ALL_ADS_COMPLETED, resumeContent);
-          adsManager.addEventListener(google.ima.AdEvent.Type.CONTENT_RESUME_REQUESTED, resumeContent);
+          attachImaTracking(adsManager, slot, requestId);
+          adsManager.addEventListener(google.ima.AdErrorEvent.Type.AD_ERROR, (error) => {
+            if (requestId !== activeAdRequestId || !activeAdRequest) return;
+            queueAdEvent(slot, "error", error?.getError?.()?.getErrorCode?.()?.toString?.() || "IMA_ERROR");
+            resumeContent(requestId);
+          });
+          adsManager.addEventListener(google.ima.AdEvent.Type.ALL_ADS_COMPLETED, () => resumeContent(requestId));
+          adsManager.addEventListener(google.ima.AdEvent.Type.CONTENT_RESUME_REQUESTED, () => resumeContent(requestId));
           adsManager.init(video.clientWidth || 640, video.clientHeight || 360, google.ima.ViewMode.NORMAL);
           adsManager.start();
         } catch {
-          resumeContent();
+          resumeContent(requestId);
         }
       }
     );
-    adsLoader.addEventListener(google.ima.AdErrorEvent.Type.AD_ERROR, resumeContent);
     return true;
   } catch (error) {
     console.warn("[CCWU Player] IMA initialization failed", error);
@@ -123,24 +212,41 @@ function setupIma() {
 function requestAd(slot) {
   if (!slot?.ad_tag_url || !setupIma()) {
     $("adStatus").textContent = "广告暂不可用，继续播放正片。";
-    video.play().catch(() => {});
+    // A failed post-roll must not restart media that has already ended.
+    if (slot?.ad_type !== "postroll" && !video.ended) {
+      video.play().catch(() => {});
+    }
     return;
   }
   if (activeAdRequest) return;
   activeAdRequest = true;
+  const requestId = ++adRequestSequence;
+  activeAdRequestId = requestId;
+  activeSlot = slot;
+  queueAdEvent(slot, "ad_request");
   video.pause();
   $("adStatus").textContent = "正在加载广告…";
   try {
     imaDisplay.initialize();
     const request = new google.ima.AdsRequest();
     request.adTagUrl = slot.ad_tag_url;
+    if (activeLoaderErrorHandler) {
+      adsLoader.removeEventListener(google.ima.AdErrorEvent.Type.AD_ERROR, activeLoaderErrorHandler);
+    }
+    activeLoaderErrorHandler = (event) => {
+      const errorRequestId = event.getUserRequestContext?.();
+      if (errorRequestId !== requestId || errorRequestId !== activeAdRequestId) return;
+      resumeContent(errorRequestId);
+    };
+    adsLoader.addEventListener(google.ima.AdErrorEvent.Type.AD_ERROR, activeLoaderErrorHandler);
     request.linearAdSlotWidth = video.clientWidth || 640;
     request.linearAdSlotHeight = video.clientHeight || 360;
     request.nonLinearAdSlotWidth = video.clientWidth || 640;
     request.nonLinearAdSlotHeight = Math.max(90, Math.round((video.clientHeight || 360) / 3));
-    adsLoader.requestAds(request);
+    // IMA HTML5 associates request context through requestAds()'s second argument.
+    adsLoader.requestAds(request, requestId);
   } catch {
-    resumeContent();
+    resumeContent(requestId);
   }
 }
 
@@ -153,7 +259,7 @@ async function loadPlayback() {
   if (!episodeId) return showEpisodeList();
   setStatus("正在验证观看权限并获取安全播放链接…");
   const { data, error } = await db.functions.invoke("get-episode-playback", {
-    body: { episode_id: episodeId }
+    body: { episode_id: episodeId, viewer_session_id: adSessionFingerprint }
   });
   if (error || !data?.ok) {
     const status = error?.context?.status;

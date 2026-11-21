@@ -1,0 +1,18 @@
+# Edge Functions with provider webhooks or internal bearer-token validation must perform their own authentication.
+[functions.create-checkout]
+verify_jwt = true
+
+[functions.stripe-webhook]
+verify_jwt = false
+
+[functions.get-episode-playback]
+verify_jwt = false
+
+[functions.cn-payment]
+verify_jwt = false
+
+[functions.track-episode-promotion]
+verify_jwt = false
+
+[functions.record-video-ad-events]
+verify_jwt = false

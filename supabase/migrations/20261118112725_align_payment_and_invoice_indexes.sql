@@ -1,0 +1,17 @@
+begin;
+create unique index if not exists payment_disputes_provider_event_unique on private.payment_disputes(provider,provider_event_id) where provider_event_id is not null;
+create unique index if not exists payment_refunds_provider_event_unique on private.payment_refunds(provider,provider_event_id) where provider_event_id is not null;
+create unique index if not exists payment_refunds_provider_refund_unique on private.payment_refunds(provider,provider_refund_id) where provider_refund_id is not null;
+create index if not exists payment_refunds_requested_by_idx on private.payment_refunds(requested_by);
+create unique index if not exists payment_transactions_cn_provider_reference_unique on private.payment_transactions(provider,provider_reference) where provider in ('alipay','wechat_pay') and provider_reference is not null;
+create unique index if not exists payment_transactions_cn_request_key_uidx on private.payment_transactions(provider,(metadata->>'request_key')) where provider in ('alipay','wechat_pay') and metadata ? 'request_key';
+create index if not exists payment_webhook_events_order_id_idx on private.payment_webhook_events(order_id);
+create index if not exists payment_webhook_events_status_received_idx on private.payment_webhook_events(processing_status,received_at);
+create index if not exists stripe_subscription_invoice_adjustment_events_invoice_id_idx on private.stripe_subscription_invoice_adjustment_events(invoice_id);
+create index if not exists stripe_invoice_disputes_invoice_idx on private.stripe_subscription_invoice_disputes(invoice_id,created_at desc);
+create index if not exists stripe_subscription_invoice_events_invoice_idx on private.stripe_subscription_invoice_events(provider_invoice_id,event_created_at desc);
+create index if not exists stripe_invoice_refunds_invoice_idx on private.stripe_subscription_invoice_refunds(invoice_id,created_at desc);
+create index if not exists stripe_subscription_invoices_source_order_id_idx on private.stripe_subscription_invoices(source_order_id) where source_order_id is not null;
+create index if not exists stripe_subscription_invoices_subscription_period_idx on private.stripe_subscription_invoices(provider_subscription_id,period_start desc);
+create index if not exists stripe_subscription_invoices_user_created_idx on private.stripe_subscription_invoices(user_id,created_at desc);
+commit;

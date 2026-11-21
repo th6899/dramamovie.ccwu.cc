@@ -1,0 +1,13 @@
+begin;
+alter table private."affiliate_conversion_ledger" add constraint "affiliate_conversion_ledger_network_external_conversion_id_key" UNIQUE (network, external_conversion_id);
+alter table private."cn_refund_provider_events" add constraint "cn_refund_provider_events_provider_provider_event_id_key" UNIQUE (provider, provider_event_id);
+alter table private."crypto_payment_events" add constraint "crypto_payment_events_provider_event_id_key" UNIQUE (provider, event_id);
+alter table private."notification_delivery_queue" add constraint "notification_delivery_queue_user_dedupe_channel_key" UNIQUE (user_id, dedupe_key, channel);
+alter table private."payment_webhook_events" add constraint "payment_webhook_events_provider_event_id_key" UNIQUE (provider, event_id);
+alter table private."provider_subscriptions" add constraint "provider_subscriptions_provider_provider_subscription_id_key" UNIQUE (provider, provider_subscription_id);
+alter table private."stripe_subscription_invoice_adjustment_events" add constraint "stripe_subscription_invoice_adjustment_ev_provider_event_id_key" UNIQUE (provider, event_id);
+alter table private."stripe_subscription_invoice_disputes" add constraint "stripe_subscription_invoice_di_provider_provider_dispute_id_key" UNIQUE (provider, provider_dispute_id);
+alter table private."stripe_subscription_invoice_events" add constraint "stripe_subscription_invoice_events_provider_event_id_key" UNIQUE (provider, event_id);
+alter table private."stripe_subscription_invoice_refunds" add constraint "stripe_subscription_invoice_ref_provider_provider_refund_id_key" UNIQUE (provider, provider_refund_id);
+alter table private."stripe_subscription_invoices" add constraint "stripe_subscription_invoices_provider_provider_invoice_id_key" UNIQUE (provider, provider_invoice_id);
+commit;
