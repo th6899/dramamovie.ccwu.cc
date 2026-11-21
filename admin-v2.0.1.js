@@ -1,6 +1,6 @@
-window.CCWU_ADMIN_MODULE_VERSION = "2.0.8";
-console.info("[CCWU Admin] ES module 2.0.8 loaded");
-// CCWU Global Admin module 2.0.8 — explicit ES module entrypoint
+window.CCWU_ADMIN_MODULE_VERSION = "2.0.9";
+console.info("[CCWU Admin] ES module 2.0.9 loaded");
+// CCWU Global Admin module 2.0.9 — explicit ES module entrypoint
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { Upload } from "https://esm.sh/tus-js-client@4";
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js";
@@ -10,7 +10,7 @@ const isTestProject = (() => {
   try { return new URL(SUPABASE_URL).hostname === "uvtzhzgirgwjzsmcdgej.supabase.co"; }
   catch { return false; }
 })();
-window.CCWU_BUILD_VERSION = "2.0.8";
+window.CCWU_BUILD_VERSION = "2.0.9";
 const $ = (id) => document.getElementById(id);
 const esc = (value) => String(value ?? "").replace(/[&<>"']/g, (char) => ({
   "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
@@ -39,6 +39,26 @@ async function uploadResumable(bucket, path, file, onProgress = () => {}) {
     upload.start();
   });
 }
+async function getVideoDuration(file) {
+  return await new Promise((resolve, reject) => {
+    const video = document.createElement("video");
+    const objectUrl = URL.createObjectURL(file);
+    const cleanup = () => URL.revokeObjectURL(objectUrl);
+    video.preload = "metadata";
+    video.onloadedmetadata = () => {
+      const duration = video.duration;
+      cleanup();
+      if (Number.isFinite(duration) && duration > 0) resolve(Math.round(duration));
+      else reject(new Error("无法读取视频时长，请检查视频文件是否完整。"));
+    };
+    video.onerror = () => {
+      cleanup();
+      reject(new Error("无法读取视频文件信息，请确认文件可正常播放。"));
+    };
+    video.src = objectUrl;
+  });
+}
+
 let currentUser = null;
 let cache = { dramas: [], episodes: [], ads: [], promos: [] };
 
@@ -210,6 +230,7 @@ async function loadAll() {
   }));
   fillSelect("promoEpisode", episodeOptions, "请先新增剧集");
   fillSelect("subtitleEpisode", episodeOptions, "请先新增剧集");
+  fillSelect("adEpisode", episodeOptions, "全站默认");
 
   $("adRows").innerHTML = cache.ads.map((ad) =>
     `<tr><td>${esc(ad.ad_type)}</td><td>${ad.episode_id ? "指定剧集" : "全站默认"}</td><td><span class="status">${ad.is_active ? "启用" : "关闭"}</span></td><td>${esc((ad.ad_tag_url || "").slice(0, 48) || "未设置")}</td></tr>`
@@ -315,37 +336,21 @@ document.addEventListener("click", async (event) => {
 });
 $("dramaForm").addEventListener("submit", async (event) => {
   event.preventDefault();
-  const submit = event.submitter || event.target.querySelector("button[type=submit],button:not([type])");
+  const submit = event.submitter || event.target.querySelector("button");
   if (submit) submit.disabled = true;
-  let uploadedPosterPath = null;
   try {
-  const slug = $("dramaSlug").value.trim().toLowerCase();
-  if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) {
-    setMessage("dramaMsg", "slug 仅可使用小写英文字母、数字和连字符。", true);
-    return;
-  }
-  const file = $("dramaPosterFile").files?.[0];
-  if (file) {
-    if (!["image/jpeg", "image/png", "image/webp", "image/avif"].includes(file.type) || file.size > 10 * 1024 * 1024) throw new Error("海报仅支持 JPG/PNG/WebP/AVIF，且不能超过 10MB。");
-    const ext = ({ "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "image/avif": "avif" })[file.type];
-    uploadedPosterPath = `dramas/${slug}/${crypto.randomUUID()}.${ext}`;
-    const { error: uploadError } = await db.storage.from("ccwu-cinema-posters").upload(uploadedPosterPath, file, { cacheControl: "3600", upsert: false, contentType: file.type });
-    if (uploadError) throw uploadError;
-  }
-  const { error } = await db.from("dramas").insert({
-    title: $("dramaTitle").value.trim(), slug,
-    synopsis: $("dramaSynopsis").value.trim() || null,
-    poster_path: uploadedPosterPath,
-    release_year: $("dramaYear").value ? Number($("dramaYear").value) : null,
-    status: "draft"
-  });
-  if (error) {
-    if (uploadedPosterPath) await db.storage.from("ccwu-cinema-posters").remove([uploadedPosterPath]);
-    throw error;
-  }
-  setMessage("dramaMsg", "影视作品草稿已保存。海报已上传；作品仍为草稿，需在作品列表中手动发布。");
-  event.target.reset();
-  await loadAll();
+    const title = $("dramaTitle").value.trim();
+    if (!title) throw new Error("请输入剧名。");
+    // Generate a safe unique slug automatically; administrators no longer need to manage technical identifiers.
+    const slug = "drama-" + crypto.randomUUID().replace(/-/g, "").slice(0, 16);
+    $("dramaSlug").value = slug;
+    const { error } = await db.from("dramas").insert({
+      title, slug, synopsis: null, poster_path: null, release_year: null, status: "draft"
+    });
+    if (error) throw error;
+    setMessage("dramaMsg", "影视作品草稿已创建。现在可在“所属剧集”中选择该剧并上传视频。");
+    event.target.reset();
+    await loadAll();
   } catch (error) {
     setMessage("dramaMsg", error?.message || "保存影视作品失败。", true);
   } finally { if (submit) submit.disabled = false; }
@@ -353,42 +358,40 @@ $("dramaForm").addEventListener("submit", async (event) => {
 
 $("episodeForm").addEventListener("submit", async (event) => {
   event.preventDefault();
-  const submit = event.submitter || event.target.querySelector("button[type=submit],button:not([type])");
+  const submit = event.submitter || event.target.querySelector("button");
   if (submit) submit.disabled = true;
   let uploadedVideoPath = null;
   try {
-  if (!$("dramaSelect").value) {
-    setMessage("episodeMsg", "请先新增影视作品。", true);
-    return;
-  }
-  const file = $("videoFile").files?.[0];
-  let videoPath = $("videoPath").value.trim() || null;
-  if (file) {
-    if (!["video/mp4", "video/webm"].includes(file.type) || file.size > 50 * 1024 * 1024) throw new Error("免费 Supabase 项目单文件上限为 50MB；视频仅支持 MP4/WebM。");
-    if (videoPath) throw new Error("已选择视频文件，请清空手动 Storage 路径，避免路径冲突。");
     const dramaId = $("dramaSelect").value;
-    const ext = file.type === "video/mp4" ? "mp4" : "webm";
-    uploadedVideoPath = `episodes/${dramaId}/${crypto.randomUUID()}.${ext}`;
-    setMessage("episodeMsg", "正在上传视频，请保持页面打开……");
-    await uploadResumable("ccwu-cinema-videos", uploadedVideoPath, file, (percent) => setMessage("episodeMsg", `视频上传中：${percent}%`));
-    videoPath = uploadedVideoPath;
-  }
-  if (videoPath && (/^https?:\/\//i.test(videoPath) || videoPath.startsWith("/") || videoPath.split("/").some((part) => part === "." || part === "..") || videoPath.includes("\\"))) throw new Error("视频必须使用 ccwu-cinema-videos 桶内的相对 Storage 路径，不能填写外部 URL。");
-  const { error } = await db.from("episodes").insert({
-    drama_id: $("dramaSelect").value, season_number: 1,
-    episode_number: Number($("episodeNo").value), title: $("episodeTitle").value.trim(),
-    video_path: videoPath, duration_seconds: $("duration").value ? Number($("duration").value) : null,
-    is_free: $("isFree").checked, status: "draft"
-  });
-  if (error) {
-    if (uploadedVideoPath) await db.storage.from("ccwu-cinema-videos").remove([uploadedVideoPath]);
-    throw error;
-  }
-  setMessage("episodeMsg", "剧集草稿已保存。视频文件已上传；需先发布所属作品，再发布剧集。");
-  event.target.reset();
-  await loadAll();
+    const file = $("videoFile").files?.[0];
+    if (!dramaId) throw new Error("请先创建并选择所属剧集。");
+    if (!file) throw new Error("请选择 MP4 或 WebM 视频文件。");
+    if (!["video/mp4", "video/webm"].includes(file.type) || file.size > 50 * 1024 * 1024) {
+      throw new Error("视频仅支持 MP4/WebM，单文件最大 50MB（免费项目限制）。");
+    }
+    const videoDuration = await getVideoDuration(file);
+    uploadedVideoPath = `episodes/${dramaId}/${crypto.randomUUID()}.${file.type === "video/mp4" ? "mp4" : "webm"}`;
+    setMessage("episodeMsg", "正在上传视频：0%，请保持页面打开……");
+    await uploadResumable("ccwu-cinema-videos", uploadedVideoPath, file, (percent) =>
+      setMessage("episodeMsg", `正在上传视频：${percent}%`)
+    );
+    const { error } = await db.from("episodes").insert({
+      drama_id: dramaId, season_number: 1,
+      episode_number: Number($("episodeNo").value),
+      title: $("episodeTitle").value.trim(),
+      video_path: uploadedVideoPath, duration_seconds: videoDuration,
+      is_free: false, status: "draft"
+    });
+    if (error) {
+      await db.storage.from("ccwu-cinema-videos").remove([uploadedVideoPath]);
+      uploadedVideoPath = null;
+      throw error;
+    }
+    setMessage("episodeMsg", `上传成功。视频路径：${uploadedVideoPath}。剧集已保存为草稿。`);
+    event.target.reset();
+    await loadAll();
   } catch (error) {
-    setMessage("episodeMsg", error?.message || "保存剧集失败。", true);
+    setMessage("episodeMsg", error?.message || "视频上传失败。", true);
   } finally { if (submit) submit.disabled = false; }
 });
 
@@ -431,29 +434,32 @@ $("subtitleForm").addEventListener("submit", async (event) => {
   } finally { if (submit) submit.disabled = false; }
 });
 
+$("adType").addEventListener("change", () => {
+  $("adOffsetField").hidden = $("adType").value !== "midroll";
+});
 $("adForm").addEventListener("submit", async (event) => {
   event.preventDefault();
   const adType = $("adType").value;
-  if (adType === "midroll" && !Number($("adOffset").value)) {
+  const midrollOffset = Number($("adOffset").value);
+  if (adType === "midroll" && (!Number.isFinite(midrollOffset) || midrollOffset <= 0)) {
     setMessage("adMsg", "中插广告必须填写大于 0 的插播秒数。", true);
     return;
   }
   const { error } = await db.from("video_ad_configs").insert({
-    episode_id: $("adEpisode").value.trim() || null,
-    slot_key: $("adSlot").value.trim(),
+    episode_id: $("adEpisode").value || null,
+    slot_key: "default-video",
     ad_type: adType,
     ad_provider: "google_ima",
     ad_tag_url: $("adTag").value.trim(),
-    midroll_offset_seconds: adType === "midroll" ? Number($("adOffset").value) : null,
-    frequency_cap_hours: $("adCap").value ? Number($("adCap").value) : 0,
-    members_exempt: $("adMembers").checked,
+    midroll_offset_seconds: adType === "midroll" ? midrollOffset : null,
+    frequency_cap_hours: 0,
+    members_exempt: true,
     is_active: $("adActive").checked
   });
   setMessage("adMsg", error ? error.message : "广告配置已保存。注意：保存配置不代表广告已获批或可真实投放。", !!error);
   if (!error) {
     event.target.reset();
-    $("adSlot").value = "default-video";
-    $("adMembers").checked = true;
+    $("adOffsetField").hidden = true;
     await loadAll();
   }
 });
