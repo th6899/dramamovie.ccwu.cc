@@ -12,6 +12,7 @@ required_html = (
     'id="dramaSelect"', 'id="dramaTitle"', 'id="episodeNo"', 'id="videoFile"', 'id="episodeTitle"', 'id="episodeRows"',
     'id="subtitleForm"', 'id="subtitleEpisode"', 'id="subtitleFile"', '最大 50MB', 'SRT 自动转换为 WebVTT'
 )
+required_promo_html = ('id="promoTitle"', 'id="promoUrl"', 'id="promoDesc"', 'id="promoPlacement"', 'id="promoEpisodeContext"')
 required_admin = (
     'new Upload(file', 'file.size > 50 * 1024 * 1024', '"ccwu-cinema-videos"',
     '"ccwu-cinema-subtitles"', 'new Blob([webVttText + "\\n"], { type: "text/vtt" })', 'contentType: "text/vtt"', 'WEBVTT', 'cuePattern.test(rawText)', 'ext === "srt"', 'data-toggle-drama=', 'data-toggle-episode=',
@@ -19,6 +20,13 @@ required_admin = (
 )
 if 'id="dramaForm"' in html:
     raise SystemExit("Media upload must use one streamlined five-field form, not separate drama and episode forms.")
+if any(token in html for token in ('id="promoEpisode"', 'id="promoNetwork"', 'id="promoButton"', 'id="promoActive"')):
+    raise SystemExit("Affiliate promotion form contains fields outside the four requested fields.")
+for token in required_promo_html:
+    if token not in html:
+        raise SystemExit(f"Affiliate promotion UI is missing {token}")
+if 'const episode = cache.episodes[0];' not in admin or 'is_active: true' not in admin:
+    raise SystemExit("Affiliate promotions must auto-associate with the latest episode and activate on save.")
 for token in required_html:
     if token not in html:
         raise SystemExit(f"Admin media UI is missing {token}")
