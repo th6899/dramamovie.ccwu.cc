@@ -328,3 +328,12 @@ Scope was TEST project `uvtzhzgirgwjzsmcdgej` only. Production was not changed. 
 - **REVIEW — 5 SECURITY DEFINER RPCs:** authenticated EXECUTE advisor findings remain. Previously reviewed for empty search_path and auth.uid/ownership/admin checks; no grant changes made.
 - **WARN — TEST Auth leaked-password protection disabled.** No Auth configuration changed.
 - Supabase suggested candidate statement: `ALTER TABLE private.video_ad_frequency_reservations ENABLE ROW LEVEL SECURITY;`. Not applied pending explicit security design review.
+
+
+## 2026-11-21 — TEST reservation-table RLS remediation
+
+- **PASS — RLS enabled:** migration `20261121100000_enable_rls_video_ad_frequency_reservations.sql` applied to TEST only for `private.video_ad_frequency_reservations`.
+- **PASS — no client policy:** table owner postgres; `FORCE ROW LEVEL SECURITY=false`; zero policies; no anon/authenticated/service_role direct SELECT or INSERT; anon has no private-schema USAGE.
+- **PASS — service function design review:** `get_eligible_video_ad_config_ids` and `record_video_ad_events_v2` are postgres-owned SECURITY DEFINER functions with empty search_path; EXECUTE is service_role-only.
+- **Advisor status:** critical RLS-disabled finding cleared; table now appears as one of 28 INFO private RLS-enabled/no-policy findings. Five authenticated SECURITY DEFINER RPC warnings and TEST Auth leaked-password protection warning remain open.
+- Production untouched; no data/event rows created. End-to-end playback and ad frequency behavior remain unverified without published media and ad inventory.
