@@ -9,7 +9,11 @@ const posterUrl=value=>{const raw=String(value||"").trim();if(!raw||raw.startsWi
 async function loadList(table,fields,filters={}){let q=db.from(table).select(fields);for(const [k,v] of Object.entries(filters))q=q.eq(k,v);const {data,error}=await q; if(error)throw error;return data||[]}
 function renderCinema(dramas){
  const root=$("dramaGrid");
- if(!dramas.length){root.innerHTML="<div class=\"cinema-empty\"><b>精彩内容正在筹备中</b><p>影视作品上线后会自动展示在这里。</p></div>";return;}
+ if(!dramas.length){
+  root.innerHTML="<section class=\"cinema-hero cinema-hero-empty\"><div class=\"cinema-hero-copy\"><span class=\"cinema-eyebrow\">CCWU CINEMA · VIDEO DISCOVERY</span><h1>精彩影视，即将呈现</h1><p>剧集上线后，精选海报、剧集介绍与播放入口将在这里自动展示。</p><span class=\"cinema-empty-note\">目前暂无已发布影视作品</span></div><div class=\"cinema-hero-art\"><span>CCWU</span><i>▶</i></div></section><nav class=\"cinema-category-strip\"><a href=\"#cinema-featured\">精选推荐</a><a href=\"#cinema-featured\">全部影视</a><a href=\"#cinema-featured\">短剧</a><a href=\"#cinema-featured\">电影</a><a href=\"#cinema-featured\">纪录片</a></nav><section class=\"cinema-shelf\" id=\"cinema-featured\"><div class=\"cinema-shelf-head\"><h2>精选推荐</h2><span>等待作品发布</span></div><div class=\"cinema-empty-panel\"><div class=\"cinema-empty-icon\">▶</div><b>影视内容正在筹备中</b><p>管理员发布影视作品后，海报和播放入口会自动出现在这里。</p></div></section>";
+  const search=$("cinemaSearch");if(search)search.oninput=function(){};
+  return;
+ }
  const featured=dramas[0],heroImage=featured.poster_path?posterUrl(featured.poster_path):"";
  const cats=[...new Set(dramas.map(d=>String(d.category||d.genre||d.content_type||d.type||"").trim()).filter(Boolean))];
  const names=cats.length?cats:["全部影视"];
