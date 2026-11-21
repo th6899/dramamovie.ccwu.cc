@@ -9,7 +9,7 @@ playback = Path("supabase/functions/get-episode-playback/index.ts").read_text(en
 subtitle_bucket = Path("supabase/migrations/20261119090511_enforce_webvtt_subtitle_storage.sql").read_text(encoding="utf-8")
 
 required_html = (
-    'id="dramaPosterFile"', 'id="videoFile"', 'id="episodeRows"',
+    'id="dramaSelect"', 'id="dramaTitle"', 'id="episodeNo"', 'id="videoFile"', 'id="episodeTitle"', 'id="episodeRows"',
     'id="subtitleForm"', 'id="subtitleEpisode"', 'id="subtitleFile"', '最大 50MB', 'SRT 自动转换为 WebVTT'
 )
 required_admin = (
@@ -17,6 +17,8 @@ required_admin = (
     '"ccwu-cinema-subtitles"', 'new Blob([webVttText + "\\n"], { type: "text/vtt" })', 'contentType: "text/vtt"', 'WEBVTT', 'cuePattern.test(rawText)', 'ext === "srt"', 'data-toggle-drama=', 'data-toggle-episode=',
     'published_at:', 'status: "published"', 'reviewed_by: currentUser.id',
 )
+if 'id="dramaForm"' in html:
+    raise SystemExit("Media upload must use one streamlined five-field form, not separate drama and episode forms.")
 for token in required_html:
     if token not in html:
         raise SystemExit(f"Admin media UI is missing {token}")
