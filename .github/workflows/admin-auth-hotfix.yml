@@ -27,7 +27,7 @@ jobs:
           html = Path("admin.html").read_text()
           assert "entrypoint\\nimport" not in js, "literal escaped newline still comments out the module import"
           assert "import { createClient }" in js
-          staff = js.split("async function checkStaff(user)", 1)[1].split("\\nfunction fillSelect", 1)[0]
+          staff = js.split("async function checkStaff(user)", 1)[1].split("function fillSelect", 1)[0]
           assert "auth.signOut" not in staff, "staff-check failure must preserve the authenticated session for diagnosis"
           assert 'Admin Build v2.0.2' in html
           assert 'admin-v2.0.1.js?v=2.0.2' in html
