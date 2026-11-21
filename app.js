@@ -11,7 +11,7 @@ function renderCinema(dramas){
  const root=$("dramaGrid");
  if(!dramas.length){
   root.innerHTML="<section class=\"cinema-hero cinema-hero-empty\"><div class=\"cinema-hero-copy\"><span class=\"cinema-eyebrow\">CCWU CINEMA · VIDEO DISCOVERY</span><h1>精彩影视，即将呈现</h1><p>剧集上线后，精选海报、剧集介绍与播放入口将在这里自动展示。</p><span class=\"cinema-empty-note\">目前暂无已发布影视作品</span></div><div class=\"cinema-hero-art\"><span>CCWU</span><i>▶</i></div></section><nav class=\"cinema-category-strip\"><a href=\"#cinema-featured\">精选推荐</a><a href=\"#cinema-featured\">全部影视</a><a href=\"#cinema-featured\">短剧</a><a href=\"#cinema-featured\">电影</a><a href=\"#cinema-featured\">纪录片</a></nav><section class=\"cinema-shelf\" id=\"cinema-featured\"><div class=\"cinema-shelf-head\"><h2>精选推荐</h2><span>等待作品发布</span></div><div class=\"cinema-empty-panel\"><div class=\"cinema-empty-icon\">▶</div><b>影视内容正在筹备中</b><p>管理员发布影视作品后，海报和播放入口会自动出现在这里。</p></div></section>";
-  const search=$("cinemaSearch");if(search)search.oninput=function(){};
+  const search=$("cinemaSearch");if(search){search.value="";search.disabled=true;search.placeholder="暂无可搜索影视内容";search.oninput=null;}
   return;
  }
  const featured=dramas[0],heroImage=featured.poster_path?posterUrl(featured.poster_path):"";
@@ -21,7 +21,7 @@ function renderCinema(dramas){
  const shelves=cats.length?cats.map(name=>({name:name,items:dramas.filter(d=>String(d.category||d.genre||d.content_type||d.type||"").trim()===name)})):[{name:"全部影视",items:dramas}];
  const style=heroImage&&heroImage!=="#"?("--hero-image:url(\""+esc(heroImage)+"\");"):"";
  root.innerHTML="<section class=\"cinema-hero\" style=\""+style+"\"><div class=\"cinema-hero-copy\"><span class=\"cinema-eyebrow\">CCWU CINEMA · 精选推荐</span><h1>"+esc(featured.title)+"</h1><p>"+esc(featured.synopsis||"发现更多精彩影视内容。").slice(0,150)+"</p><a class=\"cinema-play\" href=\"player.html?drama="+encodeURIComponent(featured.id)+"\">▶ 立即播放</a></div></section><nav class=\"cinema-category-strip\">"+names.map((n,i)=>"<a href=\"#cinema-shelf-"+i+"\">"+esc(n)+"</a>").join("")+"</nav>"+shelves.map((s,i)=>"<section class=\"cinema-shelf\" id=\"cinema-shelf-"+i+"\"><div class=\"cinema-shelf-head\"><h2>"+esc(s.name)+"</h2><span>"+s.items.length+" 部作品</span></div><div class=\"cinema-row\">"+s.items.map(card).join("")+"</div></section>").join("");
- const search=$("cinemaSearch");if(search)search.oninput=function(){const q=search.value.trim().toLowerCase();root.querySelectorAll(".cinema-card").forEach(el=>{el.hidden=!el.textContent.toLowerCase().includes(q);});};
+ const search=$("cinemaSearch");if(search){search.disabled=false;search.placeholder="搜索影视、剧名";search.oninput=function(){const q=search.value.trim().toLowerCase();root.querySelectorAll(".cinema-card").forEach(el=>{el.hidden=!el.textContent.toLowerCase().includes(q);});};}
  const side=$("cinemaSidebar");if(side)side.innerHTML="<div class=\"sidebar-brand\">CCWU CINEMA</div><a class=\"active\" href=\"#dramas\">⌂　影视首页</a>"+names.map((n,i)=>"<a href=\"#cinema-shelf-"+i+"\">▣　"+esc(n)+"</a>").join("")+"<a href=\"#services\">◈　数字服务</a><a href=\"#membership\">♢　会员专区</a><a href=\"#vpn\">⌁　VPN 服务</a><a href=\"#tutorials\">▤　教程中心</a>";
 }
 async function render(){
