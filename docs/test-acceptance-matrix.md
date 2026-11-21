@@ -247,3 +247,11 @@ This matrix records what has been verified in the independent test environment a
 - Remaining: test-only migration application/compatibility verification (awaiting explicit authorization); real media + IMA + frequency-cap E2E (requires actual test media/ad inventory/tag and signing secret); payment provider sandbox callback E2E; final whole-site acceptance. Production rollout requires separate explicit approval.
 - No ad inventory, migration, payment data, or production state was modified in this checkpoint. Test ad inventory remains empty.
 - Resume tomorrow from this checkpoint; do not repeat completed auth/OAuth/Cloudflare work or passed source audits without new evidence.
+
+
+### 2026-11-21 — Resume CI and CNY migration SQL repair
+
+- **CI PASS at resume HEAD:** branch checkpoint `24ef0d1ce56163679f6896fb722332824ed05f85`, Push run `44735912761` and PR run `44735921264`, both 3/3 jobs passed.
+- **SOURCE DEFECT FOUND AND FIXED:** canonical CNY request-key migration had duplicated SQL fragments after its first `COMMIT`. File repaired to one complete transaction and one terminal `COMMIT`, retaining canonical UUID validation. Fix commit `e6f8b4e1877eb2410f91150a87b06c44c2d49bc7`. Fresh CI for this repair is pending; do not count it as passed until the new head's run completes.
+- **TEST DB READ-ONLY CHECK:** ad-event viewer identity columns and reservation table remain unapplied; existing partial unique event-dedup index is present. No DDL or data writes performed.
+- **NOT VERIFIED:** migration application/compatibility (requires explicit authorization for test DB DDL); IMA insertion/frequency-cap runtime E2E (requires approved real test media, ad inventory/tag, and signing secret); payment provider sandbox callback E2E. Production deployment remains separately gated.
