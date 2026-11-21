@@ -584,3 +584,13 @@ Before each new session, read this log and inspect the current branch HEAD and l
 - Leaked-password protection is currently disabled in TEST Auth. No Auth setting was changed.
 - Candidate RLS enablement SQL shown by Supabase is `ALTER TABLE private.video_ad_frequency_reservations ENABLE ROW LEVEL SECURITY;`; **not executed**. Before applying, review whether SECURITY DEFINER functions owned by the table owner continue to work and define any required policies explicitly.
 - No schema, grants, policies, Auth settings, or production resources were modified in this read-only follow-up.
+
+
+## 2026-11-21 — TEST reservation-table RLS remediation
+
+- Added migration `20261121100000_enable_rls_video_ad_frequency_reservations.sql` and applied it to TEST project `uvtzhzgirgwjzsmcdgej` only.
+- Enabled RLS on `private.video_ad_frequency_reservations`; intentionally created no client policies and did not enable FORCE RLS.
+- Pre-change review established table owner `postgres`; both referencing RPCs (`get_eligible_video_ad_config_ids`, `record_video_ad_events_v2`) are SECURITY DEFINER, owned by `postgres`, use empty search_path, and EXECUTE is granted only to `service_role`. anon/authenticated EXECUTE denied.
+- Post-change verification: `relrowsecurity=true`, `relforcerowsecurity=false`, owner remains postgres, policy_count=0. anon lacks private-schema USAGE; anon/authenticated/service_role have no direct SELECT/INSERT grants on the table.
+- Supabase advisor no longer reports the critical `rls_disabled` finding for this table. It now appears among 28 INFO `rls_enabled_no_policy` private-table findings, consistent with deliberate server-only access. Other 5 SECURITY DEFINER RPC and leaked-password-protection warnings remain open.
+- Production was not modified. No data rows, reservations, or ad events were created.
