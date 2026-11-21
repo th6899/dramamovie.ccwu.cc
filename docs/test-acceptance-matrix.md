@@ -280,3 +280,14 @@ This matrix records what has been verified in the independent test environment a
 - **PASS — CI checkpoint** `3dc0f787e4647db3f92b53df917a4ce2f8d99b46`: Push `44880511267` and PR `44880515739`, both 3/3 jobs passed.
 - **NOT VERIFIED — live IMA / frequency-cap E2E:** no ad inventory (0 configs), no impressions, and no approved test media/ad tag. Do not report ad delivery as tested.
 - **Production:** no Edge Function deployment, database migration, or data change performed.
+
+
+### 2026-11-21 — TEST acceptance readiness/security review
+
+- **PASS — CI:** latest function deployment + documentation checkpoint `48a75cbba9d8d653ba2f4212272a1622b252b081`, Push `44880685519` and PR `44880689603`, both 3/3.
+- **BLOCKED — IMA live E2E:** TEST DB has 0 dramas, 0 episodes, 0 ad configs. No test media/ad tag exists in DB; no fake seed rows or events were inserted.
+- **PASS — player event wiring by source inspection:** browser session UUID sent to playback endpoint; IMA events batched to ingestion endpoint; queue retained on server error.
+- **SECURITY REVIEW — reservation table RLS:** Supabase linter flags RLS disabled. Direct grants are only to postgres; anon has no private schema USAGE; anon/authenticated/service_role have no table SELECT. No automatic RLS change made. Finding is recorded for deliberate remediation review.
+- **REVIEW — SECURITY DEFINER advisor warnings:** five authenticated-executable public RPCs inspected; each uses empty search_path and auth.uid checks, with admin-role check for manual-payment approval. No permission changes made.
+- **NOT VERIFIED — payment sandbox callback E2E.** No orders or provider transactions created.
+- **Production remains untouched.**
