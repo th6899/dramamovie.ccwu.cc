@@ -337,3 +337,14 @@ Scope was TEST project `uvtzhzgirgwjzsmcdgej` only. Production was not changed. 
 - **PASS — service function design review:** `get_eligible_video_ad_config_ids` and `record_video_ad_events_v2` are postgres-owned SECURITY DEFINER functions with empty search_path; EXECUTE is service_role-only.
 - **Advisor status:** critical RLS-disabled finding cleared; table now appears as one of 28 INFO private RLS-enabled/no-policy findings. Five authenticated SECURITY DEFINER RPC warnings and TEST Auth leaked-password protection warning remain open.
 - Production untouched; no data/event rows created. End-to-end playback and ad frequency behavior remain unverified without published media and ad inventory.
+
+
+## 2026-11-21 — authenticated SECURITY DEFINER RPC review
+
+- Reviewed definitions and ACLs for all 5 advisor-flagged RPCs. Each is postgres-owned SECURITY DEFINER with empty search_path; anon EXECUTE denied; authenticated EXECUTE is intentional.
+- `approve_manual_payment`: explicit admin role guard plus submission/order ownership, state, CNY amount/currency, and transaction checks.
+- `create_cn_payment_order`: auth required, canonical request UUID, active CNY plan/channel checks, user-scoped idempotency.
+- `create_manual_payment_order`: auth required, enabled manual QR channel and active CNY plan checks; order owner is auth.uid().
+- `create_stripe_subscription_order_idempotent`: auth required, USD/plan/Stripe price checks, UUID idempotency bound to caller and order attributes.
+- `get_my_cn_payment_order`: auth required and order filtered to auth.uid().
+- No ACL changes. Authenticated EXECUTE retained for intended customer workflows; advisor notices remain visible until product/API exposure review is signed off.
