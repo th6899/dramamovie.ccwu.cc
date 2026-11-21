@@ -354,6 +354,7 @@ $("episodeForm").addEventListener("submit", async (event) => {
   if (submit) submit.disabled = true;
   let uploadedVideoPath = null;
   let createdDramaId = null;
+  let episodeSaved = false;
   try {
     const selectedDramaId = $("dramaSelect").value;
     const title = $("dramaTitle").value.trim();
@@ -392,6 +393,7 @@ $("episodeForm").addEventListener("submit", async (event) => {
       is_free: false, status: "draft"
     });
     if (error) throw error;
+    episodeSaved = true;
     setMessage("episodeMsg", `上传成功。视频路径：${uploadedVideoPath}。剧集已保存为草稿。`);
     event.target.reset();
     await loadAll();
@@ -399,8 +401,8 @@ $("episodeForm").addEventListener("submit", async (event) => {
     $("dramaTitle").value = cache.dramas.find((item) => item.id === dramaId)?.title || title;
     $("dramaTitle").readOnly = true;
   } catch (error) {
-    if (uploadedVideoPath) await db.storage.from("ccwu-cinema-videos").remove([uploadedVideoPath]);
-    if (createdDramaId) await db.from("dramas").delete().eq("id", createdDramaId);
+    if (!episodeSaved && uploadedVideoPath) await db.storage.from("ccwu-cinema-videos").remove([uploadedVideoPath]);
+    if (!episodeSaved && createdDramaId) await db.from("dramas").delete().eq("id", createdDramaId);
     setMessage("episodeMsg", error?.message || "视频上传失败。", true);
   } finally { if (submit) submit.disabled = false; }
 });
