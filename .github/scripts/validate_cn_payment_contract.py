@@ -45,3 +45,8 @@ if function.index("live_payment_blocked_in_test_project") > function.index('user
 # SQL independently enforces the same canonical UUID structure as the Edge Function.
 if "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$" not in sql:
     raise SystemExit("CNY SQL order RPC must reject non-canonical request UUIDs.")
+
+if "raise exception 'invalid_request_key';\n  end if;" not in sql:
+    raise SystemExit("CNY SQL order RPC request-key guard is missing its END IF.")
+if sql.lower().count("commit;") != 1 or not sql.rstrip().lower().endswith("commit;"):
+    raise SystemExit("CNY canonical request-key migration must contain one terminal COMMIT.")
