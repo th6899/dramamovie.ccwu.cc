@@ -270,3 +270,13 @@ This matrix records what has been verified in the independent test environment a
 
 - **RUNTIME BLOCKER FOUND:** deployed TEST Edge Functions are stale: `get-episode-playback` v6 and `record-video-ad-events` v3 do not call the newly migrated viewer/session-aware frequency-cap RPCs; the event function still calls the legacy RPC. Branch source type-checks, but TEST deployment has not been authorized as part of the database-migration approval. Require explicit TEST-only Edge Function deployment before IMA E2E. Production Edge Functions unchanged.
 - **CI PASS at documentation checkpoint** `6ef5b9b3a9f23d7f39188f91e44fb417ad5a74a0`: Push `44880445963` and PR `44880450708`, both 3/3 jobs passed.
+
+
+### 2026-11-21 — TEST Edge Functions deployment
+
+- **PASS — TEST deploy:** `get-episode-playback` ACTIVE v7, SHA256 `bf409637834bdaba87e589168bf84b99e4e345577e1c8ee359da146b1c1aef8e`; `record-video-ad-events` ACTIVE v4, SHA256 `7e93ba3fd42df8adfc643ca6cb3c16505ef6a272c02fb69d481b7d4226d0f6ed`. Explicit user authorization received. Production unchanged.
+- **PASS — deployed source contract:** playback calls viewer/session-aware eligibility RPC and signs viewer/session into event token; ingestion validates those token claims and calls `record_video_ad_events_v2`; player sends the persistent browser session UUID.
+- **PASS — database permissions:** new ad RPCs are service_role-only; anon/authenticated EXECUTE denied.
+- **PASS — CI checkpoint** `3dc0f787e4647db3f92b53df917a4ce2f8d99b46`: Push `44880511267` and PR `44880515739`, both 3/3 jobs passed.
+- **NOT VERIFIED — live IMA / frequency-cap E2E:** no ad inventory (0 configs), no impressions, and no approved test media/ad tag. Do not report ad delivery as tested.
+- **Production:** no Edge Function deployment, database migration, or data change performed.
