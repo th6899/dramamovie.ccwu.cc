@@ -218,7 +218,13 @@ async function loadAll() {
 
   fillSelect("dramaSelect", cache.dramas.map((drama) => ({
     value: drama.id, label: drama.title
-  })), "请先新增影视作品");
+  })), "暂无影视作品");
+  const dramaSelect = $("dramaSelect");
+  dramaSelect.insertAdjacentHTML("afterbegin", '<option value="__new__">＋ 新建影视作品</option>');
+  dramaSelect.disabled = false;
+  if (!dramaSelect.value || dramaSelect.value === "__new__") dramaSelect.value = cache.dramas[0]?.id || "__new__";
+  $("dramaTitle").value = cache.dramas.find((item) => item.id === dramaSelect.value)?.title || "";
+  $("dramaTitle").readOnly = dramaSelect.value !== "__new__";
   const dramaById = new Map(cache.dramas.map((drama) => [drama.id, drama.title]));
   $("episodeRows").innerHTML = cache.episodes.map((episode) => {
     const next = episode.status === "published" ? "draft" : "published";
@@ -314,7 +320,6 @@ async function updateContentStatus(table, id, nextStatus, messageId) {
   const row = table === "dramas" ? cache.dramas.find((item) => item.id === id) : cache.episodes.find((item) => item.id === id);
   if (!row) return;
   if (nextStatus === "published") {
-    if (table === "dramas" && !row.poster_path) return setMessage(messageId, "发布失败：请先上传海报文件。", true);
     if (table === "episodes") {
       if (!row.video_path || /^https?:\/\//i.test(row.video_path)) return setMessage(messageId, "发布失败：请先上传视频或填写有效的 Storage 相对路径。", true);
       const parent = cache.dramas.find((item) => item.id === row.drama_id);
@@ -334,26 +339,10 @@ document.addEventListener("click", async (event) => {
   const episodeButton = event.target.closest("[data-toggle-episode]");
   if (episodeButton) { episodeButton.disabled = true; try { await updateContentStatus("episodes", episodeButton.dataset.toggleEpisode, episodeButton.dataset.nextStatus, "episodeMsg"); } finally { episodeButton.disabled = false; } }
 });
-$("dramaForm").addEventListener("submit", async (event) => {
-  event.preventDefault();
-  const submit = event.submitter || event.target.querySelector("button");
-  if (submit) submit.disabled = true;
-  try {
-    const title = $("dramaTitle").value.trim();
-    if (!title) throw new Error("请输入剧名。");
-    // Generate a safe unique slug automatically; administrators no longer need to manage technical identifiers.
-    const slug = "drama-" + crypto.randomUUID().replace(/-/g, "").slice(0, 16);
-    $("dramaSlug").value = slug;
-    const { error } = await db.from("dramas").insert({
-      title, slug, synopsis: null, poster_path: null, release_year: null, status: "draft"
-    });
-    if (error) throw error;
-    setMessage("dramaMsg", "影视作品草稿已创建。现在可在“所属剧集”中选择该剧并上传视频。");
-    event.target.reset();
-    await loadAll();
-  } catch (error) {
-    setMessage("dramaMsg", error?.message || "保存影视作品失败。", true);
-  } finally { if (submit) submit.disabled = false; }
+$("dramaSelect").addEventListener("change", () => {
+  const selected = cache.dramas.find((item) => item.id === $("dramaSelect").value);
+  $("dramaTitle").value = selected?.title || "";
+  $("dramaTitle").readOnly = Boolean(selected);
 });
 
 $("episodeForm").addEventListener("submit", async (event) => {
@@ -361,15 +350,32 @@ $("episodeForm").addEventListener("submit", async (event) => {
   const submit = event.submitter || event.target.querySelector("button");
   if (submit) submit.disabled = true;
   let uploadedVideoPath = null;
+  let createdDramaId = null;
   try {
-    const dramaId = $("dramaSelect").value;
+    const selectedDramaId = $("dramaSelect").value;
+    const title = $("dramaTitle").value.trim();
     const file = $("videoFile").files?.[0];
-    if (!dramaId) throw new Error("请先创建并选择所属剧集。");
+    const episodeNumber = Number($("episodeNo").value);
+    const episodeTitle = $("episodeTitle").value.trim();
+    if (!title) throw new Error("请输入剧名。");
+    if (!Number.isInteger(episodeNumber) || episodeNumber < 1) throw new Error("请输入有效集数。");
+    if (!episodeTitle) throw new Error("请输入剧集标题。");
     if (!file) throw new Error("请选择 MP4 或 WebM 视频文件。");
     if (!["video/mp4", "video/webm"].includes(file.type) || file.size > 50 * 1024 * 1024) {
       throw new Error("视频仅支持 MP4/WebM，单文件最大 50MB（免费项目限制）。");
     }
     const videoDuration = await getVideoDuration(file);
+    let dramaId = selectedDramaId;
+    if (selectedDramaId === "__new__") {
+      const slug = "drama-" + crypto.randomUUID().replace(/-/g, "").slice(0, 16);
+      const { data: drama, error: dramaError } = await db.from("dramas").insert({
+        title, slug, synopsis: null, poster_path: null, release_year: null, status: "draft"
+      }).select("id").single();
+      if (dramaError) throw dramaError;
+      dramaId = drama.id;
+      createdDramaId = dramaId;
+    }
+    if (!dramaId) throw new Error("请选择所属剧集，或选择新建影视作品。");
     uploadedVideoPath = `episodes/${dramaId}/${crypto.randomUUID()}.${file.type === "video/mp4" ? "mp4" : "webm"}`;
     setMessage("episodeMsg", "正在上传视频：0%，请保持页面打开……");
     await uploadResumable("ccwu-cinema-videos", uploadedVideoPath, file, (percent) =>
@@ -377,20 +383,21 @@ $("episodeForm").addEventListener("submit", async (event) => {
     );
     const { error } = await db.from("episodes").insert({
       drama_id: dramaId, season_number: 1,
-      episode_number: Number($("episodeNo").value),
-      title: $("episodeTitle").value.trim(),
+      episode_number: episodeNumber,
+      title: episodeTitle,
       video_path: uploadedVideoPath, duration_seconds: videoDuration,
       is_free: false, status: "draft"
     });
-    if (error) {
-      await db.storage.from("ccwu-cinema-videos").remove([uploadedVideoPath]);
-      uploadedVideoPath = null;
-      throw error;
-    }
+    if (error) throw error;
     setMessage("episodeMsg", `上传成功。视频路径：${uploadedVideoPath}。剧集已保存为草稿。`);
     event.target.reset();
     await loadAll();
+    $("dramaSelect").value = dramaId;
+    $("dramaTitle").value = cache.dramas.find((item) => item.id === dramaId)?.title || title;
+    $("dramaTitle").readOnly = true;
   } catch (error) {
+    if (uploadedVideoPath) await db.storage.from("ccwu-cinema-videos").remove([uploadedVideoPath]);
+    if (createdDramaId) await db.from("dramas").delete().eq("id", createdDramaId);
     setMessage("episodeMsg", error?.message || "视频上传失败。", true);
   } finally { if (submit) submit.disabled = false; }
 });
