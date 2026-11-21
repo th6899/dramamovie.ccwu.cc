@@ -39,6 +39,26 @@ async function uploadResumable(bucket, path, file, onProgress = () => {}) {
     upload.start();
   });
 }
+async function getVideoDuration(file) {
+  return await new Promise((resolve, reject) => {
+    const video = document.createElement("video");
+    const objectUrl = URL.createObjectURL(file);
+    const cleanup = () => URL.revokeObjectURL(objectUrl);
+    video.preload = "metadata";
+    video.onloadedmetadata = () => {
+      const duration = video.duration;
+      cleanup();
+      if (Number.isFinite(duration) && duration > 0) resolve(Math.round(duration));
+      else reject(new Error("无法读取视频时长，请检查视频文件是否完整。"));
+    };
+    video.onerror = () => {
+      cleanup();
+      reject(new Error("无法读取视频文件信息，请确认文件可正常播放。"));
+    };
+    video.src = objectUrl;
+  });
+}
+
 let currentUser = null;
 let cache = { dramas: [], episodes: [], ads: [], promos: [] };
 
@@ -349,6 +369,7 @@ $("episodeForm").addEventListener("submit", async (event) => {
     if (!["video/mp4", "video/webm"].includes(file.type) || file.size > 50 * 1024 * 1024) {
       throw new Error("视频仅支持 MP4/WebM，单文件最大 50MB（免费项目限制）。");
     }
+    const videoDuration = await getVideoDuration(file);
     uploadedVideoPath = `episodes/${dramaId}/${crypto.randomUUID()}.${file.type === "video/mp4" ? "mp4" : "webm"}`;
     setMessage("episodeMsg", "正在上传视频：0%，请保持页面打开……");
     await uploadResumable("ccwu-cinema-videos", uploadedVideoPath, file, (percent) =>
@@ -358,7 +379,7 @@ $("episodeForm").addEventListener("submit", async (event) => {
       drama_id: dramaId, season_number: 1,
       episode_number: Number($("episodeNo").value),
       title: $("episodeTitle").value.trim(),
-      video_path: uploadedVideoPath, duration_seconds: null,
+      video_path: uploadedVideoPath, duration_seconds: videoDuration,
       is_free: false, status: "draft"
     });
     if (error) {
