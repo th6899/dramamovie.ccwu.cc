@@ -255,3 +255,15 @@ This matrix records what has been verified in the independent test environment a
 - **SOURCE DEFECT FOUND AND FIXED:** canonical CNY request-key migration had duplicated SQL fragments after its first `COMMIT`. File repaired to one complete transaction and one terminal `COMMIT`, retaining canonical UUID validation. Fix commit `e6f8b4e1877eb2410f91150a87b06c44c2d49bc7`. Fresh CI for this repair is pending; do not count it as passed until the new head's run completes.
 - **TEST DB READ-ONLY CHECK:** ad-event viewer identity columns and reservation table remain unapplied; existing partial unique event-dedup index is present. No DDL or data writes performed.
 - **NOT VERIFIED:** migration application/compatibility (requires explicit authorization for test DB DDL); IMA insertion/frequency-cap runtime E2E (requires approved real test media, ad inventory/tag, and signing secret); payment provider sandbox callback E2E. Production deployment remains separately gated.
+
+
+### 2026-11-21 — Test database migrations applied
+
+- **PASS — Test-only migrations applied:** `20261120100000_enforce_server_side_video_ad_frequency_caps.sql` (DB ledger `20261121072701`) and `20261120120000_validate_canonical_cn_payment_request_keys.sql` (DB ledger `20261121072723`). Explicit user authorization received. Production DB untouched.
+- **PASS — Post-migration schema:** ad-event viewer UUID columns, reservation table, reservation PK/expiry indexes, and user/session impression indexes verified by read-only catalog queries.
+- **PASS — Security contracts:** ad reservation table has no direct SELECT grant to anon/authenticated/service_role; ad eligibility and event ingestion functions are SECURITY DEFINER with empty search_path and service_role-only EXECUTE; CNY order RPC retains SECURITY DEFINER/empty search_path, anon EXECUTE denied, authenticated/service_role permitted.
+- **PASS — Canonical UUID SQL:** installed function definition contains canonical UUID version/variant regex and closes the request-key guard correctly.
+- **PASS — CI at contract commit** `0bf810b8c96c1f4fc1cd7d0626503a05220cedce`: Push `44880377388` and PR `44880380769`, both 3/3 jobs passed.
+- **NOT VERIFIED — IMA runtime E2E:** test DB remains empty (0 ad configs, 0 active configs, 0 event rows, 0 reservations); requires approved real test media, ad inventory/tag, and signing configuration.
+- **NOT VERIFIED — payment sandbox callback E2E:** requires actual provider sandbox credentials/callback environment; no test orders created.
+- **Production:** no migration, deployment, or data change performed.
