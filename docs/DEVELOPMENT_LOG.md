@@ -594,3 +594,14 @@ Before each new session, read this log and inspect the current branch HEAD and l
 - Post-change verification: `relrowsecurity=true`, `relforcerowsecurity=false`, owner remains postgres, policy_count=0. anon lacks private-schema USAGE; anon/authenticated/service_role have no direct SELECT/INSERT grants on the table.
 - Supabase advisor no longer reports the critical `rls_disabled` finding for this table. It now appears among 28 INFO `rls_enabled_no_policy` private-table findings, consistent with deliberate server-only access. Other 5 SECURITY DEFINER RPC and leaked-password-protection warnings remain open.
 - Production was not modified. No data rows, reservations, or ad events were created.
+
+
+## 2026-11-21 — authenticated SECURITY DEFINER RPC review
+
+- Re-read all five TEST advisor-flagged public RPC definitions and ACLs. All are postgres-owned SECURITY DEFINER functions with empty search_path; anon EXECUTE is denied; authenticated EXECUTE is intentional and service_role EXECUTE is present.
+- `approve_manual_payment`: requires auth.uid() and `private.user_roles.role='admin'`; locks submission/order, checks ownership match, pending/submitted states, CNY amount/currency and matching payment transaction before entitlement grant.
+- `create_cn_payment_order`: requires auth.uid(), validates provider and canonical UUID request key, creates orders only for current user and active CNY plans/payment methods, handles idempotency conflicts.
+- `create_manual_payment_order`: requires auth.uid(), requires an enabled manual CNY QR channel, only active payable CNY plans; created order is assigned to auth.uid().
+- `create_stripe_subscription_order_idempotent`: requires auth.uid(), USD-only, canonical UUID typed request key, active plan and valid recurring Stripe price, idempotency bound to user/item/currency and pending order.
+- `get_my_cn_payment_order`: requires auth.uid() and filters by both order number and `o.user_id=auth.uid()`, CNY and CN providers.
+- No ACL changes made: authenticated execution is part of the intended signed-in checkout/owner workflow; admin approval has an explicit admin role guard. Keep the five advisor notices documented as review findings, not automatically remove them.
