@@ -554,3 +554,12 @@ Before each new session, read this log and inspect the current branch HEAD and l
   - `track-episode-promotion`: TEST deployed v4 differs from branch source; deployed token parser uses a loose 36-character hex/hyphen UUID pattern, while current source enforces canonical UUID version/variant format. No redeployment performed because prior explicit authorization covered only the two ad functions.
 - `create-checkout` v4 and `stripe-webhook` v3 exactly match current branch source. Ad functions remain at approved versions playback v7 and event ingestion v4.
 - This identifies two additional TEST-only deployment candidates: `cn-payment` and `track-episode-promotion`. Production remains unchanged.
+
+
+## 2026-11-21 — TEST Edge Function runtime synchronization
+
+- Authorized deployment scope: TEST Supabase project `uvtzhzgirgwjzsmcdgej` only; production project and functions were not changed.
+- Deployed `cn-payment` from branch `fix/portal-auth-errors-v2.0.3`: v7 → v8. Source blob: `cf2bc0841dbf8ebd7b6ce8b2b86ebdcc6734597c`. Runtime SHA-256 after deployment: `f86982bcd117f3311c52143b10d47ac2041906bfaf4fd0bbe9214bed7931809d`.
+- Deployed `track-episode-promotion` from the same branch: v4 → v5. Source blob: `9fc676a4d70e8562678fca11cd49d3a63df7c0f8`. Runtime SHA-256 after deployment: `c6ec6e90bdb8a20117335b021bb7e3f7b721e9a05e1350361b0534b8a661d962`.
+- Both functions read back as ACTIVE; `verify_jwt=false` preserved from their existing configuration. Read-back confirmed canonical UUID validation in both functions and required request-key validation / test-payment gateway fences in `cn-payment`.
+- No payment order, payment, provider callback, or promotion click event was created during deployment verification. Runtime activation is verified; end-to-end provider flows remain untested.
