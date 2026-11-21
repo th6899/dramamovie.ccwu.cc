@@ -310,3 +310,12 @@ This matrix records what has been verified in the independent test environment a
 | `track-episode-promotion` | v5 | ACTIVE | Read-back confirmed strict canonical UUID validation for signed promotion-click payloads; existing `verify_jwt=false` retained. |
 
 Scope was TEST project `uvtzhzgirgwjzsmcdgej` only. Production was not changed. No real or synthetic payment/promotion events were generated. Provider E2E remains pending valid test fixtures and provider sandbox configuration.
+
+
+## 2026-11-21 — post-deployment acceptance recheck
+
+- **PASS — CI:** Push `44881193710` and PR `44881195438` for `7cb6915d02575ab32e3e33cf3d11baed9917e2f4` completed successfully; all 3 jobs passed in each run.
+- **TEST content status (corrected read-only count):** 1 draft drama and 1 draft episode exist. Drama `锦绣归来` and episode 1 `Episode 1` are both draft. Episode has no video asset ID or video path. Video ad configs=0, ad events=0, frequency reservations=0.
+- **NOT VERIFIED — playback/IMA E2E:** no published media asset or ad inventory; do not mark playback, ad delivery, or frequency caps as end-to-end tested.
+- **SECURITY WARNING — OPEN:** Supabase advisor still reports RLS disabled on `private.video_ad_frequency_reservations` (critical). Direct table grants were previously checked and are absent for anon/authenticated/service_role, and anon lacks private-schema USAGE; nevertheless do not describe this as resolved. RLS remediation requires explicit policy and SECURITY DEFINER owner-path review.
+- No content or events were inserted/modified; no secret values inspected or changed. Production untouched.
