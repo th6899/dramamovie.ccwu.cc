@@ -535,3 +535,13 @@ Before each new session, read this log and inspect the current branch HEAD and l
 - Verified DB RPC signatures and grants: new eligibility and v2 event RPCs exist; anon/authenticated EXECUTE denied; service_role EXECUTE allowed. Existing legacy RPC remains present but new deployed endpoints do not call it.
 - CI at source checkpoint `3dc0f787e4647db3f92b53df917a4ce2f8d99b46`: Push `44880511267` and PR `44880515739`, both 3/3 jobs passed.
 - Runtime IMA end-to-end is not yet verified: test inventory remains empty (0 ad configs/events/reservations); no ad tag or approved test media was supplied. Deployment success and source verification are not equivalent to a real ad impression/frequency-cap E2E. Production Edge Functions and production database were not changed.
+
+
+## 2026-11-21 — TEST ad acceptance readiness and security review
+
+- Latest function+documentation checkpoint `48a75cbba9d8d653ba2f4212272a1622b252b081` CI: Push run `44880685519` and PR run `44880689603`, both 3/3 jobs passed.
+- TEST project read-only inventory: `public.dramas` 0 rows, `public.episodes` 0 rows, `public.video_ad_configs` 0 rows; therefore no published content or ad slot exists to exercise real IMA playback/frequency-cap behavior. No seed data or synthetic ad events were created.
+- Confirmed player integration: sends `viewer_session_id`, emits IMA lifecycle events, batches them to `record-video-ad-events`, and only clears queued events after server acceptance. No function log entries for either endpoint were found in the queried log window, so no live endpoint invocation is evidenced yet.
+- Security advisor flagged `private.video_ad_frequency_reservations` because RLS is disabled. Read-only privilege review found `anon` has no USAGE on schema `private`; neither `anon`, `authenticated`, nor `service_role` has direct table SELECT; only `postgres` table grants were listed. No RLS policy exists. This is not currently exposed through the normal client roles, but the advisor warning remains; do not auto-enable RLS or invent policies without evaluating the SECURITY DEFINER owner path.
+- Security advisor also reports 27 private tables with RLS enabled but no policies (service-only/private-schema design) and five public SECURITY DEFINER RPCs executable by authenticated users. Reviewed the returned definitions for the five RPCs: each sets empty search_path and checks auth identity; admin approval checks private.user_roles.role='admin'; user order RPCs scope to auth.uid(); creation RPCs require auth.uid(). These findings are retained for explicit security review rather than broad privilege changes.
+- No production changes. IMA E2E and payment-provider sandbox E2E remain unverified; payment orders and external provider calls were not created.
