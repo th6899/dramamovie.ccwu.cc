@@ -300,3 +300,13 @@ This matrix records what has been verified in the independent test environment a
 - **DEPLOYMENT DRIFT — TEST `track-episode-promotion` v4:** deployed parser accepts a loose UUID-like format; current branch requires canonical UUID version/variant. Pending explicit TEST-only deployment authorization.
 - The previous authorization applied only to `get-episode-playback` and `record-video-ad-events`; neither additional function was changed.
 - Production remains untouched.
+
+
+## 2026-11-21 — TEST function deployment verification
+
+| Function | TEST version | Status | Verification |
+|---|---:|---|---|
+| `cn-payment` | v8 | ACTIVE | Read-back confirmed strict canonical UUID `request_key` validation and test-project payment gateway fences; existing `verify_jwt=false` retained. |
+| `track-episode-promotion` | v5 | ACTIVE | Read-back confirmed strict canonical UUID validation for signed promotion-click payloads; existing `verify_jwt=false` retained. |
+
+Scope was TEST project `uvtzhzgirgwjzsmcdgej` only. Production was not changed. No real or synthetic payment/promotion events were generated. Provider E2E remains pending valid test fixtures and provider sandbox configuration.
