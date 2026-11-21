@@ -605,3 +605,14 @@ Before each new session, read this log and inspect the current branch HEAD and l
 - `create_stripe_subscription_order_idempotent`: requires auth.uid(), USD-only, canonical UUID typed request key, active plan and valid recurring Stripe price, idempotency bound to user/item/currency and pending order.
 - `get_my_cn_payment_order`: requires auth.uid() and filters by both order number and `o.user_id=auth.uid()`, CNY and CN providers.
 - No ACL changes made: authenticated execution is part of the intended signed-in checkout/owner workflow; admin approval has an explicit admin role guard. Keep the five advisor notices documented as review findings, not automatically remove them.
+
+
+## 2026-11-21 — latest CI, runtime and anonymous frequency-cap review
+
+- Current branch HEAD documentation commit `defe39c088dba6d54708076af63030d7e12bc17f`: Push run `44881675622` and PR run `44881679808` both completed successfully.
+- TEST Edge Functions rechecked: `create-checkout` v4 ACTIVE; `stripe-webhook` v3 ACTIVE; `get-episode-playback` v7 ACTIVE; `cn-payment` v8 ACTIVE; `track-episode-promotion` v5 ACTIVE; `record-video-ad-events` v4 ACTIVE. No redeployment performed.
+- Exact read-only TEST DB counts: dramas 1 total/0 published; episodes 1 total/0 published/0 with video_path; video_ad_configs 0; episode_promotions 0; active membership plans 0; active VPN plans 0; enabled payment methods 0; orders 0; membership subscriptions 0; VPN subscriptions 0; ad events 0; ad reservations 0.
+- Re-reviewed `get_eligible_video_ad_config_ids` and `record_video_ad_events_v2`: both postgres-owned SECURITY DEFINER with empty search_path; service_role-only EXECUTE; advisory transaction locks serialize same viewer/config; capped slots reserve for 2 minutes; accepted impressions re-check the cap and release reservation; event rows deduplicate on event_token_id/config_id/event_type.
+- Anonymous cap limitation: signed-in viewers are keyed by auth user ID; anonymous viewers are keyed by a client-generated UUID persisted in localStorage. Clearing/replacing browser storage can create a new anonymous identity, so anonymous frequency caps are best-effort per browser identity, not a durable anti-abuse identity. No code change made pending product/security requirements.
+- Security Advisor current: 28 INFO private RLS-enabled/no-policy findings (server-only default-deny pattern), 5 authenticated SECURITY DEFINER RPC warnings (definitions reviewed; no ACL changes), and 1 TEST Auth leaked-password protection warning. The latter is not available on the current Free plan according to the recorded Supabase documentation review; no paid upgrade attempted.
+- No secrets were read or changed. Supabase tool surface does not provide secret-presence listing; values must remain private in Dashboard. No payment orders, ad events, media or content were created. Production untouched.
