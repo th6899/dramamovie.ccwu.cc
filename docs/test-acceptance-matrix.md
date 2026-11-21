@@ -291,3 +291,12 @@ This matrix records what has been verified in the independent test environment a
 - **REVIEW — SECURITY DEFINER advisor warnings:** five authenticated-executable public RPCs inspected; each uses empty search_path and auth.uid checks, with admin-role check for manual-payment approval. No permission changes made.
 - **NOT VERIFIED — payment sandbox callback E2E.** No orders or provider transactions created.
 - **Production remains untouched.**
+
+
+### 2026-11-21 — payment/promotion runtime drift
+
+- **PASS — source/runtime match:** TEST `create-checkout` v4 and `stripe-webhook` v3 exactly match current branch source.
+- **DEPLOYMENT DRIFT — TEST `cn-payment` v7:** deployed code silently generates a random request key for missing/invalid client keys; current branch requires a canonical UUID. Pending explicit TEST-only deployment authorization.
+- **DEPLOYMENT DRIFT — TEST `track-episode-promotion` v4:** deployed parser accepts a loose UUID-like format; current branch requires canonical UUID version/variant. Pending explicit TEST-only deployment authorization.
+- The previous authorization applied only to `get-episode-playback` and `record-video-ad-events`; neither additional function was changed.
+- Production remains untouched.
