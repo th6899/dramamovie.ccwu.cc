@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Validate critical admin bootstrap, staff gate, and empty-settings behavior."""
 from pathlib import Path
+import re
 
 source = Path("admin-v2.0.1.js").read_text(encoding="utf-8")
 html = Path("admin.html").read_text(encoding="utf-8")
@@ -13,11 +14,19 @@ checks = {
     "empty settings fallback": "const settings=data||{};" in source,
     "manual QR requires an uploaded or saved image before enabling": '&&!currentQrPaths.alipay_qr_path' in source and '&&!currentQrPaths.wechat_qr_path' in source,
     "manual QR settings upsert": 'db.from("manual_payment_settings").upsert' in source,
-    "admin uses ES module entrypoint": '<script type="module" src="admin-v2.0.1.js?v=2.0.8"></script>' in html,
+    "admin uses ES module entrypoint": bool(re.search(r'<script type="module" src="admin-v2\\.0\\.1\\.js\\?v=([0-9.]+)"></script>', html)),
 }
-checks["admin build marker matches release"] = 'window.CCWU_BUILD_VERSION = "2.0.8";' in source
-checks["admin module version matches release"] = 'window.CCWU_ADMIN_MODULE_VERSION = "2.0.8";' in source
-checks["admin document title and footer match release"] = '<title>CCWU Global 管理后台 v2.0.8</title>' in html and "CCWU Global · Admin Build v2.0.8" in html
+
+# Keep the release contract version-agnostic: admin releases may advance without
+# requiring a separate hard-coded CI edit for every patch version.
+module_version = re.search(r'window\\.CCWU_ADMIN_MODULE_VERSION = "([0-9.]+)";', source)
+build_version = re.search(r'window\\.CCWU_BUILD_VERSION = "([0-9.]+)";', source)
+html_title_version = re.search(r'<title>CCWU Global 管理后台 v([0-9.]+)</title>', html)
+html_footer_version = re.search(r'CCWU Global · Admin Build v([0-9.]+)', html)
+html_script_version = re.search(r'<script type="module" src="admin-v2\\.0\\.1\\.js\\?v=([0-9.]+)"></script>', html)
+checks["admin build marker matches release"] = bool(build_version and module_version and build_version.group(1) == module_version.group(1))
+checks["admin module version matches release"] = bool(module_version and html_script_version and module_version.group(1) == html_script_version.group(1))
+checks["admin document title and footer match release"] = bool(module_version and html_title_version and html_footer_version and module_version.group(1) == html_title_version.group(1) == html_footer_version.group(1))
 checks["operations console avoids cross-user profile reads"] = 'db.from("profiles").select("id,display_name")' not in source and "Profiles are intentionally owner-readable only" in source
 checks["operations console falls back to user IDs"] = source.count('x.user_id?.slice(0, 8) || "—"') >= 3
 checks["OAuth callback returns to explicit admin page"] = 'new URL("/admin.html", location.origin).toString()' in source
