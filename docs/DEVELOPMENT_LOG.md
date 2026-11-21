@@ -563,3 +563,13 @@ Before each new session, read this log and inspect the current branch HEAD and l
 - Deployed `track-episode-promotion` from the same branch: v4 → v5. Source blob: `9fc676a4d70e8562678fca11cd49d3a63df7c0f8`. Runtime SHA-256 after deployment: `c6ec6e90bdb8a20117335b021bb7e3f7b721e9a05e1350361b0534b8a661d962`.
 - Both functions read back as ACTIVE; `verify_jwt=false` preserved from their existing configuration. Read-back confirmed canonical UUID validation in both functions and required request-key validation / test-payment gateway fences in `cn-payment`.
 - No payment order, payment, provider callback, or promotion click event was created during deployment verification. Runtime activation is verified; end-to-end provider flows remain untested.
+
+
+## 2026-11-21 — post-deployment acceptance recheck
+
+- **PASS — latest CI:** Push run `44881193710` for commit `7cb6915d02575ab32e3e33cf3d11baed9917e2f4` completed successfully; all three jobs passed (frontend contracts, Edge Function type checks, migration source integrity). The paired PR run `44881195438` also passed.
+- **TEST content inventory correction:** a read-only SQL count now returns 1 draft drama and 1 draft episode (the prior list_tables row estimate was stale/inconsistent). The draft drama is `锦绣归来`; episode 1 is `Episode 1`. Both remain draft. The episode has no `video_asset_id` or `video_path`; no active video-ad configs, ad events, or frequency reservations exist. No content was created or modified during this audit.
+- **E2E remains blocked:** there is still no published episode/media asset and no ad inventory, so playback/IMA/frequency-cap end-to-end cannot be truthfully marked passed.
+- **Log visibility:** latest available edge-log rows returned by the read-only log query are timestamped 2026-11-20 10:56 UTC; no post-deployment invocation was evidenced in the queried recent window.
+- **Security advisory remains open:** Supabase flags `private.video_ad_frequency_reservations` as RLS-disabled (critical). Existing grants review found no direct SELECT grants to anon/authenticated/service_role and anon lacks private-schema USAGE, but the advisor warning must remain visible. Do not auto-enable RLS without reviewing SECURITY DEFINER owner access and explicit policy design.
+- No secret values were inspected or changed. Production remains untouched.
