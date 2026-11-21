@@ -59,3 +59,17 @@ body>footer{background:#111416;border-color:#262b2f;color:#aeb7bd}body>footer p,
 .cinema-empty-panel b{font-size:16px;margin:12px 0 6px}.cinema-empty-panel p{font-size:12px;color:#87949a;margin:0;line-height:1.8}.cinema-empty-icon{width:44px;height:44px;display:grid;place-items:center;border-radius:50%;background:#263a3d;color:#66c6b4}
 .cinema-hero-empty+.cinema-category-strip{background:#141a1e}
 @media(max-width:700px){.cinema-hero-art{right:-65px;opacity:.22;width:190px;height:190px}.cinema-hero-empty{min-height:340px}.cinema-hero-empty .cinema-hero-copy{z-index:2}}
+
+/* Screenshot-aligned cinema category controls and poster affordances */
+.cinema-category-button{white-space:nowrap;padding:8px 16px;border:1px solid #333a3f;border-radius:20px;background:transparent;color:#c2c9cd;font:inherit;font-size:12px;cursor:pointer;transition:background .18s,border-color .18s,color .18s}
+.cinema-category-button:hover,.cinema-category-button.active{background:#1b756b;border-color:#2bb39f;color:#fff}
+.cinema-category-disabled{white-space:nowrap;padding:8px 15px;border:1px solid #30383d;border-radius:20px;color:#68747b;font-size:12px;cursor:not-allowed}
+.cinema-sidebar .sidebar-disabled{display:block;padding:11px 12px;border-radius:7px;color:#68747b;font-size:12px;cursor:not-allowed}
+.cinema-poster .poster-play{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) scale(.85);width:42px;height:42px;display:grid;place-items:center;border-radius:50%;background:#111c;color:#fff;border:1px solid #ffffff88;opacity:0;transition:opacity .2s,transform .2s}
+.cinema-card:hover .poster-play{opacity:1;transform:translate(-50%,-50%) scale(1)}
+.cinema-empty-note{display:inline-flex;margin-top:14px;padding:8px 12px;border:1px solid #41645f;border-radius:4px;color:#9bcfc4;font-size:11px}
+.cinema-empty-panel{min-height:170px;border:1px dashed #343d42;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center;padding:25px;color:#cbd1d4}
+.cinema-empty-panel p{margin:0;color:#87939a;font-size:12px;line-height:1.7}
+.cinema-empty-icon{width:38px;height:38px;display:grid;place-items:center;border-radius:50%;background:#1c3435;color:#69cbbb}
+.cinema-shelf[hidden],.cinema-card[hidden]{display:none!important}
+@media(max-width:540px){.cinema-category-button,.cinema-category-disabled{padding:7px 12px;font-size:11px}.cinema-empty-panel{min-height:150px;padding:18px}}
