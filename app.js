@@ -200,7 +200,7 @@ $("manualPayForm").addEventListener("submit",async e=>{
   $("manualPayMessage").textContent="付款信息已提交，订单进入人工审核。核实到账后将开通服务。";$("manualPayForm").reset();activeManualOrder=null;
  }catch(err){$("manualPayMessage").textContent=err.message||"提交失败，请重试。";}finally{submit.disabled=!activeManualOrder;}
 });
-$("menuBtn").onclick=()=>{const n=document.querySelector(".topbar nav");n.style.display=n.style.display==="flex"?"none":"flex";n.style.position="absolute";n.style.top="76px";n.style.left="0";n.style.right="0";n.style.padding="20px";n.style.background="white";n.style.flexDirection="column"};
+$("menuBtn").onclick=()=>{const n=document.querySelector(".topbar nav");n.style.display=n.style.display==="flex"?"none":"flex";n.style.position="absolute";n.style.top=window.matchMedia("(max-width:540px)").matches?"60px":"76px";n.style.left="0";n.style.right="0";n.style.padding="20px";n.style.background="white";n.style.flexDirection="column"};
 db.auth.onAuthStateChange((_event,session)=>{updateUserUI(session?.user??null);});
 if(new URLSearchParams(location.search).get("auth")==="login")showAuth();
 await render();await refreshUser();
