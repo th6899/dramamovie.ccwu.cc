@@ -14,7 +14,7 @@ checks = {
     "empty settings fallback": "const settings=data||{};" in source,
     "manual QR requires an uploaded or saved image before enabling": '&&!currentQrPaths.alipay_qr_path' in source and '&&!currentQrPaths.wechat_qr_path' in source,
     "manual QR settings upsert": 'db.from("manual_payment_settings").upsert' in source,
-    "admin uses ES module entrypoint": bool(re.search(r'<script type="module" src="admin-v2[.]0[.]1[.]js\\?v=([0-9.]+)"></script>', html)),
+    "admin uses ES module entrypoint": bool(re.search(r'<script type="module" src="admin-v2[.]0[.]1[.]js\?v=([0-9.]+)"></script>', html)),
 }
 
 # Keep the release contract version-agnostic: admin releases may advance without
@@ -23,7 +23,7 @@ module_version = re.search(r'window[.]CCWU_ADMIN_MODULE_VERSION = "([0-9.]+)";',
 build_version = re.search(r'window[.]CCWU_BUILD_VERSION = "([0-9.]+)";', source)
 html_title_version = re.search(r'<title>CCWU Global 管理后台 v([0-9.]+)</title>', html)
 html_footer_version = re.search(r'CCWU Global · Admin Build v([0-9.]+)', html)
-html_script_version = re.search(r'<script type="module" src="admin-v2[.]0[.]1[.]js\\?v=([0-9.]+)"></script>', html)
+html_script_version = re.search(r'<script type="module" src="admin-v2[.]0[.]1[.]js\?v=([0-9.]+)"></script>', html)
 checks["admin build marker matches release"] = bool(build_version and module_version and build_version.group(1) == module_version.group(1))
 checks["admin module version matches release"] = bool(module_version and html_script_version and module_version.group(1) == html_script_version.group(1))
 checks["admin document title and footer match release"] = bool(module_version and html_title_version and html_footer_version and module_version.group(1) == html_title_version.group(1) == html_footer_version.group(1))
