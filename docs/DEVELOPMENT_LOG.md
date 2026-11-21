@@ -505,3 +505,11 @@ Before each new session, read this log and inspect the current branch HEAD and l
 - Remaining release gates are integration/acceptance, not another broad source-development phase: (1) apply the two pending branch migrations to the test DB only after explicit authorization, then verify migration compatibility; (2) real video playback + IMA insertion/frequency-cap E2E with approved test media, ad inventory/tag, and configured signing secret; (3) payment provider sandbox callback E2E followed by whole-site acceptance. Production deployment remains separately gated by explicit approval.
 - Test DB still has zero ad configs (zero active, zero capped) and zero ad event rows. The frequency-reservation table is absent because its migration remains unapplied. No database changes or test content were created today.
 - Tomorrow: resume from this exact HEAD and these three gates; do not repeat completed login/OAuth/Cloudflare authorization, source audits, or already-passed CI checks unless new evidence requires it.
+
+
+## 2026-11-21 — Resume checkpoint and CNY migration SQL repair
+
+- Resumed from the recorded branch checkpoint `24ef0d1ce56163679f6896fb722332824ed05f85`; confirmed the branch had not moved. Exact-HEAD Push run `44735912761` and PR run `44735921264` both completed successfully, with all 3 CI jobs passing.
+- Read-only recheck confirmed the test database still has the expected pre-migration state: `private.video_ad_events` has no viewer identity columns yet; the frequency-reservation table is absent; existing event deduplication partial unique index is present. No DDL was executed.
+- Found a real source defect in `20261120120000_validate_canonical_cn_payment_request_keys.sql`: the file contained repeated trailing fragments after its first valid `COMMIT`, leaving invalid SQL in the migration source. Repaired the file by retaining the complete first transaction only (4,324 bytes; one terminal `COMMIT`), preserving the canonical UUID regex. Commit: `e6f8b4e1877eb2410f91150a87b06c44c2d49bc7`.
+- Test and production databases were not modified; neither pending migration was applied. The repaired migration now requires fresh CI validation before it can be considered source-verified. Real IMA and payment-provider sandbox E2E gates remain blocked on approved test inventory/media/secrets and provider sandbox callbacks.
