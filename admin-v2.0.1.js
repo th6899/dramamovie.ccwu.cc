@@ -1,10 +1,11 @@
-window.CCWU_ADMIN_MODULE_VERSION = "2.0.1";
-console.info("[CCWU Admin] ES module 2.0.1 loaded");
-// CCWU Global Admin module 2.0.1 — explicit ES module entrypoint\nimport { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+window.CCWU_ADMIN_MODULE_VERSION = "2.0.2";
+console.info("[CCWU Admin] ES module 2.0.2 loaded");
+// CCWU Global Admin module 2.0.2 — explicit ES module entrypoint
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js";
 
 const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-window.CCWU_BUILD_VERSION = "1.9.1";
+window.CCWU_BUILD_VERSION = "2.0.2";
 const $ = (id) => document.getElementById(id);
 const esc = (value) => String(value ?? "").replace(/[&<>"']/g, (char) => ({
   "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
@@ -20,16 +21,24 @@ let cache = { dramas: [], episodes: [], ads: [], promos: [] };
 
 $("loginForm").addEventListener("submit", async (event) => {
   event.preventDefault();
+  const submitButton = event.submitter || $("loginForm").querySelector("button[type='submit'], button:not([type])");
+  const originalLabel = submitButton?.textContent || "登录后台";
+  if (submitButton) { submitButton.disabled = true; submitButton.textContent = "正在验证…"; }
   setMessage("loginMsg", "正在验证账号……");
-  const { data, error } = await db.auth.signInWithPassword({
-    email: $("email").value.trim(),
-    password: $("password").value
-  });
-  if (error) {
-    setMessage("loginMsg", error.message, true);
-    return;
+  try {
+    const { data, error } = await db.auth.signInWithPassword({
+      email: $("email").value.trim(),
+      password: $("password").value
+    });
+    if (error) throw error;
+    if (!data?.user) throw new Error("登录服务未返回有效用户，请重试。");
+    await checkStaff(data.user);
+  } catch (error) {
+    console.error("[CCWU Admin] Login or staff verification failed", error);
+    setMessage("loginMsg", error?.message || "登录请求失败，请检查网络后重试。", true);
+  } finally {
+    if (submitButton) { submitButton.disabled = false; submitButton.textContent = originalLabel; }
   }
-  await checkStaff(data.user);
 });
 
 $("logout").addEventListener("click", async () => {
@@ -38,17 +47,34 @@ $("logout").addEventListener("click", async () => {
 });
 
 async function checkStaff(user) {
-  currentUser = user;
+  const { data: authData, error: authError } = await db.auth.getUser();
+  if (authError || !authData?.user) {
+    setMessage("loginMsg", authError ? `登录会话校验失败：${authError.message}` : "登录会话未建立，请重新登录。", true);
+    return;
+  }
+  currentUser = authData.user;
+  const activeUser = authData.user;
   const { data, error } = await db.rpc("is_staff");
   if (error || data !== true) {
-    await db.auth.signOut();
-    currentUser = null;
-    setMessage("loginMsg", error ? `权限验证失败：${error.message}` : "此账户没有后台 staff 权限。", true);
+    const provider = activeUser?.app_metadata?.provider || activeUser?.identities?.[0]?.provider || "unknown";
+    const projectRef = (() => { try { return new URL(SUPABASE_URL).hostname.split(".")[0]; } catch { return "unknown"; } })();
+    const details = [
+      "身份认证已完成，但管理员权限核验未通过。",
+      `邮箱：${activeUser?.email || "未返回"}`,
+      `Supabase UID：${activeUser?.id || "未返回"}`,
+      `登录提供方：${provider}`,
+      `当前 Supabase 项目：${projectRef}`,
+      `is_staff() 返回：${error ? "调用错误" : String(data)}`,
+      error ? `权限接口错误：${error.message}` : "请核对管理员角色与权限接口返回。"
+    ];
+    setMessage("loginMsg", details.join(" | "), true);
+    console.warn("[CCWU Admin] Staff check failed", { userId: activeUser?.id, email: activeUser?.email, provider, projectRef, isStaff: data, error: error?.message || null });
     return;
   }
   $("loginPanel").classList.add("hidden");
   $("dashboard").classList.remove("hidden");
-  $("adminUser").textContent = user.email || "管理员";
+  $("adminUser").textContent = activeUser.email || "管理员";
+  setMessage("loginMsg", "");
   await loadAll();
 }
 
