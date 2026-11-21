@@ -508,13 +508,6 @@ $("promoForm").addEventListener("submit", async (event) => {
     if (submit) submit.disabled = false;
   }
 });
-  setMessage("promoMsg", error ? error.message : "推广配置已保存。当前版本尚未统计点击或佣金。", !!error);
-  if (!error) {
-    event.target.reset();
-    $("promoButton").value = "立即了解";
-    await loadAll();
-  }
-});
 
 
 // Currency display supports USD and CNY while preserving each plan's stored currency.
