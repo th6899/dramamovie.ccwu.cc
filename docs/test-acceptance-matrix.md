@@ -267,3 +267,6 @@ This matrix records what has been verified in the independent test environment a
 - **NOT VERIFIED — IMA runtime E2E:** test DB remains empty (0 ad configs, 0 active configs, 0 event rows, 0 reservations); requires approved real test media, ad inventory/tag, and signing configuration.
 - **NOT VERIFIED — payment sandbox callback E2E:** requires actual provider sandbox credentials/callback environment; no test orders created.
 - **Production:** no migration, deployment, or data change performed.
+
+- **RUNTIME BLOCKER FOUND:** deployed TEST Edge Functions are stale: `get-episode-playback` v6 and `record-video-ad-events` v3 do not call the newly migrated viewer/session-aware frequency-cap RPCs; the event function still calls the legacy RPC. Branch source type-checks, but TEST deployment has not been authorized as part of the database-migration approval. Require explicit TEST-only Edge Function deployment before IMA E2E. Production Edge Functions unchanged.
+- **CI PASS at documentation checkpoint** `6ef5b9b3a9f23d7f39188f91e44fb417ad5a74a0`: Push `44880445963` and PR `44880450708`, both 3/3 jobs passed.
