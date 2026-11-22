@@ -1534,6 +1534,10 @@ export type Database = {
         }
         Returns: number
       }
+      reject_manual_payment: {
+        Args: { p_admin_note?: string; p_submission_id: string }
+        Returns: Json
+      }
     }
     Enums: {
       [_ in never]: never
