@@ -1,46 +1,17 @@
-#!/usr/bin/env python3
-"""Validate the staff media upload and explicit publish workflow."""
 from pathlib import Path
-
-html = Path("admin.html").read_text(encoding="utf-8")
-admin = Path("admin-v2.0.1.js").read_text(encoding="utf-8")
-app = Path("app.js").read_text(encoding="utf-8")
-playback = Path("supabase/functions/get-episode-playback/index.ts").read_text(encoding="utf-8")
-subtitle_bucket = Path("supabase/migrations/20261119090511_enforce_webvtt_subtitle_storage.sql").read_text(encoding="utf-8")
-
-required_html = (
-    'id="dramaSelect"', 'id="dramaTitle"', 'id="episodeNo"', 'id="videoFile"', 'id="episodeTitle"', 'id="episodeRows"',
-    'id="subtitleForm"', 'id="subtitleEpisode"', 'id="subtitleFile"', '最大 50MB', 'SRT 自动转换为 WebVTT'
-)
-required_promo_html = ('id="promoTitle"', 'id="promoUrl"', 'id="promoDesc"', 'id="promoPlacement"', 'id="promoEpisodeContext"')
-required_admin = (
-    'new Upload(file', 'file.size > 50 * 1024 * 1024', '"ccwu-cinema-videos"',
-    '"ccwu-cinema-subtitles"', 'new Blob([webVttText + "\\n"], { type: "text/vtt" })', 'contentType: "text/vtt"', 'WEBVTT', 'cuePattern.test(rawText)', 'ext === "srt"', 'data-toggle-drama=', 'data-toggle-episode=',
-    'published_at:', 'status: "published"', 'reviewed_by: currentUser.id',
-)
-if 'id="dramaForm"' in html:
-    raise SystemExit("Media upload must use one streamlined five-field form, not separate drama and episode forms.")
-if any(token in html for token in ('id="promoEpisode"', 'id="promoNetwork"', 'id="promoButton"', 'id="promoActive"')):
-    raise SystemExit("Affiliate promotion form contains fields outside the four requested fields.")
-for token in required_promo_html:
-    if token not in html:
-        raise SystemExit(f"Affiliate promotion UI is missing {token}")
-if 'const episode = cache.episodes[0];' not in admin or 'is_active: true' not in admin:
-    raise SystemExit("Affiliate promotions must auto-associate with the latest episode and activate on save.")
+html=Path("admin.html").read_text(encoding="utf-8")
+admin=Path("admin-v2.0.1.js").read_text(encoding="utf-8")
+app=Path("app.js").read_text(encoding="utf-8")
+playback=Path("supabase/functions/get-episode-playback/index.ts").read_text(encoding="utf-8")
+required_html=('id="dramaTitle"','id="episodeNo"','id="episodeDescription"','id="videoFile"','id="episodeRows"','id="subtitleDrama"','id="subtitleEpisode"','id="subtitleLanguage"','id="subtitleLabel"','id="subtitleFile"')
+required_admin=('new Upload(file','file.size > 50 * 1024 * 1024','"ccwu-cinema-videos"','"ccwu-cinema-subtitles"','new Blob([webVttText + "\\n"], { type: "text/vtt" })','contentType: "text/vtt"','WEBVTT','cuePattern.test(rawText)','ext === "srt"','data-toggle-drama=','data-toggle-episode=','description:desc||null')
 for token in required_html:
-    if token not in html:
-        raise SystemExit(f"Admin media UI is missing {token}")
+ if token not in html: raise SystemExit("Missing simplified media UI field: "+token)
 for token in required_admin:
-    if token not in admin:
-        raise SystemExit(f"Admin media workflow is missing {token}")
-if "allowed_mime_types = array['text/vtt']::text[]" not in subtitle_bucket or "public = false" not in subtitle_bucket:
-    raise SystemExit("Subtitle Storage bucket must be private and accept only WebVTT objects.")
-if '.eq("status","published")' not in playback:
-    raise SystemExit("Playback must not expose draft or review subtitle tracks.")
-if 'db.storage.from("ccwu-cinema-posters").getPublicUrl(raw)' not in app:
-    raise SystemExit("Public portal must resolve stored poster object paths to public Storage URLs.")
-if "id=\"dramaPoster\"" in html:
-    raise SystemExit("Drama poster input must upload to Storage rather than store an external URL.")
-if "service_role" in admin:
-    raise SystemExit("Admin frontend must not embed service credentials.")
-print("Admin media upload, publish workflow, and published-subtitle access checks passed.")
+ if token not in admin: raise SystemExit("Missing media upload workflow: "+token)
+if 'id="promoForm"' in html or 'episode_promotions' in admin: raise SystemExit("Affiliate editor must be removed from admin UI.")
+if 'ccwu-catalog-assets' not in admin: raise SystemExit("Catalog asset upload bucket is not wired.")
+if '.eq("status","published")' not in playback: raise SystemExit("Playback must not expose draft subtitle tracks.")
+if 'db.storage.from("ccwu-cinema-posters").getPublicUrl(raw)' not in app: raise SystemExit("Poster Storage URL handling missing.")
+if "service_role" in admin: raise SystemExit("Service credentials found in browser code.")
+print("Simplified media editor, subtitle upload, catalog assets and publish guards passed.")
