@@ -663,3 +663,12 @@ Before each new session, read this log and inspect the current branch HEAD and l
 - Updated only `styles.css`: desktop `#dramaGrid` now uses five equal columns; hero and category navigation span the full row; each shelf remains an independent column. Tablet and narrow layouts reduce columns responsively.
 - Preserved the existing five category names and empty-state content. No application logic, database, secrets, production site, or production project changed.
 - Fix commit: `417172eb1e886fd364015387637182f72211ebc0`.
+
+
+## 2026-11-22 — Lower portal sections two-column layout
+
+- User confirmed the five cinema shelves now display horizontally and requested the four lower sections (Digital Services, Membership, VPN, Tutorials) to appear two per row.
+- Updated `styles.css` so the cinema area remains full width and the four lower sections form a two-column grid on desktop/tablet-width layouts, collapsing to one column on narrow screens. Their inner card grids are also constrained to two columns and become one column on small phones.
+- Digital Services meaning verified from current page/code: a directory of practical online tools and digital services populated from published `service_catalog` records (`title`, `description`, `category`). It is currently empty in the test database, so no specific services are live yet.
+- Layout commit: `a168f9e860a74e3083334ab32e7923e364c548da`.
+- No database content, payment configuration, VPN provider integration, production site, or production database changed.
