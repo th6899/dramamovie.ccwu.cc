@@ -14,8 +14,8 @@ checks={
  "AdSense settings use RLS-backed table":'db.from("adsense_settings").upsert' in source and 'id="adsenseForm"' in html,
  "catalog video and file upload paths":all(x in html for x in ('id="serviceVideoFile"','id="serviceAssetFile"','id="tutorialVideoFile"','id="tutorialAssetFile"')) and 'ccwu-catalog-assets' in source,
  "catalog drafts remain unpublished":'is_published:false' in source and 'status:"draft"' in source,
- "QR uploads are retained and test payments stay disabled":'db.from("manual_payment_settings").upsert' in source and 'alipay_enabled:false,wechat_enabled:false' in source and 'id="alipayQrFile"' in html and 'id="wechatQrFile"' in html,,
- "manual payment review is wired to secure approval and rejection RPCs":all(x in html for x in ('id="manualPaymentRows"','id="refreshManualPayments"','id="manualPaymentReviewMsg"')) and 'db.from("manual_payment_submissions")' in source and 'db.rpc("approve_manual_payment"' in source and 'db.rpc("reject_manual_payment"' in source and 'ccwu-payment-proofs' in source and 'await loadManualPaymentSubmissions();' in source
+ "QR uploads are retained and test payments stay disabled":'db.from("manual_payment_settings").upsert' in source and 'alipay_enabled:false,wechat_enabled:false' in source and 'id="alipayQrFile"' in html and 'id="wechatQrFile"' in html,
+ "manual payment review is wired to secure approval and rejection RPCs":all(x in html for x in ('id="manualPaymentRows"','id="refreshManualPayments"','id="manualPaymentReviewMsg"')) and 'db.from("manual_payment_submissions")' in source and 'db.rpc("approve_manual_payment"' in source and 'db.rpc("reject_manual_payment"' in source and 'ccwu-payment-proofs' in source and 'await loadManualPaymentSubmissions();' in source,
  "catalog readiness check remains":'loadPublicCatalogReadiness' in source and 'id="catalogReadiness"' in html,
  "OAuth callback explicit admin page":'new URL("/admin.html", location.origin).toString()' in source,
 }
