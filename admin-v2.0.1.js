@@ -1,5 +1,5 @@
-window.CCWU_ADMIN_MODULE_VERSION = "2.1.0";
-console.info("[CCWU Admin] ES module 2.1.0 loaded");
+window.CCWU_ADMIN_MODULE_VERSION = "2.2.0";
+console.info("[CCWU Admin] ES module 2.2.0 loaded");
 // CCWU Global Admin module 2.0.9 — explicit ES module entrypoint
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { Upload } from "https://esm.sh/tus-js-client@4";
@@ -10,7 +10,7 @@ const isTestProject = (() => {
   try { return new URL(SUPABASE_URL).hostname === "uvtzhzgirgwjzsmcdgej.supabase.co"; }
   catch { return false; }
 })();
-window.CCWU_BUILD_VERSION = "2.1.0";
+window.CCWU_BUILD_VERSION = "2.2.0";
 const $ = (id) => document.getElementById(id);
 const esc = (value) => String(value ?? "").replace(/[&<>"']/g, (char) => ({
   "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
@@ -60,7 +60,7 @@ async function getVideoDuration(file) {
 }
 
 let currentUser = null;
-let cache = { dramas: [], episodes: [], ads: [], promos: [] };
+let cache = { dramas: [], episodes: [], ads: [] };
 
 $("githubLogin").addEventListener("click", async () => {
   const button = $("githubLogin");
@@ -186,138 +186,39 @@ async function loadPublicCatalogReadiness() {
     : "公开目录检查通过：" + results.map((item) => item.label + " " + item.count + " 项").join("；") + "。";
 }
 
-async function loadAll() {
-  $("overviewText").textContent = "正在读取数据库……";
-  const results = await Promise.all([
-    db.from("dramas").select("id,slug,title,status,created_at,poster_path").order("created_at", { ascending: false }),
-    db.from("episodes").select("id,drama_id,title,episode_number,season_number,status,video_path,duration_seconds").order("created_at", { ascending: false }),
-    db.from("video_ad_configs").select("id,episode_id,slot_key,ad_type,is_active,ad_tag_url,created_at").order("created_at", { ascending: false }),
-    db.from("episode_promotions").select("id,episode_id,title,target_url,is_active,created_at").order("created_at", { ascending: false })
-  ]);
-  const labels = ["影视作品", "剧集", "广告配置", "推广链接"];
-  const keys = ["dramas", "episodes", "ads", "promos"];
-  const errors = [];
-  results.forEach((result, index) => {
-    if (result.error) errors.push(showError(labels[index], result.error));
-    cache[keys[index]] = result.data || [];
-  });
-
-  $("kpiDramas").textContent = results[0].error ? "—" : cache.dramas.length;
-  $("kpiEpisodes").textContent = results[1].error ? "—" : cache.episodes.length;
-  $("kpiAds").textContent = results[2].error ? "—" : cache.ads.length;
-  $("kpiPromos").textContent = results[3].error ? "—" : cache.promos.length;
-  $("overviewText").textContent = errors.length
-    ? `部分数据暂不可读取：${errors.join("；")}`
-    : "数据库连接正常，概览数据已更新。";
-  await loadPublicCatalogReadiness();
-  await loadAdditionalCatalogs();
-
-  $("dramaRows").innerHTML = cache.dramas.map((drama) =>
-    `<tr><td>${esc(drama.title)}</td><td><span class="status">${esc(drama.status)}</span></td><td>${drama.created_at ? new Date(drama.created_at).toLocaleDateString() : "—"}</td><td><button type="button" class="btn btn-secondary" data-toggle-drama="${esc(drama.id)}" data-next-status="${drama.status === "published" ? "draft" : "published"}">${drama.status === "published" ? "下架" : "发布"}</button></td></tr>`
-  ).join("") || `<tr><td colspan="3">${results[0].error ? "读取失败" : "暂无影视作品"}</td></tr>`;
-
-  fillSelect("dramaSelect", cache.dramas.map((drama) => ({
-    value: drama.id, label: drama.title
-  })), "暂无影视作品");
-  const dramaSelect = $("dramaSelect");
-  dramaSelect.insertAdjacentHTML("afterbegin", '<option value="__new__">＋ 新建影视作品</option>');
-  dramaSelect.disabled = false;
-  if (!dramaSelect.value || dramaSelect.value === "__new__") dramaSelect.value = cache.dramas[0]?.id || "__new__";
-  $("dramaTitle").value = cache.dramas.find((item) => item.id === dramaSelect.value)?.title || "";
-  $("dramaTitle").readOnly = dramaSelect.value !== "__new__";
-  const dramaById = new Map(cache.dramas.map((drama) => [drama.id, drama.title]));
-  $("episodeRows").innerHTML = cache.episodes.map((episode) => {
-    const next = episode.status === "published" ? "draft" : "published";
-    return `<tr><td>${esc(`第${episode.episode_number}集 · ${episode.title}`)}</td><td>${esc(dramaById.get(episode.drama_id) || "—")}</td><td><span class="status">${esc(episode.status)}</span></td><td>${episode.video_path ? "已填写路径" : "未配置"}</td><td><button type="button" class="btn btn-secondary" data-toggle-episode="${esc(episode.id)}" data-next-status="${next}">${next === "draft" ? "下架" : "发布"}</button></td></tr>`;
-  }).join("") || `<tr><td colspan="5">${results[1].error ? "读取失败" : "暂无剧集"}</td></tr>`;
-  const episodeOptions = cache.episodes.map((episode) => ({
-    value: episode.id,
-    label: `${dramaById.get(episode.drama_id) || "未命名作品"} · ${episode.title || `第${episode.episode_number}集`}`
-  }));
-  const latestEpisode = cache.episodes[0];
-  $("promoEpisodeContext").textContent = latestEpisode
-    ? `当前自动关联最近上传剧集：${dramaById.get(latestEpisode.drama_id) || "未命名作品"} · 第${latestEpisode.episode_number}集 · ${latestEpisode.title || "未命名剧集"}`
-    : "请先上传至少一集视频，推广链接会自动关联最近上传的剧集。";
-  fillSelect("subtitleEpisode", episodeOptions, "请先新增剧集");
-  fillSelect("adEpisode", episodeOptions, "全站默认");
-
-  $("adRows").innerHTML = cache.ads.map((ad) =>
-    `<tr><td>${esc(ad.ad_type)}</td><td>${ad.episode_id ? "指定剧集" : "全站默认"}</td><td><span class="status">${ad.is_active ? "启用" : "关闭"}</span></td><td>${esc((ad.ad_tag_url || "").slice(0, 48) || "未设置")}</td></tr>`
-  ).join("") || `<tr><td colspan="4">${results[2].error ? "读取失败" : "暂无广告配置"}</td></tr>`;
-
-  $("promoRows").innerHTML = cache.promos.map((promo) => {
-    const episode = cache.episodes.find((item) => item.id === promo.episode_id);
-    const safeUrl = /^https?:\/\//i.test(promo.target_url || "") ? promo.target_url : "";
-    return `<tr><td>${esc(promo.title)}</td><td>${esc(episode?.title || "—")}</td><td><span class="status">${promo.is_active ? "启用" : "关闭"}</span></td><td>${safeUrl ? `<a target="_blank" rel="noopener noreferrer" href="${esc(safeUrl)}">打开链接</a>` : "无有效链接"}</td></tr>`;
-  }).join("") || `<tr><td colspan="4">${results[3].error ? "读取失败" : "暂无推广配置"}</td></tr>`;
+async function loadAll(){
+ const [dramas,episodes]=await Promise.all([db.from("dramas").select("id,slug,title,title_zh,status,created_at").order("created_at",{ascending:false}),db.from("episodes").select("id,drama_id,title,episode_number,season_number,status,video_path,duration_seconds,description,created_at").order("created_at",{ascending:false})]);
+ cache.dramas=dramas.data||[];cache.episodes=episodes.data||[];const errors=[dramas,episodes].filter(x=>x.error).map(x=>x.error.message);
+ $("kpiDramas").textContent=dramas.error?"—":cache.dramas.length;$("kpiEpisodes").textContent=episodes.error?"—":cache.episodes.length;$("kpiAds").textContent="AdSense";$("overviewText").textContent=errors.length?"部分数据读取失败："+errors.join("；"):"数据库连接正常，概览数据已更新。";
+ await loadPublicCatalogReadiness();await loadAdditionalCatalogs();const counts=new Map();cache.episodes.forEach(e=>counts.set(e.drama_id,(counts.get(e.drama_id)||0)+1));
+ $("dramaRows").innerHTML=cache.dramas.map(d=>`<tr><td>${esc(d.title||d.title_zh)}</td><td>${counts.get(d.id)||0}</td><td><span class="status">${esc(d.status)}</span></td><td>${d.created_at?new Date(d.created_at).toLocaleDateString():"—"}</td><td><button type="button" class="btn btn-secondary" data-toggle-drama="${esc(d.id)}" data-next-status="${d.status==="published"?"draft":"published"}">${d.status==="published"?"下架":"发布"}</button></td></tr>`).join("")||'<tr><td colspan="5">暂无影视作品</td></tr>';
+ const names=new Map(cache.dramas.map(d=>[d.id,d.title||d.title_zh]));$("episodeRows").innerHTML=cache.episodes.map(e=>`<tr><td>${esc(names.get(e.drama_id)||"—")}</td><td>第${e.episode_number}集</td><td><span class="status">${esc(e.status)}</span></td><td>${e.video_path?"已上传":"未上传"}</td><td><button type="button" class="btn btn-secondary" data-toggle-episode="${esc(e.id)}" data-next-status="${e.status==="published"?"draft":"published"}">${e.status==="published"?"下架":"发布"}</button></td></tr>`).join("")||'<tr><td colspan="5">暂无剧集</td></tr>';
+ fillSelect("subtitleDrama",cache.dramas.map(d=>({value:d.id,label:d.title||d.title_zh})),"暂无剧名");refreshSubtitleEpisodes();
 }
+function refreshSubtitleEpisodes(){const id=$("subtitleDrama")?.value;fillSelect("subtitleEpisode",cache.episodes.filter(e=>e.drama_id===id).map(e=>({value:e.id,label:`第${e.episode_number}集`} )),"该剧暂无集数");}
+$("subtitleDrama")?.addEventListener("change",refreshSubtitleEpisodes);
 
 
-async function loadAdditionalCatalogs() {
- const [services,tutorials]=await Promise.all([
-  db.from("service_catalog").select("id,slug,title,category,is_published").order("created_at",{ascending:false}),
-  db.from("tutorials").select("id,slug,title,category,status").order("created_at",{ascending:false})
- ]);
- $("serviceCatalogRows").innerHTML=services.error?'<tr><td colspan="5">'+esc(services.error.message)+'</td></tr>':(services.data||[]).map(x=>'<tr><td>'+esc(x.title)+'</td><td>'+esc(x.slug)+'</td><td>'+esc(x.category)+'</td><td>'+(x.is_published?'已发布':'草稿')+'</td><td><button class="btn btn-outline" type="button" data-catalog-toggle="service" data-id="'+esc(x.id)+'" data-active="'+x.is_published+'">'+(x.is_published?'下架':'发布')+'</button></td></tr>').join('')||'<tr><td colspan="5">暂无数字服务</td></tr>';
- $("tutorialRows").innerHTML=tutorials.error?'<tr><td colspan="5">'+esc(tutorials.error.message)+'</td></tr>':(tutorials.data||[]).map(x=>'<tr><td>'+esc(x.title)+'</td><td>'+esc(x.slug)+'</td><td>'+esc(x.category)+'</td><td>'+esc(x.status)+'</td><td><button class="btn btn-outline" type="button" data-catalog-toggle="tutorial" data-id="'+esc(x.id)+'" data-active="'+(x.status==='published')+'">'+(x.status==='published'?'下架':'发布')+'</button></td></tr>').join('')||'<tr><td colspan="5">暂无教程</td></tr>';
+async function loadAdditionalCatalogs(){
+ const [services,tutorials]=await Promise.all([db.from("service_catalog").select("id,title,is_published").order("created_at",{ascending:false}),db.from("tutorials").select("id,title,status").order("created_at",{ascending:false})]);
+ $("serviceCatalogRows").innerHTML=services.error?'<tr><td colspan="3">'+esc(services.error.message)+'</td></tr>':(services.data||[]).map(x=>'<tr><td>'+esc(x.title)+'</td><td>'+(x.is_published?'已发布':'草稿')+'</td><td><button class="btn btn-outline" type="button" data-catalog-toggle="service" data-id="'+esc(x.id)+'" data-active="'+x.is_published+'">'+(x.is_published?'下架':'发布')+'</button></td></tr>').join('')||'<tr><td colspan="3">暂无数字服务</td></tr>';
+ $("tutorialRows").innerHTML=tutorials.error?'<tr><td colspan="3">'+esc(tutorials.error.message)+'</td></tr>':(tutorials.data||[]).map(x=>'<tr><td>'+esc(x.title)+'</td><td>'+esc(x.status)+'</td><td><button class="btn btn-outline" type="button" data-catalog-toggle="tutorial" data-id="'+esc(x.id)+'" data-active="'+(x.status==='published')+'">'+(x.status==='published'?'下架':'发布')+'</button></td></tr>').join('')||'<tr><td colspan="3">暂无教程</td></tr>';
 }
-async function submitCatalogDraft(event,{formId,messageId,table,buildRow,successMessage,resetForm}) {
- event.preventDefault();
- const form=$(formId),submit=form.querySelector('button[type="submit"]');
- if(submit)submit.disabled=true;
- try {
-  const slug=$(formId==="serviceCatalogForm"?"serviceSlug":"tutorialSlug").value.trim().toLowerCase();
-  if(!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)){
-   setMessage(messageId,"Slug 仅允许小写字母、数字和连字符。",true);return;
-  }
-  const {error}=await db.from(table).insert(buildRow(slug));
-  if(error)throw error;
-  form.reset();
-  if(resetForm)resetForm();
-  setMessage(messageId,successMessage);
-  try {
-   await loadAdditionalCatalogs();
-   await loadPublicCatalogReadiness();
-  } catch(refreshError) {
-   setMessage(messageId,successMessage+" 记录已保存，但列表刷新失败："+(refreshError?.message||"请手动刷新页面。"),true);
-  }
- } catch(error) {
-  setMessage(messageId,error?.message||"保存失败，请稍后重试。",true);
- } finally {
-  if(submit)submit.disabled=false;
- }
+async function uploadCatalogAsset(file,kind){
+ if(!file)return null;const vids=["video/mp4","video/webm"],docs=["application/pdf","application/zip","text/plain","image/png","image/jpeg","image/webp"],video=kind==="video";
+ if(video&&!vids.includes(file.type))throw Error("视频只支持 MP4 或 WebM。");if(!video&&!docs.includes(file.type))throw Error("文件仅支持 PDF、ZIP、TXT、PNG、JPG、WebP。");if(file.size>50*1024*1024)throw Error("单文件最大 50MB。");
+ const ext=(file.name.split(".").pop()||"bin").toLowerCase(),path=`catalog/${crypto.randomUUID()}.${ext}`;const {error}=await db.storage.from("ccwu-catalog-assets").upload(path,file,{upsert:false,contentType:file.type});if(error)throw error;return path;
 }
-$("serviceCatalogForm").addEventListener("submit",event=>submitCatalogDraft(event,{
- formId:"serviceCatalogForm",messageId:"serviceCatalogMsg",table:"service_catalog",
- buildRow:slug=>({slug,title:$("serviceTitle").value.trim(),category:$("serviceCategory").value.trim(),description:$("serviceDescription").value.trim()||null,is_published:false}),
- successMessage:"数字服务已保存为草稿。"
-}));
-$("tutorialForm").addEventListener("submit",event=>submitCatalogDraft(event,{
- formId:"tutorialForm",messageId:"tutorialMsg",table:"tutorials",
- buildRow:slug=>({slug,title:$("tutorialTitle").value.trim(),category:$("tutorialCategory").value.trim(),summary:$("tutorialSummary").value.trim()||null,body_md:$("tutorialBody").value.trim()||null,resource_path:$("tutorialResource").value.trim()||null,status:"draft"}),
- successMessage:"教程已保存为草稿。",
- resetForm:()=>{$("tutorialCategory").value="general";}
-}));
-document.addEventListener("click",async event=>{
- const b=event.target instanceof Element?event.target.closest("[data-catalog-toggle]"):null;
- if(!b||b.disabled)return;
- const service=b.dataset.catalogToggle==="service",table=service?"service_catalog":"tutorials",next=b.dataset.active!=="true";
- b.disabled=true;
- try {
-  const {error}=await db.from(table).update(service?{is_published:next}:{status:next?"published":"draft"}).eq("id",b.dataset.id);
-  if(error)throw error;
-  try {
-   await loadAdditionalCatalogs();
-   await loadPublicCatalogReadiness();
-  } catch(refreshError) {
-   alert("目录状态已更新，但列表刷新失败："+(refreshError?.message||"请手动刷新页面。"));
-  }
- } catch(error) {
-  alert("目录状态更新失败："+(error?.message||"请稍后重试。"));
- } finally {
-  b.disabled=false;
- }
-});
+async function submitSimpleCatalog(event,kind){
+ event.preventDefault();const service=kind==="service",form=event.currentTarget,msg=service?"serviceCatalogMsg":"tutorialMsg",title=$(service?"serviceTitle":"tutorialTitle").value.trim(),desc=$(service?"serviceDescription":"tutorialSummary").value.trim();
+ const inputs=form.querySelectorAll('input[type="file"]'),video=inputs[0].files?.[0],asset=inputs[1].files?.[0],button=form.querySelector('button[type="submit"]');if(button)button.disabled=true;
+ try{if(!title)throw Error("请填写名称。");const vp=await uploadCatalogAsset(video,"video"),fp=await uploadCatalogAsset(asset,"file"),slug=(service?"service-":"tutorial-")+crypto.randomUUID().replace(/-/g,"").slice(0,16);
+ const row=service?{slug,title,category:"other",description:desc||null,video_path:vp,file_path:fp,is_published:false}:{slug,title,category:"general",summary:desc||null,body_md:desc||null,video_path:vp,file_path:fp,status:"draft"};
+ const {error}=await db.from(service?"service_catalog":"tutorials").insert(row);if(error)throw error;form.reset();setMessage(msg,"已保存为草稿。");await loadAdditionalCatalogs();await loadPublicCatalogReadiness();
+ }catch(error){setMessage(msg,error.message||"保存失败。",true);}finally{if(button)button.disabled=false;}
+}
+$("serviceCatalogForm").addEventListener("submit",e=>submitSimpleCatalog(e,"service"));$("tutorialForm").addEventListener("submit",e=>submitSimpleCatalog(e,"tutorial"));
+document.addEventListener("click",async event=>{const b=event.target instanceof Element?event.target.closest("[data-catalog-toggle]"):null;if(!b||b.disabled)return;const service=b.dataset.catalogToggle==="service",table=service?"service_catalog":"tutorials",next=b.dataset.active!=="true";b.disabled=true;try{const {error}=await db.from(table).update(service?{is_published:next}:{status:next?"published":"draft"}).eq("id",b.dataset.id);if(error)throw error;await loadAdditionalCatalogs();await loadPublicCatalogReadiness();}catch(error){alert("目录状态更新失败："+error.message);}finally{b.disabled=false;}});
 
 async function updateContentStatus(table, id, nextStatus, messageId) {
   const row = table === "dramas" ? cache.dramas.find((item) => item.id === id) : cache.episodes.find((item) => item.id === id);
@@ -342,69 +243,13 @@ document.addEventListener("click", async (event) => {
   const episodeButton = event.target.closest("[data-toggle-episode]");
   if (episodeButton) { episodeButton.disabled = true; try { await updateContentStatus("episodes", episodeButton.dataset.toggleEpisode, episodeButton.dataset.nextStatus, "episodeMsg"); } finally { episodeButton.disabled = false; } }
 });
-$("dramaSelect").addEventListener("change", () => {
-  const selected = cache.dramas.find((item) => item.id === $("dramaSelect").value);
-  $("dramaTitle").value = selected?.title || "";
-  $("dramaTitle").readOnly = Boolean(selected);
-});
-
-$("episodeForm").addEventListener("submit", async (event) => {
-  event.preventDefault();
-  const submit = event.submitter || event.target.querySelector("button");
-  if (submit) submit.disabled = true;
-  let uploadedVideoPath = null;
-  let createdDramaId = null;
-  let episodeSaved = false;
-  try {
-    const selectedDramaId = $("dramaSelect").value;
-    const title = $("dramaTitle").value.trim();
-    const file = $("videoFile").files?.[0];
-    const episodeNumber = Number($("episodeNo").value);
-    const episodeTitle = $("episodeTitle").value.trim();
-    if (!title) throw new Error("请输入剧名。");
-    if (!Number.isInteger(episodeNumber) || episodeNumber < 1) throw new Error("请输入有效集数。");
-    if (!episodeTitle) throw new Error("请输入剧集标题。");
-    if (!file) throw new Error("请选择 MP4 或 WebM 视频文件。");
-    if (!["video/mp4", "video/webm"].includes(file.type) || file.size > 50 * 1024 * 1024) {
-      throw new Error("视频仅支持 MP4/WebM，单文件最大 50MB（免费项目限制）。");
-    }
-    const videoDuration = await getVideoDuration(file);
-    let dramaId = selectedDramaId;
-    if (selectedDramaId === "__new__") {
-      const slug = "drama-" + crypto.randomUUID().replace(/-/g, "").slice(0, 16);
-      const { data: drama, error: dramaError } = await db.from("dramas").insert({
-        title, slug, synopsis: null, poster_path: null, release_year: null, status: "draft"
-      }).select("id").single();
-      if (dramaError) throw dramaError;
-      dramaId = drama.id;
-      createdDramaId = dramaId;
-    }
-    if (!dramaId) throw new Error("请选择所属剧集，或选择新建影视作品。");
-    uploadedVideoPath = `episodes/${dramaId}/${crypto.randomUUID()}.${file.type === "video/mp4" ? "mp4" : "webm"}`;
-    setMessage("episodeMsg", "正在上传视频：0%，请保持页面打开……");
-    await uploadResumable("ccwu-cinema-videos", uploadedVideoPath, file, (percent) =>
-      setMessage("episodeMsg", `正在上传视频：${percent}%`)
-    );
-    const { error } = await db.from("episodes").insert({
-      drama_id: dramaId, season_number: 1,
-      episode_number: episodeNumber,
-      title: episodeTitle,
-      video_path: uploadedVideoPath, duration_seconds: videoDuration,
-      is_free: false, status: "draft"
-    });
-    if (error) throw error;
-    episodeSaved = true;
-    setMessage("episodeMsg", `上传成功。视频路径：${uploadedVideoPath}。剧集已保存为草稿。`);
-    event.target.reset();
-    await loadAll();
-    $("dramaSelect").value = dramaId;
-    $("dramaTitle").value = cache.dramas.find((item) => item.id === dramaId)?.title || title;
-    $("dramaTitle").readOnly = true;
-  } catch (error) {
-    if (!episodeSaved && uploadedVideoPath) await db.storage.from("ccwu-cinema-videos").remove([uploadedVideoPath]);
-    if (!episodeSaved && createdDramaId) await db.from("dramas").delete().eq("id", createdDramaId);
-    setMessage("episodeMsg", error?.message || "视频上传失败。", true);
-  } finally { if (submit) submit.disabled = false; }
+$("episodeForm").addEventListener("submit",async event=>{
+ event.preventDefault();const submit=event.submitter||event.target.querySelector("button");if(submit)submit.disabled=true;let path=null,created=null,saved=false;
+ try{const title=$("dramaTitle").value.trim(),num=Number($("episodeNo").value),desc=$("episodeDescription").value.trim(),file=$("videoFile").files?.[0];if(!title)throw Error("请输入剧名。");if(!Number.isInteger(num)||num<1)throw Error("请输入有效集数。");if(!file)throw Error("请选择视频文件。");if(!["video/mp4","video/webm"].includes(file.type)||file.size>50*1024*1024)throw Error("视频只支持 MP4/WebM，最大 50MB。");
+ const duration=await getVideoDuration(file);let drama=cache.dramas.find(d=>(d.title||d.title_zh)===title),id=drama?.id;if(!id){const slug="drama-"+crypto.randomUUID().replace(/-/g,"").slice(0,16),res=await db.from("dramas").insert({title,title_zh:title,slug,category:"other",status:"draft"}).select("id").single();if(res.error)throw res.error;id=res.data.id;created=id;}
+ path=`episodes/${id}/${crypto.randomUUID()}.${file.type==="video/mp4"?"mp4":"webm"}`;setMessage("episodeMsg","正在上传视频…");await uploadResumable("ccwu-cinema-videos",path,file,p=>setMessage("episodeMsg",`正在上传视频：${p}%`));
+ const {error}=await db.from("episodes").insert({drama_id:id,season_number:1,episode_number:num,title:`第${num}集`,description:desc||null,video_path:path,duration_seconds:duration,is_free:false,status:"draft"});if(error)throw error;saved=true;event.target.reset();$("episodeNo").value=1;setMessage("episodeMsg","上传成功，已保存为草稿。");await loadAll();
+ }catch(error){if(!saved&&path)await db.storage.from("ccwu-cinema-videos").remove([path]);if(!saved&&created)await db.from("dramas").delete().eq("id",created);setMessage("episodeMsg",error.message||"上传失败。",true);}finally{if(submit)submit.disabled=false;}
 });
 
 $("subtitleForm").addEventListener("submit", async (event) => {
@@ -446,70 +291,9 @@ $("subtitleForm").addEventListener("submit", async (event) => {
   } finally { if (submit) submit.disabled = false; }
 });
 
-$("adType").addEventListener("change", () => {
-  $("adOffsetField").hidden = $("adType").value !== "midroll";
-});
-$("adForm").addEventListener("submit", async (event) => {
-  event.preventDefault();
-  const adType = $("adType").value;
-  const midrollOffset = Number($("adOffset").value);
-  if (adType === "midroll" && (!Number.isFinite(midrollOffset) || midrollOffset <= 0)) {
-    setMessage("adMsg", "中插广告必须填写大于 0 的插播秒数。", true);
-    return;
-  }
-  const { error } = await db.from("video_ad_configs").insert({
-    episode_id: $("adEpisode").value || null,
-    slot_key: "default-video",
-    ad_type: adType,
-    ad_provider: "google_ima",
-    ad_tag_url: $("adTag").value.trim(),
-    midroll_offset_seconds: adType === "midroll" ? midrollOffset : null,
-    frequency_cap_hours: 0,
-    members_exempt: true,
-    is_active: $("adActive").checked
-  });
-  setMessage("adMsg", error ? error.message : "广告配置已保存。注意：保存配置不代表广告已获批或可真实投放。", !!error);
-  if (!error) {
-    event.target.reset();
-    $("adOffsetField").hidden = true;
-    await loadAll();
-  }
-});
+async function loadAdsenseSettings(){const {data,error}=await db.from("adsense_settings").select("publisher_id,ad_slot").eq("id",true).maybeSingle();if(error){setMessage("adsenseMsg","读取失败："+error.message,true);return;}if(data){$("adsensePublisher").value=data.publisher_id||"";$("adsenseSlot").value=data.ad_slot||"";}}
+$("adsenseForm").addEventListener("submit",async event=>{event.preventDefault();const publisher=$("adsensePublisher").value.trim(),slot=$("adsenseSlot").value.trim();if(!/^ca-pub-[0-9]{16}$/.test(publisher)||!/^[0-9]{5,20}$/.test(slot)){setMessage("adsenseMsg","请检查发布商 ID 和广告单元 ID 格式。",true);return;}const {error}=await db.from("adsense_settings").upsert({id:true,publisher_id:publisher,ad_slot:slot,is_enabled:false,updated_at:new Date().toISOString(),updated_by:currentUser.id},{onConflict:"id"});setMessage("adsenseMsg",error?error.message:"AdSense 参数已保存；广告展示仍需完成 Google 审核和站点代码接入。",!!error);});
 
-$("promoForm").addEventListener("submit", async (event) => {
-  event.preventDefault();
-  const episode = cache.episodes[0];
-  if (!episode) {
-    setMessage("promoMsg", "请先上传至少一集视频，再添加推广链接。", true);
-    return;
-  }
-  const submit = event.submitter || event.target.querySelector("button");
-  if (submit) submit.disabled = true;
-  try {
-    const targetUrl = $("promoUrl").value.trim();
-    if (!/^https:\/\//i.test(targetUrl)) throw new Error("推广链接必须使用 HTTPS 地址。");
-    const { error } = await db.from("episode_promotions").insert({
-      episode_id: episode.id,
-      title: $("promoTitle").value.trim(),
-      description: $("promoDesc").value.trim() || null,
-      target_url: targetUrl,
-      button_label: "立即了解",
-      placement: $("promoPlacement").value,
-      affiliate_network: null,
-      disclosure_text: "推广链接可能产生佣金",
-      sort_order: 0,
-      is_active: true
-    });
-    if (error) throw error;
-    setMessage("promoMsg", "推广配置已保存，并自动关联最近上传的剧集。");
-    event.target.reset();
-    await loadAll();
-  } catch (error) {
-    setMessage("promoMsg", error?.message || "保存推广配置失败。", true);
-  } finally {
-    if (submit) submit.disabled = false;
-  }
-});
 
 
 // Currency display supports USD and CNY while preserving each plan's stored currency.
@@ -631,6 +415,7 @@ loadAll = async function () {
   await loadManualPaymentSettings();
   await loadNativePaymentMethods();
   await loadManualPaymentSubmissions();
+  await loadAdsenseSettings();
 };
 
 
@@ -710,7 +495,7 @@ $("manualQrForm")?.addEventListener("submit",async event=>{
   if(isTestProject&&($("alipayQrEnabled").checked||$("wechatQrEnabled").checked))throw new Error("测试项目禁止启用人工收款二维码，避免产生真实资金交易。");
   if($("alipayQrEnabled").checked&&!$("alipayQrFile").files[0]&&!currentQrPaths.alipay_qr_path)throw new Error("启用支付宝前，请先选择并保存支付宝二维码图片。");
   if($("wechatQrEnabled").checked&&!$("wechatQrFile").files[0]&&!currentQrPaths.wechat_qr_path)throw new Error("启用微信支付前，请先选择并保存微信二维码图片。");
-  const payload={alipay_enabled:$("alipayQrEnabled").checked,wechat_enabled:$("wechatQrEnabled").checked,instructions:$("manualPayInstructions").value.trim(),updated_at:new Date().toISOString(),updated_by:currentUser.id};
+  const payload={alipay_enabled:false,wechat_enabled:false,instructions:"请扫码付款，并提交付款单号；管理员核实到账后开通服务。",updated_at:new Date().toISOString(),updated_by:currentUser.id};
   for(const [id,key] of [["alipayQrFile","alipay_qr_path"],["wechatQrFile","wechat_qr_path"]]){
    const file=$(id).files[0];if(!file)continue;
    if(!qrFileRules.types.includes(file.type)||file.size>qrFileRules.maxBytes)throw new Error("二维码仅支持 PNG、JPG、WebP，且不能超过 5MB。");
