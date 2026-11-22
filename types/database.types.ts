@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      adsense_settings: {
+        Row: {
+          ad_slot: string | null
+          id: boolean
+          is_enabled: boolean
+          publisher_id: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          ad_slot?: string | null
+          id?: boolean
+          is_enabled?: boolean
+          publisher_id?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          ad_slot?: string | null
+          id?: boolean
+          is_enabled?: boolean
+          publisher_id?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       ai_tool_catalog: {
         Row: {
           category: string
@@ -371,6 +398,7 @@ export type Database = {
       episodes: {
         Row: {
           created_at: string
+          description: string | null
           drama_id: string
           duration_seconds: number | null
           episode_number: number
@@ -387,6 +415,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          description?: string | null
           drama_id: string
           duration_seconds?: number | null
           episode_number: number
@@ -403,6 +432,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          description?: string | null
           drama_id?: string
           duration_seconds?: number | null
           episode_number?: number
@@ -784,34 +814,40 @@ export type Database = {
           category: string
           created_at: string
           description: string | null
+          file_path: string | null
           id: string
           is_published: boolean
           slug: string
           sort_order: number
           title: string
           updated_at: string
+          video_path: string | null
         }
         Insert: {
           category: string
           created_at?: string
           description?: string | null
+          file_path?: string | null
           id?: string
           is_published?: boolean
           slug: string
           sort_order?: number
           title: string
           updated_at?: string
+          video_path?: string | null
         }
         Update: {
           category?: string
           created_at?: string
           description?: string | null
+          file_path?: string | null
           id?: string
           is_published?: boolean
           slug?: string
           sort_order?: number
           title?: string
           updated_at?: string
+          video_path?: string | null
         }
         Relationships: []
       }
@@ -927,6 +963,7 @@ export type Database = {
           body_md: string | null
           category: string
           created_at: string
+          file_path: string | null
           id: string
           resource_path: string | null
           slug: string
@@ -934,11 +971,13 @@ export type Database = {
           summary: string | null
           title: string
           updated_at: string
+          video_path: string | null
         }
         Insert: {
           body_md?: string | null
           category?: string
           created_at?: string
+          file_path?: string | null
           id?: string
           resource_path?: string | null
           slug: string
@@ -946,11 +985,13 @@ export type Database = {
           summary?: string | null
           title: string
           updated_at?: string
+          video_path?: string | null
         }
         Update: {
           body_md?: string | null
           category?: string
           created_at?: string
+          file_path?: string | null
           id?: string
           resource_path?: string | null
           slug?: string
@@ -958,6 +999,7 @@ export type Database = {
           summary?: string | null
           title?: string
           updated_at?: string
+          video_path?: string | null
         }
         Relationships: []
       }
@@ -1295,11 +1337,25 @@ export type Database = {
         Args: { p_item_id: string; p_item_type: string }
         Returns: Json
       }
-      create_stripe_subscription_order: {
-        Args: { p_currency: string; p_item_id: string; p_item_type: string }
+      create_stripe_subscription_order_idempotent: {
+        Args: {
+          p_currency: string
+          p_item_id: string
+          p_item_type: string
+          p_request_key: string
+        }
         Returns: Json
       }
       current_staff_role: { Args: never; Returns: string }
+      get_eligible_video_ad_config_ids: {
+        Args: {
+          p_config_ids: string[]
+          p_episode_id: string
+          p_viewer_id: string
+          p_viewer_session_id: string
+        }
+        Returns: string[]
+      }
       get_my_cn_payment_order: { Args: { p_order_no: string }; Returns: Json }
       has_active_membership: { Args: never; Returns: boolean }
       is_ccwu_admin: { Args: never; Returns: boolean }
@@ -1464,6 +1520,17 @@ export type Database = {
           p_episode_id: string
           p_event_token_id: string
           p_events: Json
+        }
+        Returns: number
+      }
+      record_video_ad_events_v2: {
+        Args: {
+          p_allowed_config_ids: string[]
+          p_episode_id: string
+          p_event_token_id: string
+          p_events: Json
+          p_viewer_id: string
+          p_viewer_session_id: string
         }
         Returns: number
       }
