@@ -655,3 +655,11 @@ Before each new session, read this log and inspect the current branch HEAD and l
 - Files changed in this checkpoint: `docs/DEVELOPMENT_LOG.md` only (this entry). No app code, database rows, Supabase settings, Cloudflare project settings/deployments, DNS, secrets, payment settings, or production resources were changed.
 - Verified deployment status: latest branch HEAD `9b70891` is **not yet proven deployed**; known Preview URL serves an older bundle. Do not describe it as current or ready.
 - Next action: use the already-authorized Cloudflare Pages API credential through its existing owner-side/API connection to read the `ccwu-global-test` project's deployment list and source SHA, then trigger/retry only a TEST Preview deployment if the existing Git integration/API permits. Keep production project/domain unchanged. After deployment, verify the new Preview's `app.js` includes the five-shelf renderer and run browser-level UI checks.
+
+
+## 2026-11-22 — Five-column cinema shelf layout correction
+
+- User preview screenshot confirmed the five cinema categories were rendered as five full-width vertical sections, not the requested side-by-side windows.
+- Updated only `styles.css`: desktop `#dramaGrid` now uses five equal columns; hero and category navigation span the full row; each shelf remains an independent column. Tablet and narrow layouts reduce columns responsively.
+- Preserved the existing five category names and empty-state content. No application logic, database, secrets, production site, or production project changed.
+- Fix commit: `417172eb1e886fd364015387637182f72211ebc0`.
