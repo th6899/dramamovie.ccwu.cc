@@ -23,8 +23,9 @@ required = [
     "approve_manual_payment:",
     "create_cn_payment_order:",
     "create_manual_payment_order:",
-    "create_stripe_subscription_order:",
+    "create_stripe_subscription_order_idempotent:",
     "get_my_cn_payment_order:",
+    "adsense_settings:",
 ]
 missing = [item for item in required if item not in source]
 if missing:
