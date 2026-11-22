@@ -172,3 +172,56 @@ body>footer{background:#111416;border-color:#262b2f;color:#aeb7bd}body>footer p,
   .cinema-content>#vpn .plan-grid,
   .cinema-content>#tutorials .tutorial-grid{grid-template-columns:1fr}
 }
+
+
+/* CCWU deep-space theme: unify the four lower homepage modules */
+body{
+  background:#080d18;
+  color:#e8edf5;
+}
+.cinema-layout,.cinema-content{
+  background:#080d18;
+}
+.cinema-content>#services{
+  background:linear-gradient(145deg,#102a35 0%,#0b1b2a 100%);
+}
+.cinema-content>#membership{
+  background:linear-gradient(145deg,#111d31 0%,#0b1424 100%);
+}
+.cinema-content>#vpn{
+  background:linear-gradient(145deg,#0c1b2a 0%,#091321 100%);
+}
+.cinema-content>#tutorials{
+  background:linear-gradient(145deg,#142238 0%,#0b1525 100%);
+}
+.cinema-content>#membership .section-head h2,
+.cinema-content>#tutorials .section-head h2,
+.cinema-content>#vpn .section-head h2,
+.cinema-content>#services .section-head h2{
+  color:#f0f5fb;
+}
+.cinema-content>#membership .section-head p,
+.cinema-content>#tutorials .section-head p,
+.cinema-content>#vpn .section-head p,
+.cinema-content>#services .section-head p{
+  color:#a8b7c9;
+}
+.cinema-content>#membership .plan-card,
+.cinema-content>#vpn .plan-card,
+.cinema-content>#tutorials .tutorial-card{
+  background:#142238;
+  border-color:#293b54;
+  color:#e8edf5;
+}
+.cinema-content>#membership .plan-card p,
+.cinema-content>#vpn .plan-card p,
+.cinema-content>#tutorials .tutorial-card p,
+.cinema-content>#membership .plan-card ul,
+.cinema-content>#vpn .plan-card ul{
+  color:#a8b7c9;
+}
+.cinema-content>#membership .plan-card h3,
+.cinema-content>#vpn .plan-card h3,
+.cinema-content>#tutorials .tutorial-card h3{
+  color:#f0f5fb;
+}
