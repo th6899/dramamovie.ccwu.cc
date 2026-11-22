@@ -413,8 +413,6 @@ loadAll = async function () {
   await loadOperations();
   await loadPlans();
   await loadManualPaymentSettings();
-  await loadNativePaymentMethods();
-  await loadManualPaymentSubmissions();
   await loadAdsenseSettings();
 };
 
@@ -508,66 +506,6 @@ $("manualQrForm")?.addEventListener("submit",async event=>{
   await loadManualPaymentSettings();
  }catch(err){setMessage("manualQrMsg",err.message||"保存失败",true);}
 });
-async function loadNativePaymentMethods(){
- const body=$("nativePaymentRows");
- if(!body)return;
- body.innerHTML='<tr><td colspan="6">正在读取…</td></tr>';
- const [methodsResult,statusResult]=await Promise.all([
-  db.from("payment_methods").select("code,provider,display_name,asset,environment,is_enabled,checkout_type,sort_order").eq("asset","CNY").order("sort_order",{ascending:true}),
-  db.functions.invoke("cn-payment",{body:{action:"status"}})
- ]);
- if(methodsResult.error){body.innerHTML='<tr><td colspan="6">'+esc(methodsResult.error.message)+'</td></tr>';setMessage("nativePaymentStatus","读取支付通道失败。",true);return;}
- const readiness=statusResult.data||{};
- if(statusResult.error)setMessage("nativePaymentStatus","无法读取商户凭据就绪状态；请确认 Edge Function Secrets 和管理员权限。",true);
- const rows=methodsResult.data||[];
- body.innerHTML=rows.map(row=>{
-  const name=row.provider==="alipay"?"支付宝":row.provider==="wechat_pay"?"微信支付":row.provider;
-  let ready=false,readyText="";
-  if(row.provider==="alipay"){
-   ready=row.environment==="test"?!!readiness.alipay_sandbox_ready:!!readiness.alipay_live_ready;
-   readyText=ready?(row.environment==="test"?"沙箱凭据已配置":"正式凭据与 Live gate 已配置"):(row.environment==="test"?"等待沙箱凭据":"正式通道未获 Live 授权");
-  }else if(row.provider==="wechat_pay"){
-   ready=row.environment==="live"&&!!readiness.wechat_live_ready;
-   readyText=row.environment==="test"?"API v3 无独立沙箱":ready?"正式凭据与 Live gate 已配置":"正式凭据 / Live gate 未就绪";
-  }else{
-   ready=false;readyText="尚未接入";
-  }
-  if(isTestProject&&row.environment!=="test"){ready=false;readyText="测试项目禁止启用正式支付通道";}
-  const action=row.is_enabled
-   ?'<button class="btn btn-outline" type="button" data-toggle-native-payment="'+esc(row.code)+'" data-environment="'+esc(row.environment)+'" data-enable="false">停用</button>'
-   :'<button class="btn btn-primary" type="button" data-toggle-native-payment="'+esc(row.code)+'" data-environment="'+esc(row.environment)+'" data-enable="true"'+(ready?"":" disabled")+'>启用</button>';
-  return '<tr><td>'+esc(name)+'</td><td>'+esc(row.asset)+'</td><td>'+esc(row.environment)+'</td><td>'+esc(readyText)+'</td><td>'+(row.is_enabled?'<span class="status-pill">已启用</span>':'<span class="muted">关闭</span>')+'</td><td>'+action+'</td></tr>';
- }).join("")||'<tr><td colspan="6">暂无自动收款通道记录</td></tr>';
- if(!statusResult.error)setMessage("nativePaymentStatus","通道状态已刷新。凭据状态只显示是否存在配置，不会读取或展示密钥。");
-}
-$("refreshNativePaymentMethods")?.addEventListener("click",loadNativePaymentMethods);
-document.addEventListener("click",async event=>{
- const button=event.target.closest("[data-toggle-native-payment]");
- if(!button)return;
- const enable=button.dataset.enable==="true",code=button.dataset.toggleNativePayment;
- if(enable&&isTestProject&&button.dataset.environment!=="test"){setMessage("nativePaymentStatus","测试项目禁止启用正式支付通道。",true);return;}
- if(enable&&!confirm("请确认该支付通道的环境与凭据已经核实。启用后客户可能创建对应环境的支付订单。继续？"))return;
- button.disabled=true;
- const {error}=await db.from("payment_methods").update({is_enabled:enable}).eq("code",code);
- if(error)setMessage("nativePaymentStatus","保存通道状态失败："+error.message,true);
- else setMessage("nativePaymentStatus",enable?"支付通道已启用。":"支付通道已停用。");
- await loadNativePaymentMethods();
-});
-async function loadManualPaymentSubmissions(){
- const body=$("manualPaymentRows");body.innerHTML='<tr><td colspan="7">正在读取…</td></tr>';
- const {data,error}=await db.from("manual_payment_submissions").select("id,order_id,user_id,method,payer_reference,proof_path,status,created_at").eq("status","submitted").order("created_at",{ascending:true}).limit(100);
- if(error){body.innerHTML=`<tr><td colspan="7">${esc(error.message)}</td></tr>`;return;}
- body.innerHTML=(data||[]).map(x=>`<tr><td>${esc(x.order_id.slice(0,8))}</td><td>${esc(x.user_id.slice(0,8))}</td><td>${x.method==="alipay"?"支付宝":"微信"}</td><td>${esc(x.payer_reference)}</td><td>${x.proof_path?`<button class="btn btn-outline" data-proof-path="${esc(x.proof_path)}" type="button">查看凭证</button>`:"未上传"}</td><td>${esc(formatDate(x.created_at))}</td><td><button class="btn btn-primary" data-approve-manual="${esc(x.id)}" type="button">确认到账并开通</button></td></tr>`).join("")||'<tr><td colspan="7">暂无待审核付款</td></tr>';
-}
-$("refreshManualPayments")?.addEventListener("click",loadManualPaymentSubmissions);
-document.addEventListener("click",async event=>{
- const proof=event.target.closest("[data-proof-path]");if(proof){const {data,error}=await db.storage.from("ccwu-payment-proofs").createSignedUrl(proof.dataset.proofPath,300);if(error){alert(error.message);return;}window.open(data.signedUrl,"_blank","noopener");return;}
- const approve=event.target.closest("[data-approve-manual]");if(!approve)return;
- if(!confirm("请先核对支付宝/微信实际到账记录。确认已到账后才可开通套餐。继续？"))return;approve.disabled=true;
- const {error}=await db.rpc("approve_manual_payment",{p_submission_id:approve.dataset.approveManual,p_admin_note:"管理员已核实实际到账"});
- if(error)alert(`审核失败：${error.message}`);else alert("已确认收款，订单已标记支付成功并开通对应订阅。");await loadManualPaymentSubmissions();
-});
-
 const { data: { user } } = await db.auth.getUser();
 if (user) await checkStaff(user);
 
