@@ -629,3 +629,16 @@ Before each new session, read this log and inspect the current branch HEAD and l
 - No database migrations, data changes, Edge Function deployments, payment settings, secrets, production resources, or Cloudflare settings were changed. Production remains untouched.
 - Cloudflare Preview deployment of exact commit `624ec5f` has not been independently verified; do not claim it is live or provide a stale deployment URL as current.
 - Next: verify the latest Preview deployment is built from `624ec5f`, then visually inspect the cinema module and perform authenticated admin workflow acceptance only with owner-authorized content.
+
+
+## 2026-11-22 — Preview deployment provenance checkpoint
+
+- Starting branch HEAD: `5e47250348f8d309183afc97b52b1a273ebf7189`.
+- Rechecked the exact branch HEAD through GitHub: the commit is `docs: record cinema layout fix and passing CI`, parent `624ec5f85cf6a90f15be26c7a281f8060cfd5d6a`.
+- GitHub Actions run `44994424476` for exact HEAD `5e47250` completed with conclusion `success`; this is CI validation only, not proof of a Cloudflare deployment.
+- Reviewed `.github/workflows/ci.yml`: it runs frontend/security checks, Deno Edge Function type checks, and migration integrity checks; it contains no Cloudflare Pages deploy step.
+- README identifies the Cloudflare Pages test project as `ccwu-global-test` and documents an earlier successful Preview deployment at commit `f55a4cf` (deployment `61e6e8eb-834a-4637-9da8-8638a49608b8`, URL `https://61e6e8eb.ccwu-global-test.pages.dev/`). That is historical evidence only and does not establish deployment of current HEAD `5e47250`.
+- TinyFish browser profiles currently show a saved GitHub sign-in only; no Cloudflare sign-in is recorded. Cloudflare Dashboard deployment provenance for current HEAD therefore remains unverified. No Dashboard settings or deployments were changed.
+- User's latest product decision: do not separately manage promotion URLs; the user will place each promotion URL in the relevant episode description. Do not ask the user for a separate promotion URL. Do not make a destructive schema change: `episode_promotions.target_url` is NOT NULL, so any future UI/schema adjustment must preserve database integrity and historical records.
+- Files changed in this checkpoint: `docs/DEVELOPMENT_LOG.md` only. No database, secrets, Edge Functions, Cloudflare configuration, or production resources changed.
+- Next: obtain read-only access to the Cloudflare Dashboard through an already signed-in browser profile or user-assisted sign-in; verify the newest Preview deployment's exact commit and URL, then inspect the deployed homepage visually. Keep the production domain and production Supabase project untouched.
