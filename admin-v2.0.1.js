@@ -1,5 +1,5 @@
-window.CCWU_ADMIN_MODULE_VERSION = "2.2.0";
-console.info("[CCWU Admin] ES module 2.2.0 loaded");
+window.CCWU_ADMIN_MODULE_VERSION = "2.2.1";
+console.info("[CCWU Admin] ES module 2.2.1 loaded");
 // CCWU Global Admin module 2.0.9 — explicit ES module entrypoint
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { Upload } from "https://esm.sh/tus-js-client@4";
@@ -10,7 +10,7 @@ const isTestProject = (() => {
   try { return new URL(SUPABASE_URL).hostname === "uvtzhzgirgwjzsmcdgej.supabase.co"; }
   catch { return false; }
 })();
-window.CCWU_BUILD_VERSION = "2.2.0";
+window.CCWU_BUILD_VERSION = "2.2.1";
 const $ = (id) => document.getElementById(id);
 const esc = (value) => String(value ?? "").replace(/[&<>"']/g, (char) => ({
   "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
@@ -413,9 +413,61 @@ loadAll = async function () {
   await loadOperations();
   await loadPlans();
   await loadManualPaymentSettings();
+  await loadManualPaymentSubmissions();
   await loadAdsenseSettings();
 };
 
+
+
+// Manual payment review: approval is the only path that activates the purchased entitlement.
+async function loadManualPaymentSubmissions(){
+ const body=$("manualPaymentRows");if(!body)return;
+ body.innerHTML='<tr><td colspan="9">正在读取待确认付款…</td></tr>';
+ const [submissions,memberPlans,vpnPlans]=await Promise.all([
+  db.from("manual_payment_submissions")
+   .select("id,order_id,user_id,method,payer_reference,proof_path,status,created_at,service_orders!inner(order_no,item_type,item_id,amount,currency,status)")
+   .eq("status","submitted").order("created_at",{ascending:true}).limit(100),
+  db.from("membership_plans").select("id,name,code"),
+  db.from("vpn_plans").select("id,name,code")
+ ]);
+ if(submissions.error){body.innerHTML='<tr><td colspan="9">读取失败：'+esc(submissions.error.message)+'</td></tr>';setMessage("manualPaymentReviewMsg","请检查管理员权限或数据库访问策略。",true);return;}
+ const planMap=new Map([...(memberPlans.data||[]),...(vpnPlans.data||[])].map(x=>[x.id,x.name||x.code||"套餐信息不可用"]));
+ const rows=await Promise.all((submissions.data||[]).map(async s=>{
+  const o=s.service_orders||{};
+  let proof="—";
+  if(s.proof_path){
+   const signed=await db.storage.from("ccwu-payment-proofs").createSignedUrl(s.proof_path,300);
+   proof=signed.error?"凭证暂不可预览":'<a class="text-link" href="'+esc(signed.data.signedUrl)+'" target="_blank" rel="noopener noreferrer">查看凭证</a>';
+  }
+  return '<tr><td>'+esc(o.order_no||s.order_id.slice(0,8))+'</td><td>'+esc(s.user_id.slice(0,8))+'</td><td>'+esc(planMap.get(o.item_id)||o.item_type||"—")+'</td><td>'+esc(o.amount)+' '+esc(o.currency)+'</td><td>'+ (s.method==="wechat"?"微信":"支付宝")+'</td><td>'+esc(s.payer_reference)+'</td><td>'+proof+'</td><td>'+esc(formatDate(s.created_at))+'</td><td><button class="btn btn-primary" type="button" data-manual-payment-action="approve" data-id="'+esc(s.id)+'">确认收款</button> <button class="btn btn-outline" type="button" data-manual-payment-action="reject" data-id="'+esc(s.id)+'">拒绝</button></td></tr>';
+ }));
+ body.innerHTML=rows.join("")||'<tr><td colspan="9">目前没有待确认付款</td></tr>';
+ setMessage("manualPaymentReviewMsg",submissions.data?.length?("共 "+submissions.data.length+" 笔待审核，请核对实际到账后再操作。"):"暂无待确认付款。");
+}
+$("refreshManualPayments")?.addEventListener("click",loadManualPaymentSubmissions);
+document.addEventListener("click",async event=>{
+ const button=event.target.closest("[data-manual-payment-action]");if(!button)return;
+ const id=button.dataset.id,action=button.dataset.manualPaymentAction;
+ if(!id)return;
+ if(action==="approve"&&!window.confirm("请确认已在微信或支付宝账户核实实际到账。确认后系统会立即开通套餐。继续？"))return;
+ let note=null;
+ if(action==="reject"){
+  note=window.prompt("请输入拒绝原因（可留空）：");
+  if(note===null)return;
+ }
+ button.disabled=true;
+ const siblings=button.parentElement.querySelectorAll("button");siblings.forEach(x=>x.disabled=true);
+ setMessage("manualPaymentReviewMsg",action==="approve"?"正在确认到账并开通权益…":"正在拒绝该付款申请…");
+ const result=action==="approve"
+  ? await db.rpc("approve_manual_payment",{p_submission_id:id,p_admin_note:null})
+  : await db.rpc("reject_manual_payment",{p_submission_id:id,p_admin_note:note});
+ if(result.error){
+  setMessage("manualPaymentReviewMsg","操作失败："+result.error.message,true);
+  siblings.forEach(x=>x.disabled=false);return;
+ }
+ setMessage("manualPaymentReviewMsg",action==="approve"?"已确认收款，会员/VPN权益已自动开通。":"已拒绝该付款申请，订单已关闭。");
+ await Promise.all([loadManualPaymentSubmissions(),loadOperations()]);
+});
 
 // v1.9 manual QR payment administration: explicit picker buttons + safe previews.
 const qrFileRules = { maxBytes: 5 * 1024 * 1024, types: ["image/png", "image/jpeg", "image/webp"] };
