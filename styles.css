@@ -122,3 +122,53 @@ body>footer{background:#111416;border-color:#262b2f;color:#aeb7bd}body>footer p,
   #dramaGrid{grid-template-columns:1fr}
   #dramaGrid>.cinema-shelf{padding:10px 0 4px}
 }
+
+
+/* CCWU lower portal modules: two sections per row */
+.cinema-content{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  align-items:stretch;
+  column-gap:0;
+}
+.cinema-content>#dramas{grid-column:1/-1;min-width:0}
+.cinema-content>#services,
+.cinema-content>#membership,
+.cinema-content>#vpn,
+.cinema-content>#tutorials{
+  min-width:0;
+  padding:54px clamp(18px,3vw,42px);
+}
+.cinema-content>#services .section-head,
+.cinema-content>#membership .section-head,
+.cinema-content>#vpn .section-head,
+.cinema-content>#tutorials .section-head{
+  margin-bottom:22px;
+}
+.cinema-content>#services .section-head h2,
+.cinema-content>#membership .section-head h2,
+.cinema-content>#vpn .section-head h2,
+.cinema-content>#tutorials .section-head h2{
+  font-size:26px;
+}
+.cinema-content>#services .service-grid,
+.cinema-content>#membership .plan-grid,
+.cinema-content>#vpn .plan-grid,
+.cinema-content>#tutorials .tutorial-grid{
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:12px;
+}
+@media(max-width:850px){
+  .cinema-content{grid-template-columns:1fr}
+  .cinema-content>#dramas{grid-column:1}
+}
+@media(max-width:540px){
+  .cinema-content>#services,
+  .cinema-content>#membership,
+  .cinema-content>#vpn,
+  .cinema-content>#tutorials{padding:38px 20px}
+  .cinema-content>#services .service-grid,
+  .cinema-content>#membership .plan-grid,
+  .cinema-content>#vpn .plan-grid,
+  .cinema-content>#tutorials .tutorial-grid{grid-template-columns:1fr}
+}
