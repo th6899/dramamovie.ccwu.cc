@@ -616,3 +616,16 @@ Before each new session, read this log and inspect the current branch HEAD and l
 - Anonymous cap limitation: signed-in viewers are keyed by auth user ID; anonymous viewers are keyed by a client-generated UUID persisted in localStorage. Clearing/replacing browser storage can create a new anonymous identity, so anonymous frequency caps are best-effort per browser identity, not a durable anti-abuse identity. No code change made pending product/security requirements.
 - Security Advisor current: 28 INFO private RLS-enabled/no-policy findings (server-only default-deny pattern), 5 authenticated SECURITY DEFINER RPC warnings (definitions reviewed; no ACL changes), and 1 TEST Auth leaked-password protection warning. The latter is not available on the current Free plan according to the recorded Supabase documentation review; no paid upgrade attempted.
 - No secrets were read or changed. Supabase tool surface does not provide secret-presence listing; values must remain private in Dashboard. No payment orders, ad events, media or content were created. Production untouched.
+
+
+## 2026-11-22 — cinema empty-state syntax fix and CI verification
+
+- Starting branch: `fix/portal-auth-errors-v2.0.3`; starting HEAD: `0ee4e26462d0cb4694f8ad5893729a09f4cb8aea`.
+- Rechecked the TEST Supabase project `uvtzhzgirgwjzsmcdgej` read-only. Current public catalog counts: dramas 1 total / 0 published; episodes 1 total / 0 published; service_catalog 0 total / 0 published; tutorials 0 total / 0 published. No database rows were inserted, updated, or deleted.
+- Confirmed the homepage empty-state renderer is designed to retain five visible cinema shelves when there are no published dramas: 精选推荐、最新上线、热门短剧、电影专区、纪录片. The latest change had invalid escaping in the five-shelf JavaScript object literal, causing the browser-JavaScript syntax CI step to fail.
+- Fixed only the escaped quotes in that object literal in `app.js`. Commit: `624ec5f85cf6a90f15be26c7a281f8060cfd5d6a` (`fix: correct empty cinema shelf syntax`).
+- Verified GitHub Actions Push run `44994364418` for the exact commit completed successfully: frontend syntax/deployment isolation, Supabase Edge Function type checks, and migration source integrity all passed.
+- Source-level review confirms the admin upload form contains only 所属剧集、剧名、集数、视频路径、剧集标题; the affiliate promotion form contains only 推广标题、推广链接、推广文案、展示位置. This is source verification, not an authenticated browser save/publish test.
+- No database migrations, data changes, Edge Function deployments, payment settings, secrets, production resources, or Cloudflare settings were changed. Production remains untouched.
+- Cloudflare Preview deployment of exact commit `624ec5f` has not been independently verified; do not claim it is live or provide a stale deployment URL as current.
+- Next: verify the latest Preview deployment is built from `624ec5f`, then visually inspect the cinema module and perform authenticated admin workflow acceptance only with owner-authorized content.
