@@ -194,7 +194,11 @@ function refreshSubtitleEpisodes(){const id=$("subtitleDrama")?.value;fillSelect
 $("subtitleDrama")?.addEventListener("change",refreshSubtitleEpisodes);
 
 async function manageDramaEpisode(event) {
- const ed=event.target.closest("[data-edit-drama]"), dd=event.target.closest("[data-delete-drama]"), ee=event.target.closest("[data-edit-episode]"), de=event.target.closest("[data-delete-episode]");
+ const ed=event.target.closest("[data-edit-drama],[data-edit-selected-drama]"), dd=event.target.closest("[data-delete-drama],[data-delete-selected-drama]"), ee=event.target.closest("[data-edit-episode],[data-edit-selected-episode]"), de=event.target.closest("[data-delete-episode],[data-delete-selected-episode]");
+ if(ed?.hasAttribute("data-edit-selected-drama"))ed.dataset.editDrama=$("subtitleDrama").value;
+ if(dd?.hasAttribute("data-delete-selected-drama"))dd.dataset.deleteDrama=$("subtitleDrama").value;
+ if(ee?.hasAttribute("data-edit-selected-episode"))ee.dataset.editEpisode=$("subtitleEpisode").value;
+ if(de?.hasAttribute("data-delete-selected-episode"))de.dataset.deleteEpisode=$("subtitleEpisode").value;
  if(!ed&&!dd&&!ee&&!de)return;
  const button=event.target.closest("button"); if(button)button.disabled=true;
  try {
