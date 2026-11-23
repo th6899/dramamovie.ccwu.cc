@@ -1,4 +1,4 @@
-window.CCWU_ADMIN_MODULE_VERSION = "2.2.1";
+window.CCWU_ADMIN_MODULE_VERSION = "2.2.2";
 console.info("[CCWU Admin] ES module 2.2.1 loaded");
 // CCWU Global Admin module 2.0.9 — explicit ES module entrypoint
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -10,7 +10,7 @@ const isTestProject = (() => {
   try { return new URL(SUPABASE_URL).hostname === "uvtzhzgirgwjzsmcdgej.supabase.co"; }
   catch { return false; }
 })();
-window.CCWU_BUILD_VERSION = "2.2.1";
+window.CCWU_BUILD_VERSION = "2.2.2";
 const $ = (id) => document.getElementById(id);
 const esc = (value) => String(value ?? "").replace(/[&<>"']/g, (char) => ({
   "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
@@ -191,12 +191,28 @@ async function loadAll(){
  cache.dramas=dramas.data||[];cache.episodes=episodes.data||[];const errors=[dramas,episodes].filter(x=>x.error).map(x=>x.error.message);
  $("kpiDramas").textContent=dramas.error?"—":cache.dramas.length;$("kpiEpisodes").textContent=episodes.error?"—":cache.episodes.length;$("kpiAds").textContent="AdSense";$("overviewText").textContent=errors.length?"部分数据读取失败："+errors.join("；"):"数据库连接正常，概览数据已更新。";
  await loadPublicCatalogReadiness();await loadAdditionalCatalogs();const counts=new Map();cache.episodes.forEach(e=>counts.set(e.drama_id,(counts.get(e.drama_id)||0)+1));
- $("dramaRows").innerHTML=cache.dramas.map(d=>`<tr><td>${esc(d.title||d.title_zh)}</td><td>${counts.get(d.id)||0}</td><td><span class="status">${esc(d.status)}</span></td><td>${d.created_at?new Date(d.created_at).toLocaleDateString():"—"}</td><td><button type="button" class="btn btn-secondary" data-toggle-drama="${esc(d.id)}" data-next-status="${d.status==="published"?"draft":"published"}">${d.status==="published"?"下架":"发布"}</button></td></tr>`).join("")||'<tr><td colspan="5">暂无影视作品</td></tr>';
- const names=new Map(cache.dramas.map(d=>[d.id,d.title||d.title_zh]));$("episodeRows").innerHTML=cache.episodes.map(e=>`<tr><td>${esc(names.get(e.drama_id)||"—")}</td><td>第${e.episode_number}集</td><td><span class="status">${esc(e.status)}</span></td><td>${e.video_path?"已上传":"未上传"}</td><td><button type="button" class="btn btn-secondary" data-toggle-episode="${esc(e.id)}" data-next-status="${e.status==="published"?"draft":"published"}">${e.status==="published"?"下架":"发布"}</button></td></tr>`).join("")||'<tr><td colspan="5">暂无剧集</td></tr>';
+ $("dramaRows").innerHTML=cache.dramas.map(d=>`<tr><td>${esc(d.title||d.title_zh)}</td><td>${counts.get(d.id)||0}</td><td><span class="status">${esc(d.status)}</span></td><td>${d.created_at?new Date(d.created_at).toLocaleDateString():"—"}</td><td><button type="button" class="btn btn-outline" data-edit-drama="${esc(d.id)}">修改剧名</button> <button type="button" class="btn btn-secondary" data-toggle-drama="${esc(d.id)}" data-next-status="${d.status==="published"?"draft":"published"}">${d.status==="published"?"下架":"发布"}</button> <button type="button" class="btn btn-outline" data-delete-drama="${esc(d.id)}">删除</button></td></tr>`).join("")||'<tr><td colspan="5">暂无影视作品</td></tr>';
+ const names=new Map(cache.dramas.map(d=>[d.id,d.title||d.title_zh]));$("episodeRows").innerHTML=cache.episodes.map(e=>`<tr><td>${esc(names.get(e.drama_id)||"—")}</td><td>第${e.episode_number}集</td><td><span class="status">${esc(e.status)}</span></td><td>${e.video_path?"已上传":"未上传"}</td><td><button type="button" class="btn btn-outline" data-edit-episode="${esc(e.id)}">修改集数</button> <button type="button" class="btn btn-secondary" data-toggle-episode="${esc(e.id)}" data-next-status="${e.status==="published"?"draft":"published"}">${e.status==="published"?"下架":"发布"}</button> <button type="button" class="btn btn-outline" data-delete-episode="${esc(e.id)}">删除</button></td></tr>`).join("")||'<tr><td colspan="5">暂无剧集</td></tr>';
  fillSelect("subtitleDrama",cache.dramas.map(d=>({value:d.id,label:d.title||d.title_zh})),"暂无剧名");refreshSubtitleEpisodes();
 }
 function refreshSubtitleEpisodes(){const id=$("subtitleDrama")?.value;fillSelect("subtitleEpisode",cache.episodes.filter(e=>e.drama_id===id).map(e=>({value:e.id,label:`第${e.episode_number}集`} )),"该剧暂无集数");}
 $("subtitleDrama")?.addEventListener("change",refreshSubtitleEpisodes);
+
+async function manageDramaEpisode(event) {
+ const ed=event.target.closest("[data-edit-drama]"), dd=event.target.closest("[data-delete-drama]"), ee=event.target.closest("[data-edit-episode]"), de=event.target.closest("[data-delete-episode]");
+ if(!ed&&!dd&&!ee&&!de)return;
+ const button=event.target.closest("button"); if(button)button.disabled=true;
+ try {
+  if(ed){const row=cache.dramas.find(x=>x.id===ed.dataset.editDrama);if(!row)return;const value=window.prompt("修改剧名：",row.title||row.title_zh||"");if(value===null)return;if(!value.trim())throw Error("剧名不能为空。");const {error}=await db.from("dramas").update({title:value.trim(),title_zh:value.trim()}).eq("id",row.id);if(error)throw error;}
+  if(ee){const row=cache.episodes.find(x=>x.id===ee.dataset.editEpisode);if(!row)return;const value=window.prompt("修改集数（只填写数字）：",String(row.episode_number));if(value===null)return;const number=Number(value);if(!Number.isInteger(number)||number<1)throw Error("集数必须是大于0的整数。");const {error}=await db.from("episodes").update({episode_number:number,title:"第"+number+"集"}).eq("id",row.id);if(error)throw error;}
+  if(de){const row=cache.episodes.find(x=>x.id===de.dataset.deleteEpisode);if(!row)return;if(!window.confirm("确定删除第"+row.episode_number+"集？此操作无法撤销。"))return;const tracks=await db.from("subtitle_tracks").select("storage_path,file_url").eq("episode_id",row.id);if(tracks.error)throw tracks.error;const {error}=await db.from("episodes").delete().eq("id",row.id);if(error)throw new Error("删除失败（可能仍有观看记录、广告或推广数据引用）："+error.message);if(row.video_path)await db.storage.from("ccwu-cinema-videos").remove([row.video_path]);const paths=[...new Set((tracks.data||[]).map(x=>x.storage_path||x.file_url).filter(Boolean))];if(paths.length)await db.storage.from("ccwu-cinema-subtitles").remove(paths);}
+  if(dd){const row=cache.dramas.find(x=>x.id===dd.dataset.deleteDrama);if(!row)return;if(cache.episodes.some(x=>x.drama_id===row.id))throw Error("请先删除该剧名下的全部剧集，再删除剧名。");if(!window.confirm("确定删除剧名“"+(row.title||row.title_zh)+"”？此操作无法撤销。"))return;const {error}=await db.from("dramas").delete().eq("id",row.id);if(error)throw error;}
+  await loadAll();
+ } catch(error){window.alert(error.message||"操作失败。");}
+ finally{if(button)button.disabled=false;}
+}
+document.addEventListener("click",manageDramaEpisode);
+
 
 
 async function loadAdditionalCatalogs(){
