@@ -12,6 +12,22 @@ const statusText = (value) => ({
   cancelled: "已取消", canceled: "已取消", failed: "失败", past_due: "待续费",
   refunded: "已退款", completed: "已完成"
 }[String(value || "").toLowerCase()] || value || "—");
+const subscriptionStatusText = (row) => {
+  const status = String(row.status || "").toLowerCase();
+  const now = Date.now();
+  const startsAt = row.starts_at ? Date.parse(row.starts_at) : null;
+  const endsAt = row.ends_at ? Date.parse(row.ends_at) : null;
+  if (status === "active" && Number.isFinite(startsAt) && startsAt > now) return "尚未生效";
+  if (status === "active" && Number.isFinite(endsAt) && endsAt <= now) return "已到期";
+  return statusText(status);
+};
+const isSubscriptionCurrentlyActive = (row) => {
+  if (String(row.status || "").toLowerCase() !== "active") return false;
+  const now = Date.now();
+  const startsAt = row.starts_at ? Date.parse(row.starts_at) : null;
+  const endsAt = row.ends_at ? Date.parse(row.ends_at) : null;
+  return (!Number.isFinite(startsAt) || startsAt <= now) && (!Number.isFinite(endsAt) || endsAt > now);
+};
 const moneyText = (amount, currency) => {
   const code = String(currency || "USD").toUpperCase();
   try { return new Intl.NumberFormat("zh-CN", { style: "currency", currency: code }).format(Number(amount)); }
@@ -59,12 +75,12 @@ async function loadAccount(user) {
   const vpnRows = vpns.data || [];
   const orderRows = orders.data || [];
 
-  $("membershipCount").textContent = memberRows.length;
-  $("vpnCount").textContent = vpnRows.length;
+  $("membershipCount").textContent = memberRows.filter(isSubscriptionCurrentlyActive).length;
+  $("vpnCount").textContent = vpnRows.filter(isSubscriptionCurrentlyActive).length;
 
   renderRows("membershipRows", memberRows, (row) =>
     "<td>" + esc(memberMap.get(row.plan_id) || ("套餐 " + String(row.plan_id).slice(0, 8))) + "</td>" +
-    "<td>" + esc(statusText(row.status)) + "</td><td>" + esc(dateText(row.starts_at)) + "</td><td>" + esc(dateText(row.ends_at)) + "</td>",
+    "<td>" + esc(subscriptionStatusText(row)) + "</td><td>" + esc(dateText(row.starts_at)) + "</td><td>" + esc(dateText(row.ends_at)) + "</td>",
     memberships.error ? "会员订阅读取失败" : "暂无会员订阅记录");
   renderRows("vpnRows", vpnRows, (row) =>
     "<td>" + esc(vpnMap.get(row.plan_id) || ("套餐 " + String(row.plan_id).slice(0, 8))) + "</td>" +
