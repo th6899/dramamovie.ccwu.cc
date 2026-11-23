@@ -10,7 +10,7 @@ profile_hardening = Path("supabase/migrations/20261120054655_revoke_legacy_profi
 profile_insert_hardening = Path("supabase/migrations/20261120060647_revoke_legacy_profile_column_inserts.sql").read_text(encoding="utf-8")
 
 checks = {
-    "account dashboard loads as ES module": '<script type="module" src="./account.js?v=2.0.3"></script>' in page,
+    "account dashboard loads as ES module": '<script type="module" src="./account.js?v=2.0.4"></script>' in page,
     "logged-out users get login/registration return link": './?auth=login&return=account' in page,
     "profile reads only current user": '.from("profiles").select("id,display_name").eq("id", user.id)' in module,
     "profile update changes display name only": '.update({ display_name: displayName })' in module and '.eq("id", currentUser.id)' in module,
