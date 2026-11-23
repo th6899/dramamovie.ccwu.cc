@@ -1,5 +1,5 @@
-window.CCWU_ADMIN_MODULE_VERSION = "2.2.3";
-console.info("[CCWU Admin] ES module 2.2.3 loaded");
+window.CCWU_ADMIN_MODULE_VERSION = "2.2.4";
+console.info("[CCWU Admin] ES module 2.2.4 loaded");
 // CCWU Global Admin module 2.0.9 — explicit ES module entrypoint
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js";
@@ -9,7 +9,7 @@ const isTestProject = (() => {
   try { return new URL(SUPABASE_URL).hostname === "uvtzhzgirgwjzsmcdgej.supabase.co"; }
   catch { return false; }
 })();
-window.CCWU_BUILD_VERSION = "2.2.3";
+window.CCWU_BUILD_VERSION = "2.2.4";
 const $ = (id) => document.getElementById(id);
 const esc = (value) => String(value ?? "").replace(/[&<>"']/g, (char) => ({
   "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
@@ -247,9 +247,11 @@ async function updateContentStatus(table, id, nextStatus, messageId) {
     }
   }
   const values = table === "dramas" ? { status: nextStatus, published_at: nextStatus === "published" ? new Date().toISOString() : null } : { status: nextStatus };
-  const { error } = await db.from(table).update(values).eq("id", id);
-  if (error) setMessage(messageId, "状态更新失败：" + error.message, true);
-  else { setMessage(messageId, nextStatus === "published" ? "内容已发布。" : "内容已下架。"); await loadAll(); }
+  const { data, error } = await db.from(table).update(values).eq("id", id).select("id,status").maybeSingle();
+  const targetMessage = table === "dramas" ? "dramaMsg" : "episodeStatusMsg";
+  if (error) setMessage(targetMessage, "状态更新失败：" + error.message, true);
+  else if (!data) setMessage(targetMessage, "发布失败：数据库没有返回更新记录。请检查当前管理员的 staff 写入权限及该记录是否仍存在；状态未改变。", true);
+  else { setMessage(targetMessage, nextStatus === "published" ? (table === "dramas" ? "影视作品已发布。现在可以发布所属剧集。" : "剧集已发布。") : "内容已下架。"); await loadAll(); }
 }
 
 document.addEventListener("click", async (event) => {
