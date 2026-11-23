@@ -84,7 +84,7 @@ async function loadAccount(user) {
     memberships.error ? "会员订阅读取失败" : "暂无会员订阅记录");
   renderRows("vpnRows", vpnRows, (row) =>
     "<td>" + esc(vpnMap.get(row.plan_id) || ("套餐 " + String(row.plan_id).slice(0, 8))) + "</td>" +
-    "<td>" + esc(statusText(row.status)) + "</td><td>" + esc(dateText(row.starts_at)) + "</td><td>" + esc(dateText(row.ends_at)) + "</td>",
+    "<td>" + esc(subscriptionStatusText(row)) + "</td><td>" + esc(dateText(row.starts_at)) + "</td><td>" + esc(dateText(row.ends_at)) + "</td>",
     vpns.error ? "VPN 订阅读取失败" : "暂无 VPN 订阅记录");
   renderRows("orderRows", orderRows, (row) =>
     "<td>" + esc(row.order_no) + "</td><td>" + esc(row.item_type === "membership" ? "会员" : row.item_type === "vpn" ? "VPN" : row.item_type) + "</td>" +
