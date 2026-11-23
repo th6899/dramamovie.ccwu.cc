@@ -7,7 +7,7 @@ checks={
  "staff role server check":'db.rpc("is_staff")' in source and "data !== true" in source,
  "test project identity guard":'new URL(SUPABASE_URL).hostname === "uvtzhzgirgwjzsmcdgej.supabase.co"' in source,
  "admin page entrypoint":bool(re.search(r'<script type="module" src="admin-v2[.]0[.]1[.]js\?v=([0-9.]+)"></script>',html)),
- "version markers consistent":'window.CCWU_ADMIN_MODULE_VERSION = "2.2.4"' in source and 'window.CCWU_BUILD_VERSION = "2.2.4"' in source and 'admin-v2.0.1.js?v=2.2.4' in html,
+ "version markers consistent":'window.CCWU_ADMIN_MODULE_VERSION = "2.2.5"' in source and 'window.CCWU_BUILD_VERSION = "2.2.5"' in source and 'admin-v2.0.1.js?v=2.2.5' in html,
  "video upload avoids TUS Blob source mismatch":'db.storage.from(bucket).upload(path, file' in source and 'tus-js-client' not in source,
  "subtitle selectors expose edit and delete controls":all(x in html for x in ('data-edit-selected-drama','data-delete-selected-drama','data-edit-selected-episode','data-delete-selected-episode')) and 'data-edit-selected-drama' in source and 'data-delete-selected-episode' in source,
  "episode editor keeps requested fields":all(x in html for x in ('id="dramaTitle"','id="episodeNo"','id="episodeDescription"','id="videoFile"')),
@@ -22,6 +22,8 @@ checks={
   'select("id,status").maybeSingle()' in source and '发布失败：数据库没有返回更新记录' in source,
  "admin table text contrast and publish feedback":
   'id="dramaMsg"' in html and 'id="episodeStatusMsg"' in html,
+ "episode-first workflow hides separate drama list":'<div class="hidden" aria-hidden="true"><table><tbody id="dramaRows"></tbody></table></div>' in html and "逐集上传视频" in html,
+ "episode publishing auto-publishes parent drama":'自动发布所属剧名失败' in source and 'parent.status = "published"' in source,
  "catalog readiness check remains":'loadPublicCatalogReadiness' in source and 'id="catalogReadiness"' in html,
  "OAuth callback explicit admin page":'new URL("/admin.html", location.origin).toString()' in source,
 }
