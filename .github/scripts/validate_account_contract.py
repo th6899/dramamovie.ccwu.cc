@@ -22,6 +22,9 @@ checks = {
     "no role or privilege update in account module": '.update({ role:' not in module and 'service_role' not in module,
 }
 checks["display name update has a column-only database grant"] = "GRANT UPDATE (display_name)" in profile_migration and "GRANT UPDATE (role" not in profile_migration
+checks["expired subscriptions are not shown as active"] = "const subscriptionStatusText = (row) =>" in module and "endsAt <= now" in module and 'esc(subscriptionStatusText(row))' in module
+checks["subscription counters count only currently effective plans"] = 'memberRows.filter(isSubscriptionCurrentlyActive).length' in module and 'vpnRows.filter(isSubscriptionCurrentlyActive).length' in module
+
 checks["login prompt remains visible without JavaScript"] = 'id="accountLoginPrompt" class="account-card"' in page
 
 checks["login modal opens before async homepage data loading"] = home.index('get("auth")==="login"') < home.index("await render();await refreshUser();")
