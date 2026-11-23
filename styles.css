@@ -225,3 +225,12 @@ body{
 .cinema-content>#tutorials .tutorial-card h3{
   color:#f0f5fb;
 }
+
+/* Admin readability and status feedback v2.2.4 */
+.admin-shell .muted{color:#52636b!important}
+.admin-shell .table-wrap td{color:#263b45}
+.admin-shell .table-wrap th{color:#40545e;font-weight:700}
+.admin-shell .form-message{color:#087d70;font-weight:600}
+.admin-shell .form-message.error-message{color:#b42318!important}
+.admin-shell .status{color:#075f53;background:#d5f3eb;font-weight:700}
+.admin-shell .btn-secondary{background:#e8f3f0;color:#174f48;border:1px solid #b8d8d0}
