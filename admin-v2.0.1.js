@@ -1,5 +1,5 @@
-window.CCWU_ADMIN_MODULE_VERSION = "2.2.4";
-console.info("[CCWU Admin] ES module 2.2.4 loaded");
+window.CCWU_ADMIN_MODULE_VERSION = "2.2.5";
+console.info("[CCWU Admin] ES module 2.2.5 loaded");
 // CCWU Global Admin module 2.0.9 — explicit ES module entrypoint
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js";
@@ -9,7 +9,7 @@ const isTestProject = (() => {
   try { return new URL(SUPABASE_URL).hostname === "uvtzhzgirgwjzsmcdgej.supabase.co"; }
   catch { return false; }
 })();
-window.CCWU_BUILD_VERSION = "2.2.4";
+window.CCWU_BUILD_VERSION = "2.2.5";
 const $ = (id) => document.getElementById(id);
 const esc = (value) => String(value ?? "").replace(/[&<>"']/g, (char) => ({
   "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
@@ -242,8 +242,18 @@ async function updateContentStatus(table, id, nextStatus, messageId) {
     if (table === "episodes") {
       if (!row.video_path || /^https?:\/\//i.test(row.video_path)) return setMessage(messageId, "发布失败：请先上传视频或填写有效的 Storage 相对路径。", true);
       const parent = cache.dramas.find((item) => item.id === row.drama_id);
-      if (parent?.status !== "published") return setMessage(messageId, "发布失败：请先发布所属影视作品。", true);
-      if (!row.duration_seconds || row.duration_seconds < 1) return setMessage(messageId, "发布失败：请先填写有效的视频时长。", true);
+      if (!parent) return setMessage(messageId, "发布失败：找不到所属剧名记录，请检查剧集归档关系。", true);
+      if (parent.status !== "published") {
+        const parentUpdate = await db.from("dramas")
+          .update({ status: "published", published_at: new Date().toISOString() })
+          .eq("id", parent.id)
+          .select("id,status")
+          .maybeSingle();
+        if (parentUpdate.error) return setMessage(messageId, "自动发布所属剧名失败：" + parentUpdate.error.message, true);
+        if (!parentUpdate.data) return setMessage(messageId, "自动发布所属剧名失败：数据库没有返回更新记录，剧集尚未发布。", true);
+        parent.status = "published";
+      }
+      if (!row.duration_seconds || row.duration_seconds < 1) return setMessage(messageId, "发布失败：请先检查视频时长是否有效。", true);
     }
   }
   const values = table === "dramas" ? { status: nextStatus, published_at: nextStatus === "published" ? new Date().toISOString() : null } : { status: nextStatus };
