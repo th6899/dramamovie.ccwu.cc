@@ -182,7 +182,7 @@ async function loadPublicCatalogReadiness() {
 }
 
 async function loadAll(){
- const [dramas,episodes]=await Promise.all([db.from("dramas").select("id,slug,title,title_zh,category,status,created_at").order("created_at",{ascending:false}),db.from("episodes").select("id,drama_id,title,episode_number,season_number,status,video_path,duration_seconds,description,created_at").order("created_at",{ascending:false})]);
+ const [dramas,episodes]=await Promise.all([db.from("dramas").select("id,slug,title,title_zh,category,status,published_at,created_at").order("created_at",{ascending:false}),db.from("episodes").select("id,drama_id,title,episode_number,season_number,status,video_path,duration_seconds,description,created_at").order("created_at",{ascending:false})]);
  cache.dramas=dramas.data||[];cache.episodes=episodes.data||[];const errors=[dramas,episodes].filter(x=>x.error).map(x=>x.error.message);
  $("kpiDramas").textContent=dramas.error?"—":cache.dramas.length;$("kpiEpisodes").textContent=episodes.error?"—":cache.episodes.length;$("kpiAds").textContent="AdSense";$("overviewText").textContent=errors.length?"部分数据读取失败："+errors.join("；"):"数据库连接正常，概览数据已更新。";
  await loadPublicCatalogReadiness();await loadAdditionalCatalogs();const counts=new Map();cache.episodes.forEach(e=>counts.set(e.drama_id,(counts.get(e.drama_id)||0)+1));
@@ -240,33 +240,77 @@ document.addEventListener("click",async event=>{const b=event.target instanceof 
 
 async function updateContentStatus(table, id, nextStatus, messageId) {
   const row = table === "dramas" ? cache.dramas.find((item) => item.id === id) : cache.episodes.find((item) => item.id === id);
-  if (!row) return;
-  if (nextStatus === "published") {
-    if (table === "episodes") {
-      if (!row.video_path || /^https?:\/\//i.test(row.video_path)) return setMessage(messageId, "发布失败：请先上传视频或填写有效的 Storage 相对路径。", true);
-      const parent = cache.dramas.find((item) => item.id === row.drama_id);
-      if (!parent) return setMessage(messageId, "发布失败：找不到所属剧名记录，请检查剧集归档关系。", true);
-      if (parent.status !== "published") {
-        const parentUpdate = await db.from("dramas")
-          .update({ status: "published", published_at: new Date().toISOString() })
-          .eq("id", parent.id)
-          .select("id,status")
-          .maybeSingle();
-        if (parentUpdate.error) return setMessage(messageId, "自动发布所属剧名失败：" + parentUpdate.error.message, true);
-        if (!parentUpdate.data) return setMessage(messageId, "自动发布所属剧名失败：数据库没有返回更新记录，剧集尚未发布。", true);
-        parent.status = "published";
+  const targetMessage = table === "dramas" ? "dramaMsg" : "episodeStatusMsg";
+  if (!row) return setMessage(targetMessage, "状态更新失败：找不到当前记录，请刷新列表后重试。", true);
+
+  let parent = null;
+  let parentWasChanged = false;
+  let originalParentStatus = null;
+  let originalParentPublishedAt = null;
+
+  // Validate every episode publishing prerequisite before changing the parent drama.
+  if (nextStatus === "published" && table === "episodes") {
+    if (!row.video_path || /^https?:\/\//i.test(row.video_path)) {
+      return setMessage(targetMessage, "发布失败：请先上传视频或填写有效的 Storage 相对路径。", true);
+    }
+    if (!row.duration_seconds || row.duration_seconds < 1) {
+      return setMessage(targetMessage, "发布失败：请先检查视频时长是否有效。", true);
+    }
+    parent = cache.dramas.find((item) => item.id === row.drama_id);
+    if (!parent) {
+      return setMessage(targetMessage, "发布失败：找不到所属剧名记录，请检查剧集归档关系。", true);
+    }
+    if (parent.status !== "published") {
+      originalParentStatus = parent.status;
+      originalParentPublishedAt = parent.published_at ?? null;
+      const parentUpdate = await db.from("dramas")
+        .update({ status: "published", published_at: new Date().toISOString() })
+        .eq("id", parent.id)
+        .select("id,status")
+        .maybeSingle();
+      if (parentUpdate.error) {
+        return setMessage(targetMessage, "自动发布所属剧名失败：" + parentUpdate.error.message, true);
       }
-      if (!row.duration_seconds || row.duration_seconds < 1) return setMessage(messageId, "发布失败：请先检查视频时长是否有效。", true);
+      if (!parentUpdate.data) {
+        return setMessage(targetMessage, "自动发布所属剧名失败：数据库没有返回更新记录，剧集尚未发布。", true);
+      }
+      parentWasChanged = true;
+      parent.status = "published";
     }
   }
-  const values = table === "dramas" ? { status: nextStatus, published_at: nextStatus === "published" ? new Date().toISOString() : null } : { status: nextStatus };
-  const { data, error } = await db.from(table).update(values).eq("id", id).select("id,status").maybeSingle();
-  const targetMessage = table === "dramas" ? "dramaMsg" : "episodeStatusMsg";
-  if (error) setMessage(targetMessage, "状态更新失败：" + error.message, true);
-  else if (!data) setMessage(targetMessage, "发布失败：数据库没有返回更新记录。请检查当前管理员的 staff 写入权限及该记录是否仍存在；状态未改变。", true);
-  else { setMessage(targetMessage, nextStatus === "published" ? (table === "dramas" ? "影视作品已发布。现在可以发布所属剧集。" : "剧集已发布。") : "内容已下架。"); await loadAll(); }
-}
 
+  const values = table === "dramas"
+    ? { status: nextStatus, published_at: nextStatus === "published" ? new Date().toISOString() : null }
+    : { status: nextStatus };
+  const { data, error } = await db.from(table).update(values).eq("id", id).select("id,status").maybeSingle();
+
+  if (error || !data) {
+    let rollbackNote = "";
+    if (parentWasChanged && parent) {
+      const rollback = await db.from("dramas")
+        .update({ status: originalParentStatus, published_at: originalParentPublishedAt })
+        .eq("id", parent.id)
+        .select("id")
+        .maybeSingle();
+      if (rollback.error || !rollback.data) {
+        rollbackNote = "；并且所属剧名状态回滚未能确认，请刷新后台核对";
+      } else {
+        parent.status = originalParentStatus;
+        parent.published_at = originalParentPublishedAt;
+      }
+    }
+    const detail = error ? error.message : "数据库没有返回更新记录，请检查 staff 写入权限及记录是否仍存在";
+    return setMessage(targetMessage, "状态更新失败：" + detail + rollbackNote, true);
+  }
+
+  setMessage(
+    targetMessage,
+    nextStatus === "published"
+      ? (table === "dramas" ? "影视作品已发布。还需发布至少一集，主页才会显示。" : "剧集已发布，主页将在对应分类显示该作品。")
+      : "内容已下架。"
+  );
+  await loadAll();
+}
 document.addEventListener("click", async (event) => {
   const dramaButton = event.target.closest("[data-toggle-drama]");
   if (dramaButton) { dramaButton.disabled = true; try { await updateContentStatus("dramas", dramaButton.dataset.toggleDrama, dramaButton.dataset.nextStatus, "dramaMsg"); } finally { dramaButton.disabled = false; } return; }
