@@ -1,4 +1,4 @@
-window.CCWU_ADMIN_MODULE_VERSION = "2.2.5";
+window.CCWU_ADMIN_MODULE_VERSION = "2.2.6";
 console.info("[CCWU Admin] ES module 2.2.5 loaded");
 // CCWU Global Admin module 2.0.9 — explicit ES module entrypoint
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -9,7 +9,7 @@ const isTestProject = (() => {
   try { return new URL(SUPABASE_URL).hostname === "uvtzhzgirgwjzsmcdgej.supabase.co"; }
   catch { return false; }
 })();
-window.CCWU_BUILD_VERSION = "2.2.5";
+window.CCWU_BUILD_VERSION = "2.2.6";
 const $ = (id) => document.getElementById(id);
 const esc = (value) => String(value ?? "").replace(/[&<>"']/g, (char) => ({
   "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
@@ -272,10 +272,10 @@ document.addEventListener("click", async (event) => {
 });
 $("episodeForm").addEventListener("submit",async event=>{
  event.preventDefault();const submit=event.submitter||event.target.querySelector("button");if(submit)submit.disabled=true;let path=null,created=null,saved=false;
- try{const title=$("dramaTitle").value.trim(),num=Number($("episodeNo").value),desc=$("episodeDescription").value.trim(),file=$("videoFile").files?.[0];if(!title)throw Error("请输入剧名。");if(!Number.isInteger(num)||num<1)throw Error("请输入有效集数。");if(!file)throw Error("请选择视频文件。");if(!["video/mp4","video/webm"].includes(file.type))throw Error("视频只支持 MP4/WebM。");if(file.size > 50 * 1024 * 1024)throw Error("视频最大 50MB。");
- const duration=await getVideoDuration(file);let drama=cache.dramas.find(d=>(d.title||d.title_zh)===title),id=drama?.id;if(!id){const slug="drama-"+crypto.randomUUID().replace(/-/g,"").slice(0,16),res=await db.from("dramas").insert({title,title_zh:title,slug,category:"other",status:"draft"}).select("id").single();if(res.error)throw res.error;id=res.data.id;created=id;}
+ try{const title=$("dramaTitle").value.trim(),category=$("dramaCategory").value,num=Number($("episodeNo").value),desc=$("episodeDescription").value.trim(),file=$("videoFile").files?.[0];if(!title)throw Error("请输入剧名。");if(!["选推荐","最新上线","热门短剧","电影专区","纪录片"].includes(category))throw Error("请选择主页分类。");if(!Number.isInteger(num)||num<1)throw Error("请输入有效集数。");if(!file)throw Error("请选择视频文件。");if(!["video/mp4","video/webm"].includes(file.type))throw Error("视频只支持 MP4/WebM。");if(file.size > 50 * 1024 * 1024)throw Error("视频最大 50MB。");
+ const duration=await getVideoDuration(file);let drama=cache.dramas.find(d=>(d.title||d.title_zh)===title),id=drama?.id;if(!id){const slug="drama-"+crypto.randomUUID().replace(/-/g,"").slice(0,16),res=await db.from("dramas").insert({title,title_zh:title,slug,category,status:"draft"}).select("id").single();if(res.error)throw res.error;id=res.data.id;created=id;}else{const {data:updatedDrama,error:categoryError}=await db.from("dramas").update({category}).eq("id",id).select("id").maybeSingle();if(categoryError)throw categoryError;if(!updatedDrama)throw Error("所属剧名分类更新失败：数据库没有返回更新记录。");}
  path=`episodes/${id}/${crypto.randomUUID()}.${file.type==="video/mp4"?"mp4":"webm"}`;setMessage("episodeMsg","正在上传视频…");await uploadResumable("ccwu-cinema-videos",path,file,p=>setMessage("episodeMsg",`正在上传视频：${p}%`));
- const {error}=await db.from("episodes").insert({drama_id:id,season_number:1,episode_number:num,title:`第${num}集`,description:desc||null,video_path:path,duration_seconds:duration,is_free:false,status:"draft"});if(error)throw error;saved=true;event.target.reset();$("episodeNo").value=1;setMessage("episodeMsg","上传成功，已保存为草稿。");await loadAll();
+ const {error}=await db.from("episodes").insert({drama_id:id,season_number:1,episode_number:num,title:`第${num}集`,description:desc||null,video_path:path,duration_seconds:duration,is_free:false,status:"draft"});if(error)throw error;saved=true;event.target.reset();$("episodeNo").value=1;setMessage("episodeMsg",`上传成功，已保存为草稿；主页分类：${category}。`);await loadAll();
  }catch(error){if(!saved&&path)await db.storage.from("ccwu-cinema-videos").remove([path]);if(!saved&&created)await db.from("dramas").delete().eq("id",created);setMessage("episodeMsg",error.message||"上传失败。",true);}finally{if(submit)submit.disabled=false;}
 });
 
