@@ -1,4 +1,4 @@
-window.CCWU_ADMIN_MODULE_VERSION = "2.2.6";
+window.CCWU_ADMIN_MODULE_VERSION = "2.2.7";
 console.info("[CCWU Admin] ES module 2.2.5 loaded");
 // CCWU Global Admin module 2.0.9 — explicit ES module entrypoint
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -9,7 +9,7 @@ const isTestProject = (() => {
   try { return new URL(SUPABASE_URL).hostname === "uvtzhzgirgwjzsmcdgej.supabase.co"; }
   catch { return false; }
 })();
-window.CCWU_BUILD_VERSION = "2.2.6";
+window.CCWU_BUILD_VERSION = "2.2.7";
 const $ = (id) => document.getElementById(id);
 const esc = (value) => String(value ?? "").replace(/[&<>"']/g, (char) => ({
   "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
