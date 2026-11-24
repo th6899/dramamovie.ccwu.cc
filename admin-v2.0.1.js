@@ -1,5 +1,5 @@
-window.CCWU_ADMIN_MODULE_VERSION = "2.2.12";
-console.info("[CCWU Admin] ES module 2.2.12 loaded");
+window.CCWU_ADMIN_MODULE_VERSION = "2.2.13";
+console.info("[CCWU Admin] ES module 2.2.13 loaded");
 // CCWU Global Admin module 2.0.9 — explicit ES module entrypoint
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js";
@@ -142,6 +142,61 @@ async function createPosterBlob(videoBlob, expectedMimeType = "video/mp4") {
     }, { once: true });
     video.src = objectUrl;
     video.load();
+  });
+}
+
+
+async function createCatalogPosterBlob(title, category) {
+  const width = 900, height = 1200;
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const context = canvas.getContext("2d");
+  if (!context) throw new Error("无法创建剧名海报画布。");
+  const gradient = context.createLinearGradient(0, 0, width, height);
+  gradient.addColorStop(0, "#071426");
+  gradient.addColorStop(0.55, "#132d4a");
+  gradient.addColorStop(1, "#241b3d");
+  context.fillStyle = gradient;
+  context.fillRect(0, 0, width, height);
+  context.globalAlpha = 0.22;
+  for (let i = 0; i < 7; i++) {
+    context.beginPath();
+    context.arc(width * 0.82, height * 0.18, 90 + i * 58, 0, Math.PI * 2);
+    context.strokeStyle = i % 2 ? "#75d5d0" : "#9b8cff";
+    context.lineWidth = 2;
+    context.stroke();
+  }
+  context.globalAlpha = 1;
+  context.fillStyle = "rgba(255,255,255,0.10)";
+  context.fillRect(64, 72, 250, 54);
+  context.fillStyle = "#d7e8ff";
+  context.font = "600 25px sans-serif";
+  context.fillText("CCWU GLOBAL · CINEMA", 84, 108);
+  context.fillStyle = "#8ce1dc";
+  context.font = "600 30px sans-serif";
+  context.fillText(String(category || "影视作品").slice(0, 18), 72, 760);
+  context.fillStyle = "#ffffff";
+  context.font = "700 66px sans-serif";
+  const text = String(title || "未命名影视作品").trim();
+  const maxWidth = width - 144;
+  const chars = Array.from(text);
+  const lines = [];
+  let line = "";
+  for (const char of chars) {
+    const candidate = line + char;
+    if (context.measureText(candidate).width > maxWidth && line) {
+      lines.push(line);
+      line = char;
+    } else line = candidate;
+  }
+  if (line) lines.push(line);
+  lines.slice(0, 3).forEach((item, index) => context.fillText(item, 72, 860 + index * 88));
+  context.fillStyle = "rgba(255,255,255,0.62)";
+  context.font = "400 24px sans-serif";
+  context.fillText("OFFICIAL TITLE COVER", 72, 1100);
+  return await new Promise((resolve, reject) => {
+    canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error("剧名海报图片编码失败。")), "image/jpeg", 0.9);
   });
 }
 
@@ -385,8 +440,14 @@ async function updateContentStatus(table, id, nextStatus, messageId) {
         let posterBlob;
         try {
           posterBlob = await createPosterBlob(videoBlob, /\.webm$/i.test(row.video_path) ? "video/webm" : "video/mp4");
-        } catch (error) {
-          throw new Error("自动生成所属剧名海报失败：" + (error?.message || "视频封面提取失败。"));
+        } catch (frameError) {
+          console.warn("[CCWU Admin] Video frame unavailable; generating a clearly designed title cover instead.", frameError);
+          setMessage(targetMessage, "视频画面暂不可解码，正在生成剧名文字海报…");
+          try {
+            posterBlob = await createCatalogPosterBlob(parent.title || parent.title_zh || row.title, parent.category);
+          } catch (posterError) {
+            throw new Error("视频封面提取失败，文字海报备用方案也失败：" + (posterError?.message || "无法生成海报。"));
+          }
         }
         generatedPosterPath = `dramas/${parent.id}/${crypto.randomUUID()}.jpg`;
         const posterUpload = await db.storage.from("ccwu-cinema-posters").upload(
