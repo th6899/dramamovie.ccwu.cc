@@ -8,7 +8,7 @@ checks={
  "staff role server check":'db.rpc("is_staff")' in source and "data !== true" in source,
  "test project identity guard":'new URL(SUPABASE_URL).hostname === "uvtzhzgirgwjzsmcdgej.supabase.co"' in source,
  "admin page entrypoint":bool(re.search(r'<script type="module" src="admin-v2[.]0[.]1[.]js\?v=([0-9.]+)"></script>',html)),
- "version markers consistent":'window.CCWU_ADMIN_MODULE_VERSION = "2.2.12"' in source and 'window.CCWU_BUILD_VERSION = "2.2.12"' in source and 'admin-v2.0.1.js?v=2.2.12' in html,
+ "version markers consistent":'window.CCWU_ADMIN_MODULE_VERSION = "2.2.13"' in source and 'window.CCWU_BUILD_VERSION = "2.2.13"' in source and 'admin-v2.0.1.js?v=2.2.13' in html,
  "video upload avoids TUS Blob source mismatch":'db.storage.from(bucket).upload(path, file' in source and 'tus-js-client' not in source,
  "subtitle selectors expose edit and delete controls":all(x in html for x in ('data-edit-selected-drama','data-delete-selected-drama','data-edit-selected-episode','data-delete-selected-episode')) and 'data-edit-selected-drama' in source and 'data-delete-selected-episode' in source,
  "episode editor keeps requested fields":all(x in html for x in ('id="dramaTitle"','id="episodeNo"','id="episodeDescription"','id="videoFile"')),
