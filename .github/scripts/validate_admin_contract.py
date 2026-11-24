@@ -2,6 +2,7 @@ from pathlib import Path
 import re
 source=Path("admin-v2.0.1.js").read_text(encoding="utf-8")
 html=Path("admin.html").read_text(encoding="utf-8")
+app=Path("app.js").read_text(encoding="utf-8")
 checks={
  "Supabase client import":'import { createClient } from "https://esm.sh/@supabase/supabase-js@2";' in source,
  "staff role server check":'db.rpc("is_staff")' in source and "data !== true" in source,
@@ -22,6 +23,8 @@ checks={
   'select("id,status").maybeSingle()' in source and '发布失败：数据库没有返回更新记录' in source,
  "admin table text contrast and publish feedback":
   'id="dramaMsg"' in html and 'id="episodeStatusMsg"' in html,
+ "homepage has five fixed category shelves": all(('name:"'+x+'"') in app for x in ("选推荐","最新上线","热门短剧","电影专区","纪录片")),
+ "homepage only lists published dramas with published episodes":'episodes!inner(id)' in app and 'eq("episodes.status","published")' in app,
  "episode upload requires one of five homepage categories": all(x in html for x in ('id="dramaCategory"','value="选推荐"','value="最新上线"','value="热门短剧"','value="电影专区"','value="纪录片"')) and '$("dramaCategory").value' in source and 'category,status:"draft"' in source,
  "episode-first workflow hides separate drama list":'<div class="hidden" aria-hidden="true"><table><tbody id="dramaRows"></tbody></table></div>' in html and "逐集上传视频" in html,
  "episode publishing auto-publishes parent drama":'自动发布所属剧名失败' in source and 'parent.status = "published"' in source,
