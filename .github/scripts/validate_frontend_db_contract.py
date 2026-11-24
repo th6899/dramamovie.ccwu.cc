@@ -51,6 +51,8 @@ for match in re.finditer(r"""\bdb\.from\(["']([^"']+)["']\)\s*\.select\(["']([^"
     plain_selection = re.sub(r"""[A-Za-z_][A-Za-z0-9_]*!inner\([^()]*\)""", "", selection)
     for field in plain_selection.split(","):
         field = field.strip().split(":")[-1].split("(")[0].strip()
+        if field == "*":
+            continue
         if field and field not in table_rows.get(table, set()):
             missing_fields.append(f"{table}.{field}")
     for related_table, related_selection in embedded:
