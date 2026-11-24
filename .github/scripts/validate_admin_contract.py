@@ -20,7 +20,9 @@ checks={
  "QR uploads are retained and test payments stay disabled":'db.from("manual_payment_settings").upsert' in source and 'alipay_enabled:false,wechat_enabled:false' in source and 'id="alipayQrFile"' in html and 'id="wechatQrFile"' in html,
  "manual payment review is wired to secure approval and rejection RPCs":all(x in html for x in ('id="manualPaymentRows"','id="refreshManualPayments"','id="manualPaymentReviewMsg"')) and 'db.from("manual_payment_submissions")' in source and 'db.rpc("approve_manual_payment"' in source and 'db.rpc("reject_manual_payment"' in source and 'ccwu-payment-proofs' in source and 'await loadManualPaymentSubmissions();' in source,
  "publish updates detect zero-row RLS results":
-  'select("id,status").maybeSingle()' in source and '发布失败：数据库没有返回更新记录' in source,
+  'select("id,status").maybeSingle()' in source and 'if (error || !data)' in source and '数据库没有返回更新记录' in source,
+ "episode publishing validates before parent and compensates failure":
+  source.find('row.duration_seconds < 1') < source.find('const parentUpdate =') and 'parentWasChanged' in source and 'originalParentStatus' in source and 'rollbackNote' in source,
  "admin table text contrast and publish feedback":
   'id="dramaMsg"' in html and 'id="episodeStatusMsg"' in html,
  "homepage has five fixed category shelves": all(('name:"'+x+'"') in app for x in ("选推荐","最新上线","热门短剧","电影专区","纪录片")),
