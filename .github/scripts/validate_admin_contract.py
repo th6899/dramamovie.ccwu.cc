@@ -8,7 +8,7 @@ checks={
  "staff role server check":'db.rpc("is_staff")' in source and "data !== true" in source,
  "test project identity guard":'new URL(SUPABASE_URL).hostname === "uvtzhzgirgwjzsmcdgej.supabase.co"' in source,
  "admin page entrypoint":bool(re.search(r'<script type="module" src="admin-v2[.]0[.]1[.]js\?v=([0-9.]+)"></script>',html)),
- "version markers consistent":'window.CCWU_ADMIN_MODULE_VERSION = "2.2.10"' in source and 'window.CCWU_BUILD_VERSION = "2.2.10"' in source and 'admin-v2.0.1.js?v=2.2.10' in html,
+ "version markers consistent":'window.CCWU_ADMIN_MODULE_VERSION = "2.2.11"' in source and 'window.CCWU_BUILD_VERSION = "2.2.11"' in source and 'admin-v2.0.1.js?v=2.2.11' in html,
  "video upload avoids TUS Blob source mismatch":'db.storage.from(bucket).upload(path, file' in source and 'tus-js-client' not in source,
  "subtitle selectors expose edit and delete controls":all(x in html for x in ('data-edit-selected-drama','data-delete-selected-drama','data-edit-selected-episode','data-delete-selected-episode')) and 'data-edit-selected-drama' in source and 'data-delete-selected-episode' in source,
  "episode editor keeps requested fields":all(x in html for x in ('id="dramaTitle"','id="episodeNo"','id="episodeDescription"','id="videoFile"')),
@@ -30,6 +30,8 @@ checks={
  "five dedicated homepage upload channels": all(('data-upload-category="'+x+'"') in html for x in ("选推荐","最新上线","热门短剧","电影专区","纪录片")) and 'id="dramaCategory"' in html and 'type="hidden"' in html and 'activeUploadCategory="选推荐"' in source and 'category===category' in source and 'category,status:"draft"' in source,
  "episode list has five category filters": all(('data-episode-category="'+x+'"') in html and (x+'上传</button>') in html for x in ("选推荐","最新上线","热门短剧","电影专区","纪录片")) and "renderEpisodeRows();" in source and "activeEpisodeListCategory" in source and "categories.get(e.drama_id)===activeEpisodeListCategory" in source,
  "episode-first workflow hides separate drama list":'<div class="hidden" aria-hidden="true"><table><tbody id="dramaRows"></tbody></table></div>' in html and "逐集上传视频" in html,
+ "episode publishing auto-generates missing poster from stored video":
+  'async function createPosterBlob(videoBlob)' in source and 'from("ccwu-cinema-videos").download(row.video_path)' in source and 'from("ccwu-cinema-posters").upload' in source and 'poster_path: generatedPosterPath' in source and 'poster_path,published_at' in source,
  "episode publishing auto-publishes parent drama":'自动发布所属剧名失败' in source and 'parent.status = "published"' in source,
  "catalog readiness check remains":'loadPublicCatalogReadiness' in source and 'id="catalogReadiness"' in html,
  "OAuth callback explicit admin page":'new URL("/admin.html", location.origin).toString()' in source,
