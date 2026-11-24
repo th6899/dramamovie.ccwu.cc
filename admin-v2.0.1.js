@@ -1,4 +1,4 @@
-window.CCWU_ADMIN_MODULE_VERSION = "2.2.9";
+window.CCWU_ADMIN_MODULE_VERSION = "2.2.10";
 console.info("[CCWU Admin] ES module 2.2.9 loaded");
 // CCWU Global Admin module 2.0.9 — explicit ES module entrypoint
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -9,7 +9,7 @@ const isTestProject = (() => {
   try { return new URL(SUPABASE_URL).hostname === "uvtzhzgirgwjzsmcdgej.supabase.co"; }
   catch { return false; }
 })();
-window.CCWU_BUILD_VERSION = "2.2.9";
+window.CCWU_BUILD_VERSION = "2.2.10";
 const $ = (id) => document.getElementById(id);
 const esc = (value) => String(value ?? "").replace(/[&<>"']/g, (char) => ({
   "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
@@ -240,7 +240,7 @@ document.addEventListener("click",async event=>{const b=event.target instanceof 
 
 async function updateContentStatus(table, id, nextStatus, messageId) {
   const row = table === "dramas" ? cache.dramas.find((item) => item.id === id) : cache.episodes.find((item) => item.id === id);
-  const targetMessage = table === "dramas" ? "dramaMsg" : "episodeStatusMsg";
+  const targetMessage = table === "dramas" ? "dramaMsg" : "episodeMsg";
   if (!row) return setMessage(targetMessage, "状态更新失败：找不到当前记录，请刷新列表后重试。", true);
 
   let parent = null;
@@ -312,10 +312,25 @@ async function updateContentStatus(table, id, nextStatus, messageId) {
   await loadAll();
 }
 document.addEventListener("click", async (event) => {
-  const dramaButton = event.target.closest("[data-toggle-drama]");
-  if (dramaButton) { dramaButton.disabled = true; try { await updateContentStatus("dramas", dramaButton.dataset.toggleDrama, dramaButton.dataset.nextStatus, "dramaMsg"); } finally { dramaButton.disabled = false; } return; }
-  const episodeButton = event.target.closest("[data-toggle-episode]");
-  if (episodeButton) { episodeButton.disabled = true; try { await updateContentStatus("episodes", episodeButton.dataset.toggleEpisode, episodeButton.dataset.nextStatus, "episodeMsg"); } finally { episodeButton.disabled = false; } }
+  const target = event.target instanceof Element ? event.target : event.target?.parentElement;
+  if (!target) return;
+  const dramaButton = target.closest("[data-toggle-drama]");
+  if (dramaButton) {
+    if (dramaButton.disabled) return;
+    dramaButton.disabled = true;
+    try { await updateContentStatus("dramas", dramaButton.dataset.toggleDrama, dramaButton.dataset.nextStatus, "dramaMsg"); }
+    catch (error) { console.error("[CCWU Admin] Drama publish action failed", error); setMessage("dramaMsg", "发布操作失败：" + (error?.message || "未知错误"), true); }
+    finally { dramaButton.disabled = false; }
+    return;
+  }
+  const episodeButton = target.closest("[data-toggle-episode]");
+  if (episodeButton) {
+    if (episodeButton.disabled) return;
+    episodeButton.disabled = true;
+    try { await updateContentStatus("episodes", episodeButton.dataset.toggleEpisode, episodeButton.dataset.nextStatus, "episodeMsg"); }
+    catch (error) { console.error("[CCWU Admin] Episode publish action failed", error); setMessage("episodeMsg", "发布操作失败：" + (error?.message || "未知错误"), true); }
+    finally { episodeButton.disabled = false; }
+  }
 });
 let activeUploadCategory="选推荐";document.addEventListener("click",event=>{const channel=event.target.closest("[data-upload-category]");if(!channel)return;activeUploadCategory=channel.dataset.uploadCategory;$("dramaCategory").value=activeUploadCategory;document.querySelectorAll("[data-upload-category]").forEach(button=>{const active=button===channel;button.setAttribute("aria-pressed",String(active));button.classList.toggle("btn-primary",active);button.classList.toggle("btn-outline",!active);});$("uploadChannelHint").textContent="当前上传通道："+activeUploadCategory+"。作品将自动归入对应主页分区；同名作品在不同通道分别归档。";});
 $("episodeForm").addEventListener("submit",async event=>{
