@@ -182,7 +182,7 @@ async function loadPublicCatalogReadiness() {
 }
 
 async function loadAll(){
- const [dramas,episodes]=await Promise.all([db.from("dramas").select("id,slug,title,title_zh,status,created_at").order("created_at",{ascending:false}),db.from("episodes").select("id,drama_id,title,episode_number,season_number,status,video_path,duration_seconds,description,created_at").order("created_at",{ascending:false})]);
+ const [dramas,episodes]=await Promise.all([db.from("dramas").select("id,slug,title,title_zh,category,status,created_at").order("created_at",{ascending:false}),db.from("episodes").select("id,drama_id,title,episode_number,season_number,status,video_path,duration_seconds,description,created_at").order("created_at",{ascending:false})]);
  cache.dramas=dramas.data||[];cache.episodes=episodes.data||[];const errors=[dramas,episodes].filter(x=>x.error).map(x=>x.error.message);
  $("kpiDramas").textContent=dramas.error?"—":cache.dramas.length;$("kpiEpisodes").textContent=episodes.error?"—":cache.episodes.length;$("kpiAds").textContent="AdSense";$("overviewText").textContent=errors.length?"部分数据读取失败："+errors.join("；"):"数据库连接正常，概览数据已更新。";
  await loadPublicCatalogReadiness();await loadAdditionalCatalogs();const counts=new Map();cache.episodes.forEach(e=>counts.set(e.drama_id,(counts.get(e.drama_id)||0)+1));
@@ -270,6 +270,7 @@ document.addEventListener("click", async (event) => {
   const episodeButton = event.target.closest("[data-toggle-episode]");
   if (episodeButton) { episodeButton.disabled = true; try { await updateContentStatus("episodes", episodeButton.dataset.toggleEpisode, episodeButton.dataset.nextStatus, "episodeMsg"); } finally { episodeButton.disabled = false; } }
 });
+$("dramaTitle").addEventListener("input",()=>{const title=$("dramaTitle").value.trim();const existing=cache.dramas.find(d=>(d.title||d.title_zh)===title);$("dramaCategory").value=existing?.category||"";});
 $("episodeForm").addEventListener("submit",async event=>{
  event.preventDefault();const submit=event.submitter||event.target.querySelector("button");if(submit)submit.disabled=true;let path=null,created=null,saved=false;
  try{const title=$("dramaTitle").value.trim(),category=$("dramaCategory").value,num=Number($("episodeNo").value),desc=$("episodeDescription").value.trim(),file=$("videoFile").files?.[0];if(!title)throw Error("请输入剧名。");if(!["选推荐","最新上线","热门短剧","电影专区","纪录片"].includes(category))throw Error("请选择主页分类。");if(!Number.isInteger(num)||num<1)throw Error("请输入有效集数。");if(!file)throw Error("请选择视频文件。");if(!["video/mp4","video/webm"].includes(file.type))throw Error("视频只支持 MP4/WebM。");if(file.size > 50 * 1024 * 1024)throw Error("视频最大 50MB。");
