@@ -25,7 +25,7 @@ checks={
   'id="dramaMsg"' in html and 'id="episodeStatusMsg"' in html,
  "homepage has five fixed category shelves": all(('name:"'+x+'"') in app for x in ("选推荐","最新上线","热门短剧","电影专区","纪录片")),
  "homepage only lists published dramas with published episodes":'episodes!inner(id)' in app and 'eq("episodes.status","published")' in app,
- "episode upload requires one of five homepage categories": all(x in html for x in ('id="dramaCategory"','value="选推荐"','value="最新上线"','value="热门短剧"','value="电影专区"','value="纪录片"')) and '$("dramaCategory").value' in source and 'category,status:"draft"' in source,
+ "five dedicated homepage upload channels": all(('data-upload-category="'+x+'"') in html for x in ("选推荐","最新上线","热门短剧","电影专区","纪录片")) and 'id="dramaCategory"' in html and 'type="hidden"' in html and 'activeUploadCategory="选推荐"' in source and 'category===category' in source and 'category,status:"draft"' in source,
  "episode-first workflow hides separate drama list":'<div class="hidden" aria-hidden="true"><table><tbody id="dramaRows"></tbody></table></div>' in html and "逐集上传视频" in html,
  "episode publishing auto-publishes parent drama":'自动发布所属剧名失败' in source and 'parent.status = "published"' in source,
  "catalog readiness check remains":'loadPublicCatalogReadiness' in source and 'id="catalogReadiness"' in html,
