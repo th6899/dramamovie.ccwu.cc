@@ -8,6 +8,8 @@ const dramaId = params.get("drama");
 const episodeId = params.get("episode");
 const video = $("contentVideo");
 let playback = null;
+let trialLimitSeconds = 0;
+let trialLimitReached = false;
 let adsLoader = null;
 let adsManager = null;
 let imaDisplay = null;
@@ -49,7 +51,7 @@ async function showEpisodeList() {
   setStatus("请从下方选择已发布剧集。");
   if (!dramaId) return;
   const { data, error } = await db.from("episodes")
-    .select("id,title,episode_number,is_free,status")
+    .select("id,title,episode_number,is_free,free_trial_seconds,status")
     .eq("drama_id", dramaId)
     .eq("status", "published")
     .order("episode_number");
@@ -60,7 +62,7 @@ async function showEpisodeList() {
   $("episodeList").innerHTML = (data || []).map((item) =>
     '<p><a class="text-link" href="player.html?episode=' + encodeURIComponent(item.id) +
     '">第 ' + esc(item.episode_number) + " 集 · " + esc(item.title) +
-    (item.is_free ? "（免费）" : "（会员）") + "</a></p>"
+    (item.is_free ? "（免费）" : Number(item.free_trial_seconds)===60 ? "（试看1分钟）" : "（会员）") + "</a></p>"
   ).join("") || "暂无已发布剧集";
 }
 
@@ -273,9 +275,11 @@ async function loadPlayback() {
     return;
   }
   playback = data;
+  trialLimitSeconds = data.access === "trial" ? Number(data.trial_seconds || 60) : 0;
+  trialLimitReached = false;
   $("episodeTitle").textContent = (data.drama?.title || "影视") + " · " +
     (data.episode?.title || "剧集");
-  setStatus(data.access === "free" ? "免费剧集" : "会员专享剧集");
+  setStatus(data.access === "free" ? "免费剧集" : data.access === "trial" ? "免费试看前 1 分钟，之后需要有效会员" : "会员专享剧集");
   $("adStatus").textContent = data.ad_slots?.length ? "广告配置已读取" : "当前无可用广告";
   video.src = data.video_url;
   renderSubtitles(data.subtitles);
@@ -285,6 +289,7 @@ async function loadPlayback() {
 
 $("startPlayback").addEventListener("click", () => {
   if (!playback) return;
+  if (trialLimitReached) { setStatus("试看已结束，请登录并开通有效会员后观看完整内容。", true); return; }
   const pre = pickAd("preroll");
   if (pre) requestAd(pre);
   else video.play().catch(() => setStatus("请点击播放器播放按钮。"));
@@ -292,6 +297,14 @@ $("startPlayback").addEventListener("click", () => {
 
 video.addEventListener("timeupdate", () => {
   if (!playback || activeAdRequest) return;
+  if (trialLimitSeconds > 0 && !trialLimitReached && video.currentTime >= trialLimitSeconds) {
+    trialLimitReached = true;
+    video.pause();
+    video.currentTime = trialLimitSeconds;
+    setStatus("免费试看已结束。登录并开通有效会员后即可继续观看完整剧集。", true);
+    $("startPlayback").textContent = "会员登录后继续观看";
+    return;
+  }
   const slot = pickAd("midroll");
   if (!slot || !Number.isFinite(Number(slot.midroll_offset_seconds))) return;
   if (video.currentTime >= Number(slot.midroll_offset_seconds) && !midrollDone.has(slot.id)) {
