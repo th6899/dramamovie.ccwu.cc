@@ -31,7 +31,7 @@ checks={
  "episode list has five category filters": all(('data-episode-category="'+x+'"') in html and (x+'上传</button>') in html for x in ("选推荐","最新上线","热门短剧","电影专区","纪录片")) and "renderEpisodeRows();" in source and "activeEpisodeListCategory" in source and "categories.get(e.drama_id)===activeEpisodeListCategory" in source,
  "episode-first workflow hides separate drama list":'<div class="hidden" aria-hidden="true"><table><tbody id="dramaRows"></tbody></table></div>' in html and "逐集上传视频" in html,
  "episode publishing auto-generates missing poster from stored video":
-  'async function createPosterBlob(videoBlob, expectedMimeType' in source and 'requestVideoFrameCallback' in source and 'video/webm' in source and 'from("ccwu-cinema-videos").download(row.video_path)' in source and 'from("ccwu-cinema-posters").upload' in source and 'poster_path: generatedPosterPath' in source and 'poster_path,published_at' in source,
+  'async function createPosterBlob(videoBlob, expectedMimeType' in source and 'requestVideoFrameCallback' in source and 'video/webm' in source and 'from("ccwu-cinema-videos").download(row.video_path)' in source and 'from("ccwu-cinema-posters").upload' in source and 'createCatalogPosterBlob(title, category)' in source and '正在生成剧名文字海报' in source and 'poster_path: generatedPosterPath' in source and 'poster_path,published_at' in source,
  "episode publishing auto-publishes parent drama":'自动发布所属剧名失败' in source and 'parent.status = "published"' in source,
  "catalog readiness check remains":'loadPublicCatalogReadiness' in source and 'id="catalogReadiness"' in html,
  "OAuth callback explicit admin page":'new URL("/admin.html", location.origin).toString()' in source,
