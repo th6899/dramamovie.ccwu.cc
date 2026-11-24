@@ -1,5 +1,5 @@
-window.CCWU_ADMIN_MODULE_VERSION = "2.2.13";
-console.info("[CCWU Admin] ES module 2.2.13 loaded");
+window.CCWU_ADMIN_MODULE_VERSION = "2.2.14";
+console.info("[CCWU Admin] ES module 2.2.14 loaded");
 // CCWU Global Admin module 2.0.9 — explicit ES module entrypoint
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js";
@@ -9,7 +9,7 @@ const isTestProject = (() => {
   try { return new URL(SUPABASE_URL).hostname === "uvtzhzgirgwjzsmcdgej.supabase.co"; }
   catch { return false; }
 })();
-window.CCWU_BUILD_VERSION = "2.2.12";
+window.CCWU_BUILD_VERSION = "2.2.14";
 const $ = (id) => document.getElementById(id);
 const esc = (value) => String(value ?? "").replace(/[&<>"']/g, (char) => ({
   "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
@@ -348,7 +348,7 @@ async function loadPublicCatalogReadiness() {
 }
 
 async function loadAll(){
- const [dramas,episodes]=await Promise.all([db.from("dramas").select("id,slug,title,title_zh,category,status,poster_path,published_at,created_at").order("created_at",{ascending:false}),db.from("episodes").select("id,drama_id,title,episode_number,season_number,status,video_path,duration_seconds,description,created_at").order("created_at",{ascending:false})]);
+ const [dramas,episodes]=await Promise.all([db.from("dramas").select("id,slug,title,title_zh,category,status,poster_path,published_at,created_at").order("created_at",{ascending:false}),db.from("episodes").select("id,drama_id,title,episode_number,season_number,status,video_path,duration_seconds,description,is_free,free_trial_seconds,created_at").order("created_at",{ascending:false})]);
  cache.dramas=dramas.data||[];cache.episodes=episodes.data||[];const errors=[dramas,episodes].filter(x=>x.error).map(x=>x.error.message);
  $("kpiDramas").textContent=dramas.error?"—":cache.dramas.length;$("kpiEpisodes").textContent=episodes.error?"—":cache.episodes.length;$("kpiAds").textContent="AdSense";$("overviewText").textContent=errors.length?"部分数据读取失败："+errors.join("；"):"数据库连接正常，概览数据已更新。";
  await loadPublicCatalogReadiness();await loadAdditionalCatalogs();const counts=new Map();cache.episodes.forEach(e=>counts.set(e.drama_id,(counts.get(e.drama_id)||0)+1));
@@ -357,13 +357,13 @@ async function loadAll(){
  fillSelect("subtitleDrama",cache.dramas.map(d=>({value:d.id,label:d.title||d.title_zh})),"暂无剧名");fillSelect("subtitleEpisode",[],"请先选择剧名");refreshSubtitleEpisodes();
 }
 let activeEpisodeListCategory=null;
-function renderEpisodeRows(){const names=new Map(cache.dramas.map(d=>[d.id,d.title||d.title_zh]));const categories=new Map(cache.dramas.map(d=>[d.id,d.category]));const rows=cache.episodes.filter(e=>!activeEpisodeListCategory||categories.get(e.drama_id)===activeEpisodeListCategory);$("episodeRows").innerHTML=rows.map(e=>'<tr><td>'+esc(names.get(e.drama_id)||'—')+'</td><td>第'+e.episode_number+'集</td><td><span class="status">'+esc(e.status)+'</span></td><td>'+(e.video_path?'已上传':'未上传')+'</td><td><button type="button" class="btn btn-outline" data-edit-episode="'+esc(e.id)+'">修改集数</button> <button type="button" class="btn btn-secondary" data-toggle-episode="'+esc(e.id)+'" data-next-status="'+(e.status==='published'?'draft':'published')+'">'+(e.status==='published'?'下架':'发布')+'</button> <button type="button" class="btn btn-outline" data-delete-episode="'+esc(e.id)+'">删除</button></td></tr>').join('')||'<tr><td colspan="5">'+(activeEpisodeListCategory?'该分类暂无剧集':'暂无剧集')+'</td></tr>';}
+function renderEpisodeRows(){const names=new Map(cache.dramas.map(d=>[d.id,d.title||d.title_zh]));const categories=new Map(cache.dramas.map(d=>[d.id,d.category]));const rows=cache.episodes.filter(e=>!activeEpisodeListCategory||categories.get(e.drama_id)===activeEpisodeListCategory);$("episodeRows").innerHTML=rows.map(e=>'<tr><td>'+esc(names.get(e.drama_id)||'—')+'</td><td>第'+e.episode_number+'集</td><td>'+ (e.is_free?'免费':Number(e.free_trial_seconds)===60?'试看1分钟':'会员专享') +'</td><td><span class="status">'+esc(e.status)+'</span></td><td>'+(e.video_path?'已上传':'未上传')+'</td><td><button type="button" class="btn btn-outline" data-edit-episode="'+esc(e.id)+'">修改集数</button> <button type="button" class="btn btn-outline" data-edit-access="'+esc(e.id)+'">修改权限</button> <button type="button" class="btn btn-secondary" data-toggle-episode="'+esc(e.id)+'" data-next-status="'+(e.status==='published'?'draft':'published')+'">'+(e.status==='published'?'下架':'发布')+'</button> <button type="button" class="btn btn-outline" data-delete-episode="'+esc(e.id)+'">删除</button></td></tr>').join('')||'<tr><td colspan="5">'+(activeEpisodeListCategory?'该分类暂无剧集':'暂无剧集')+'</td></tr>';}
 document.addEventListener('click',event=>{const tab=event.target.closest('[data-episode-category]');if(!tab)return;activeEpisodeListCategory=tab.dataset.episodeCategory;document.querySelectorAll('[data-episode-category]').forEach(button=>{const active=button===tab;button.setAttribute('aria-pressed',String(active));button.classList.toggle('btn-primary',active);button.classList.toggle('btn-outline',!active);});renderEpisodeRows();});
 function refreshSubtitleEpisodes(){const id=$("subtitleDrama")?.value;fillSelect("subtitleEpisode",cache.episodes.filter(e=>e.drama_id===id).map(e=>({value:e.id,label:`第${e.episode_number}集`} )),"该剧暂无集数");}
 $("subtitleDrama")?.addEventListener("change",refreshSubtitleEpisodes);
 
 async function manageDramaEpisode(event) {
- const ed=event.target.closest("[data-edit-drama],[data-edit-selected-drama]"), dd=event.target.closest("[data-delete-drama],[data-delete-selected-drama]"), ee=event.target.closest("[data-edit-episode],[data-edit-selected-episode]"), de=event.target.closest("[data-delete-episode],[data-delete-selected-episode]");
+ const accessButton=event.target.closest("[data-edit-access]"); if(accessButton){const row=cache.episodes.find(x=>x.id===accessButton.dataset.editAccess);if(row){const current=row.is_free?"free":Number(row.free_trial_seconds)===60?"trial":"membership";const choice=window.prompt("设置观看权限：输入 free（免费）、membership（会员专享）或 trial（免费试看1分钟）",current);if(choice!==null){const mode=choice.trim().toLowerCase();if(!["free","membership","trial"].includes(mode)){window.alert("请输入 free、membership 或 trial。");}else{const patch={is_free:mode==="free",free_trial_seconds:mode==="trial"?60:0};const {error}=await db.from("episodes").update(patch).eq("id",row.id);if(error)window.alert("权限修改失败："+error.message);else await loadAll();}}}return;} const ed=event.target.closest("[data-edit-drama],[data-edit-selected-drama]"), dd=event.target.closest("[data-delete-drama],[data-delete-selected-drama]"), ee=event.target.closest("[data-edit-episode],[data-edit-selected-episode]"), de=event.target.closest("[data-delete-episode],[data-delete-selected-episode]");
  if(ed?.hasAttribute("data-edit-selected-drama"))ed.dataset.editDrama=$("subtitleDrama").value;
  if(dd?.hasAttribute("data-delete-selected-drama"))dd.dataset.deleteDrama=$("subtitleDrama").value;
  if(ee?.hasAttribute("data-edit-selected-episode"))ee.dataset.editEpisode=$("subtitleEpisode").value;
@@ -540,7 +540,7 @@ $("episodeForm").addEventListener("submit",async event=>{
  try{const title=$("dramaTitle").value.trim(),category=$("dramaCategory").value,num=Number($("episodeNo").value),desc=$("episodeDescription").value.trim(),file=$("videoFile").files?.[0];if(!title)throw Error("请输入剧名。");if(!["选推荐","最新上线","热门短剧","电影专区","纪录片"].includes(category))throw Error("请选择主页分类。");if(!Number.isInteger(num)||num<1)throw Error("请输入有效集数。");if(!file)throw Error("请选择视频文件。");if(!["video/mp4","video/webm"].includes(file.type))throw Error("视频只支持 MP4/WebM。");if(file.size > 50 * 1024 * 1024)throw Error("视频最大 50MB。");
  const duration=await getVideoDuration(file);let drama=cache.dramas.find(d=>(d.title||d.title_zh)===title&&d.category===category),id=drama?.id;if(!id){const slug="drama-"+crypto.randomUUID().replace(/-/g,"").slice(0,16),res=await db.from("dramas").insert({title,title_zh:title,slug,category,status:"draft"}).select("id").single();if(res.error)throw res.error;id=res.data.id;created=id;}else{const {data:existingEpisode,error:duplicateCheckError}=await db.from("episodes").select("id").eq("drama_id",id).eq("episode_number",num).maybeSingle();if(duplicateCheckError)throw new Error("检查集数是否重复失败："+duplicateCheckError.message);if(existingEpisode)throw new Error(`《${title}》第${num}集已经存在（当前记录保留未动）。请在下方剧集列表中修改现有记录，或选择尚未使用的集数；系统不会覆盖或删除原视频。`);const {data:updatedDrama,error:categoryError}=await db.from("dramas").update({category}).eq("id",id).select("id").maybeSingle();if(categoryError)throw categoryError;if(!updatedDrama)throw Error("所属剧名分类更新失败：数据库没有返回更新记录。");}
  path=`episodes/${id}/${crypto.randomUUID()}.${file.type==="video/mp4"?"mp4":"webm"}`;setMessage("episodeMsg","正在上传视频…");await uploadResumable("ccwu-cinema-videos",path,file,p=>setMessage("episodeMsg",`正在上传视频：${p}%`));
- const {error}=await db.from("episodes").insert({drama_id:id,season_number:1,episode_number:num,title:`第${num}集`,description:desc||null,video_path:path,duration_seconds:duration,is_free:false,status:"draft"});if(error)throw error;saved=true;event.target.reset();$("episodeNo").value=1;setMessage("episodeMsg",`上传成功，已保存为草稿；主页分类：${category}。`);await loadAll();
+ const access=$( "episodeAccess" ).value;if(!["free","membership","trial"].includes(access))throw Error("请选择观看权限。");const {error}=await db.from("episodes").insert({drama_id:id,season_number:1,episode_number:num,title:`第${num}集`,description:desc||null,video_path:path,duration_seconds:duration,is_free:access==="free",free_trial_seconds:access==="trial"?60:0,status:"draft"});if(error)throw error;saved=true;event.target.reset();$("episodeNo").value=1;setMessage("episodeMsg",`上传成功，已保存为草稿；主页分类：${category}；观看权限：${access==="free"?"免费":access==="trial"?"免费试看1分钟":"会员专享"}。`);await loadAll();
  }catch(error){if(!saved&&path)await db.storage.from("ccwu-cinema-videos").remove([path]);if(!saved&&created)await db.from("dramas").delete().eq("id",created);setMessage("episodeMsg",error.message||"上传失败。",true);}finally{if(submit)submit.disabled=false;}
 });
 
