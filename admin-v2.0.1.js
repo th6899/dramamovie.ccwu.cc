@@ -384,7 +384,7 @@ async function updateContentStatus(table, id, nextStatus, messageId) {
         }
         let posterBlob;
         try {
-          posterBlob = await createPosterBlob(videoBlob, /\\.webm$/i.test(row.video_path) ? "video/webm" : "video/mp4");
+          posterBlob = await createPosterBlob(videoBlob, /\.webm$/i.test(row.video_path) ? "video/webm" : "video/mp4");
         } catch (error) {
           throw new Error("自动生成所属剧名海报失败：" + (error?.message || "视频封面提取失败。"));
         }
