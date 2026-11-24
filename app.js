@@ -8,36 +8,36 @@ const safeUrl=u=>{try{const x=new URL(u);return ["https:","http:"].includes(x.pr
 const posterUrl=value=>{const raw=String(value||"").trim();if(!raw||raw.startsWith("/")||raw.split("/").some(part=>part==="."||part===".."))return "#";if(/^https?:\/\//i.test(raw))return safeUrl(raw);const {data}=db.storage.from("ccwu-cinema-posters").getPublicUrl(raw);return safeUrl(data?.publicUrl||"")};
 async function loadList(table,fields,filters={}){let q=db.from(table).select(fields);for(const [k,v] of Object.entries(filters))q=q.eq(k,v);const {data,error}=await q; if(error)throw error;return data||[]}
 function renderCinema(dramas){
- const root=$("dramaGrid");
- const side=$("cinemaSidebar");
- const search=$("cinemaSearch");
- const defaultCategories=["精选推荐","全部影视","短剧","电影","纪录片"];
- if(!dramas.length){
-  root.innerHTML="<section class=\"cinema-hero cinema-hero-empty\"><div class=\"cinema-hero-copy\"><span class=\"cinema-eyebrow\">CCWU CINEMA · VIDEO DISCOVERY</span><h1>精彩影视，即将呈现</h1><p>剧集上线后，精选海报、剧集介绍与播放入口将在这里自动展示。</p><span class=\"cinema-empty-note\">目前暂无已发布影视作品</span></div><div class=\"cinema-hero-art\"><span>CCWU</span><i>▶</i></div></section><nav class=\"cinema-category-strip\" aria-label=\"影视分类\">"+defaultCategories.map((n,i)=>"<span class=\"cinema-category-disabled\" aria-disabled=\"true\">"+esc(n)+"</span>").join("")+"</nav>"+[{name:"精选推荐",hint:"为你精选"},{name:"最新上线",hint:"新鲜剧集"},{name:"热门短剧",hint:"短剧频道"},{name:"电影专区",hint:"电影频道"},{name:"纪录片",hint:"纪实频道"}].map((s,i)=>"<section class=\"cinema-shelf cinema-shelf-empty\" id=\"cinema-featured-"+i+"\"><div class=\"cinema-shelf-head\"><h2>"+s.name+"</h2><span>"+s.hint+"</span></div><div class=\"cinema-empty-panel\"><div class=\"cinema-empty-icon\">▶</div><b>"+(i===0?"影视内容正在筹备中":"本分区暂无已发布作品")+"</b><p>管理员发布对应影视作品后，海报和播放入口会自动出现在这里。</p></div></section>").join("");
-  if(side)side.innerHTML="<div class=\"sidebar-brand\">CCWU CINEMA</div><a class=\"active\" href=\"#dramas\">⌂　影视首页</a>"+defaultCategories.map(n=>"<span class=\"sidebar-disabled\" aria-disabled=\"true\">▣　"+esc(n)+"</span>").join("")+"<a href=\"#services\">◈　数字服务</a><a href=\"#membership\">♢　会员专区</a><a href=\"#vpn\">⌁　VPN 服务</a><a href=\"#tutorials\">▤　教程中心</a>";
-  if(search){search.value="";search.disabled=true;search.placeholder="暂无可搜索影视内容";search.oninput=null;}
-  return;
- }
- const featured=dramas[0],heroImage=featured.poster_path?posterUrl(featured.poster_path):"";
- const categoryOf=d=>String(d.category||d.genre||d.content_type||d.type||"").trim();
- const cats=[...new Set(dramas.map(categoryOf).filter(Boolean))];
- const shelves=cats.length?cats.map(name=>({name,items:dramas.filter(d=>categoryOf(d)===name)})):[{name:"全部影视",items:dramas}];
+ const root=$("dramaGrid"),side=$("cinemaSidebar"),search=$("cinemaSearch");
+ const sections=[
+  {name:"选推荐",hint:"为你精选",empty:"影视内容正在筹备中"},
+  {name:"最新上线",hint:"新鲜剧集",empty:"本分区暂无已发布作品"},
+  {name:"热门短剧",hint:"短剧频道",empty:"本分区暂无已发布作品"},
+  {name:"电影专区",hint:"电影频道",empty:"本分区暂无已发布作品"},
+  {name:"纪录片",hint:"纪实频道",empty:"本分区暂无已发布作品"}
+ ];
+ const categoryOf=d=>String(d.category||"").trim();
  const card=d=>{
-  const src=d.poster_path?posterUrl(d.poster_path):"";
-  return "<a class=\"cinema-card\" data-title=\""+esc(d.title)+"\" href=\"player.html?drama="+encodeURIComponent(d.id)+"\"><div class=\"cinema-poster\">"+(src&&src!=="#"?"<img loading=\"lazy\" src=\""+esc(src)+"\" alt=\""+esc(d.title)+"海报\">":"<div class=\"poster-placeholder\">CCWU</div>")+"<span class=\"poster-tag\">精选</span><span class=\"poster-play\">▶</span></div><div class=\"cinema-card-title\">"+esc(d.title)+"</div><div class=\"cinema-card-meta\">"+esc(d.release_year||"影视剧场")+"</div></a>";
+  const title=d.title||d.title_zh,src=d.poster_path?posterUrl(d.poster_path):"";
+  return "<a class=\"cinema-card\" data-title=\""+esc(title)+"\" href=\"player.html?drama="+encodeURIComponent(d.id)+"\"><div class=\"cinema-poster\">"+(src&&src!=="#"?"<img loading=\"lazy\" src=\""+esc(src)+"\" alt=\""+esc(title)+"海报\">":"<div class=\"poster-placeholder\">CCWU</div>")+"<span class=\"poster-tag\">"+esc(categoryOf(d))+"</span><span class=\"poster-play\">▶</span></div><div class=\"cinema-card-title\">"+esc(title)+"</div><div class=\"cinema-card-meta\">"+esc(d.release_year||"影视剧场")+"</div></a>";
  };
- const style=heroImage&&heroImage!=="#"?"--hero-image:url(\""+esc(heroImage)+"\");":"";
- const categories=["全部影视",...cats];
- root.innerHTML="<section class=\"cinema-hero\" style=\""+style+"\"><div class=\"cinema-hero-copy\"><span class=\"cinema-eyebrow\">CCWU CINEMA · 精选推荐</span><h1>"+esc(featured.title)+"</h1><p>"+esc(featured.synopsis||"发现更多精彩影视内容。").slice(0,150)+"</p><a class=\"cinema-play\" href=\"player.html?drama="+encodeURIComponent(featured.id)+"\">▶ 立即播放</a></div></section><nav class=\"cinema-category-strip\" aria-label=\"影视分类\">"+categories.map((n,i)=>"<button type=\"button\" class=\"cinema-category-button"+(i===0?" active":"")+"\" data-category=\""+esc(n)+"\">"+esc(n)+"</button>").join("")+"</nav>"+shelves.map((s,i)=>"<section class=\"cinema-shelf\" data-shelf=\""+esc(s.name)+"\" id=\"cinema-shelf-"+i+"\"><div class=\"cinema-shelf-head\"><h2>"+esc(s.name)+"</h2><span>"+s.items.length+" 部作品</span></div><div class=\"cinema-row\">"+s.items.map(card).join("")+"</div></section>").join("");
- const filterCategory=name=>{
-  root.querySelectorAll("[data-shelf]").forEach(el=>{el.hidden=name!=="全部影视"&&el.dataset.shelf!==name;});
-  root.querySelectorAll(".cinema-category-button").forEach(el=>el.classList.toggle("active",el.dataset.category===name));
- };
- root.querySelectorAll(".cinema-category-button").forEach(btn=>btn.addEventListener("click",()=>filterCategory(btn.dataset.category)));
- if(side)side.innerHTML="<div class=\"sidebar-brand\">CCWU CINEMA</div><a class=\"active\" href=\"#dramas\">⌂　影视首页</a>"+categories.map((n,i)=>"<a href=\"#cinema-shelf-"+(i===0?0:Math.max(0,cats.indexOf(n)))+"\" data-side-category=\""+esc(n)+"\">▣　"+esc(n)+"</a>").join("")+"<a href=\"#services\">◈　数字服务</a><a href=\"#membership\">♢　会员专区</a><a href=\"#vpn\">⌁　VPN 服务</a><a href=\"#tutorials\">▤　教程中心</a>";
- if(search){search.disabled=false;search.placeholder="搜索影视、剧名";search.oninput=function(){const q=search.value.trim().toLowerCase();root.querySelectorAll(".cinema-card").forEach(el=>{el.hidden=!el.textContent.toLowerCase().includes(q);});root.querySelectorAll("[data-shelf]").forEach(el=>{el.hidden=!el.querySelector(".cinema-card:not([hidden])");});};}
- side?.querySelectorAll("[data-side-category]").forEach(link=>link.addEventListener("click",()=>filterCategory(link.dataset.sideCategory)));
+ const shelfHtml=sections.map((s,i)=>{
+  const items=dramas.filter(d=>categoryOf(d)===s.name);
+  const body=items.length?"<div class=\"cinema-row\">"+items.map(card).join("")+"</div>":"<div class=\"cinema-empty-panel\"><div class=\"cinema-empty-icon\">▶</div><b>"+s.empty+"</b><p>后台上传时选择“"+s.name+"”分类，并发布影视作品和至少一集后，海报和播放入口会自动出现在这里。</p></div>";
+  return "<section class=\"cinema-shelf\" data-shelf=\""+s.name+"\" id=\"cinema-shelf-"+i+"\"><div class=\"cinema-shelf-head\"><h2>"+s.name+"</h2><span>"+(items.length?items.length+" 部作品":s.hint)+"</span></div>"+body+"</section>";
+ }).join("");
+ const featured=dramas.find(d=>categoryOf(d)==="选推荐")||dramas.find(d=>categoryOf(d)==="最新上线")||dramas[0];
+ if(!dramas.length){
+  root.innerHTML="<section class=\"cinema-hero cinema-hero-empty\"><div class=\"cinema-hero-copy\"><span class=\"cinema-eyebrow\">CCWU CINEMA · VIDEO DISCOVERY</span><h1>精彩影视，即将呈现</h1><p>影视作品发布后，精选海报、剧集介绍与播放入口将在这里自动展示。</p><span class=\"cinema-empty-note\">目前暂无已发布影视作品</span></div><div class=\"cinema-hero-art\"><span>CCWU</span><i>▶</i></div></section>"+shelfHtml;
+ }else{
+  const heroImage=featured.poster_path?posterUrl(featured.poster_path):"";
+  const style=heroImage&&heroImage!=="#"?"--hero-image:url(\""+esc(heroImage)+"\");":"";
+  root.innerHTML="<section class=\"cinema-hero\" style=\""+style+"\"><div class=\"cinema-hero-copy\"><span class=\"cinema-eyebrow\">CCWU CINEMA · 精选推荐</span><h1>"+esc(featured.title||featured.title_zh)+"</h1><p>"+esc(featured.synopsis||"发现更多精彩影视内容。").slice(0,150)+"</p><a class=\"cinema-play\" href=\"player.html?drama="+encodeURIComponent(featured.id)+"\">▶ 立即播放</a></div></section>"+shelfHtml;
+ }
+ if(side)side.innerHTML="<div class=\"sidebar-brand\">CCWU CINEMA</div><a class=\"active\" href=\"#dramas\">⌂　影视首页</a>"+sections.map((s,i)=>"<a href=\"#cinema-shelf-"+i+"\">▣　"+s.name+"</a>").join("")+"<a href=\"#services\">◈　数字服务</a><a href=\"#membership\">♢　会员专区</a><a href=\"#vpn\">⌁　VPN 服务</a><a href=\"#tutorials\">▤　教程中心</a>";
+ if(search){search.disabled=false;search.placeholder="搜索影视、剧名";search.oninput=function(){const q=search.value.trim().toLowerCase();root.querySelectorAll(".cinema-card").forEach(el=>{el.hidden=!el.textContent.toLowerCase().includes(q);});root.querySelectorAll("[data-shelf]").forEach(el=>{el.hidden=q.length>0&&!el.querySelector(".cinema-card:not([hidden])");});};}
 }
+
 async function render(){
  try{const dramas=await loadList("dramas","*",{status:"published"});renderCinema(dramas)}catch(e){console.error("[CCWU Portal] cinema load failed",e);$("dramaGrid").innerHTML='<div class="loading">影视内容暂时无法加载，请稍后重试。</div>'}
  try{const rows=await loadList("service_catalog","id,title,slug,description,category",{is_published:true});$("serviceGrid").innerHTML=rows.length?rows.map((x,i)=>`<article class="service-card"><div class="service-icon">${["◈","⌘","✧","◎"][i%4]}</div><h3>${esc(x.title)}</h3><p>${esc(x.description||"探索这项数字服务。")}</p><span class="pill">${esc(x.category)}</span></article>`).join(""):`<div class="loading">服务目录正在整理中。</div>`}catch{$("serviceGrid").innerHTML='<div class="loading">暂时无法读取服务目录。</div>'}
