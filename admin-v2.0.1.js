@@ -1,5 +1,5 @@
-window.CCWU_ADMIN_MODULE_VERSION = "2.2.10";
-console.info("[CCWU Admin] ES module 2.2.9 loaded");
+window.CCWU_ADMIN_MODULE_VERSION = "2.2.11";
+console.info("[CCWU Admin] ES module 2.2.11 loaded");
 // CCWU Global Admin module 2.0.9 — explicit ES module entrypoint
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js";
@@ -9,7 +9,7 @@ const isTestProject = (() => {
   try { return new URL(SUPABASE_URL).hostname === "uvtzhzgirgwjzsmcdgej.supabase.co"; }
   catch { return false; }
 })();
-window.CCWU_BUILD_VERSION = "2.2.10";
+window.CCWU_BUILD_VERSION = "2.2.11";
 const $ = (id) => document.getElementById(id);
 const esc = (value) => String(value ?? "").replace(/[&<>"']/g, (char) => ({
   "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
@@ -32,6 +32,67 @@ async function uploadResumable(bucket, path, file, onProgress = () => {}) {
   if (error) throw error;
   onProgress(100);
   return path;
+}
+
+async function createPosterBlob(videoBlob) {
+  return await new Promise((resolve, reject) => {
+    const video = document.createElement("video");
+    const canvas = document.createElement("canvas");
+    const objectUrl = URL.createObjectURL(videoBlob);
+    let settled = false;
+    const cleanup = () => {
+      video.removeAttribute("src");
+      video.load();
+      URL.revokeObjectURL(objectUrl);
+    };
+    const fail = (error) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      reject(error instanceof Error ? error : new Error("无法从已上传视频提取封面画面。"));
+    };
+    video.muted = true;
+    video.playsInline = true;
+    video.preload = "auto";
+    video.onerror = () => fail(new Error("已上传视频无法解码，不能自动生成封面；请检查原视频格式。"));
+    video.onloadedmetadata = () => {
+      if (!Number.isFinite(video.duration) || video.duration <= 0) {
+        fail(new Error("视频时长无效，无法生成封面。"));
+        return;
+      }
+      video.currentTime = Math.min(1, video.duration * 0.1);
+    };
+    video.onseeked = () => {
+      if (settled) return;
+      const width = video.videoWidth;
+      const height = video.videoHeight;
+      if (!width || !height) {
+        fail(new Error("视频没有可用画面，无法生成封面。"));
+        return;
+      }
+      const scale = Math.min(1, 1280 / width);
+      canvas.width = Math.max(1, Math.round(width * scale));
+      canvas.height = Math.max(1, Math.round(height * scale));
+      const context = canvas.getContext("2d");
+      if (!context) {
+        fail(new Error("浏览器无法创建封面画布。"));
+        return;
+      }
+      context.drawImage(video, 0, 0, canvas.width, canvas.height);
+      canvas.toBlob((blob) => {
+        if (!blob) {
+          fail(new Error("封面图片生成失败，请检查视频画面。"));
+          return;
+        }
+        if (settled) return;
+        settled = true;
+        cleanup();
+        resolve(blob);
+      }, "image/jpeg", 0.86);
+    };
+    video.src = objectUrl;
+    video.load();
+  });
 }
 
 async function getVideoDuration(file) {
@@ -182,7 +243,7 @@ async function loadPublicCatalogReadiness() {
 }
 
 async function loadAll(){
- const [dramas,episodes]=await Promise.all([db.from("dramas").select("id,slug,title,title_zh,category,status,published_at,created_at").order("created_at",{ascending:false}),db.from("episodes").select("id,drama_id,title,episode_number,season_number,status,video_path,duration_seconds,description,created_at").order("created_at",{ascending:false})]);
+ const [dramas,episodes]=await Promise.all([db.from("dramas").select("id,slug,title,title_zh,category,status,poster_path,published_at,created_at").order("created_at",{ascending:false}),db.from("episodes").select("id,drama_id,title,episode_number,season_number,status,video_path,duration_seconds,description,created_at").order("created_at",{ascending:false})]);
  cache.dramas=dramas.data||[];cache.episodes=episodes.data||[];const errors=[dramas,episodes].filter(x=>x.error).map(x=>x.error.message);
  $("kpiDramas").textContent=dramas.error?"—":cache.dramas.length;$("kpiEpisodes").textContent=episodes.error?"—":cache.episodes.length;$("kpiAds").textContent="AdSense";$("overviewText").textContent=errors.length?"部分数据读取失败："+errors.join("；"):"数据库连接正常，概览数据已更新。";
  await loadPublicCatalogReadiness();await loadAdditionalCatalogs();const counts=new Map();cache.episodes.forEach(e=>counts.set(e.drama_id,(counts.get(e.drama_id)||0)+1));
@@ -263,19 +324,49 @@ async function updateContentStatus(table, id, nextStatus, messageId) {
     if (parent.status !== "published") {
       originalParentStatus = parent.status;
       originalParentPublishedAt = parent.published_at ?? null;
-      const parentUpdate = await db.from("dramas")
-        .update({ status: "published", published_at: new Date().toISOString() })
-        .eq("id", parent.id)
-        .select("id,status")
-        .maybeSingle();
-      if (parentUpdate.error) {
-        return setMessage(targetMessage, "自动发布所属剧名失败：" + parentUpdate.error.message, true);
+      let generatedPosterPath = null;
+      if (!parent.poster_path) {
+        setMessage(targetMessage, "正在从已上传的视频提取所属剧名封面…");
+        const { data: videoBlob, error: downloadError } = await db.storage
+          .from("ccwu-cinema-videos").download(row.video_path);
+        if (downloadError || !videoBlob) {
+          throw new Error("自动生成所属剧名海报失败：无法读取已上传视频。" + (downloadError?.message || ""));
+        }
+        let posterBlob;
+        try {
+          posterBlob = await createPosterBlob(videoBlob);
+        } catch (error) {
+          throw new Error("自动生成所属剧名海报失败：" + (error?.message || "视频封面提取失败。"));
+        }
+        generatedPosterPath = `dramas/${parent.id}/${crypto.randomUUID()}.jpg`;
+        const posterUpload = await db.storage.from("ccwu-cinema-posters").upload(
+          generatedPosterPath, posterBlob,
+          { cacheControl: "31536000", upsert: false, contentType: "image/jpeg" }
+        );
+        if (posterUpload.error) {
+          throw new Error("自动上传所属剧名海报失败：" + posterUpload.error.message);
+        }
       }
-      if (!parentUpdate.data) {
-        return setMessage(targetMessage, "自动发布所属剧名失败：数据库没有返回更新记录，剧集尚未发布。", true);
+      const parentValues = {
+        status: "published",
+        published_at: new Date().toISOString(),
+        ...(generatedPosterPath ? { poster_path: generatedPosterPath } : {})
+      };
+      const parentUpdate = await db.from("dramas")
+        .update(parentValues)
+        .eq("id", parent.id)
+        .select("id,status,poster_path")
+        .maybeSingle();
+      if (parentUpdate.error || !parentUpdate.data) {
+        if (generatedPosterPath) {
+          await db.storage.from("ccwu-cinema-posters").remove([generatedPosterPath]);
+        }
+        return setMessage(targetMessage, "自动发布所属剧名失败：" +
+          (parentUpdate.error?.message || "数据库没有返回更新记录，剧集尚未发布。"), true);
       }
       parentWasChanged = true;
       parent.status = "published";
+      if (generatedPosterPath) parent.poster_path = generatedPosterPath;
     }
   }
 
