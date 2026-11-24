@@ -26,7 +26,7 @@ checks={
  "homepage has five fixed category shelves": all(('name:"'+x+'"') in app for x in ("选推荐","最新上线","热门短剧","电影专区","纪录片")),
  "homepage only lists published dramas with published episodes":'episodes!inner(id)' in app and 'eq("episodes.status","published")' in app,
  "five dedicated homepage upload channels": all(('data-upload-category="'+x+'"') in html for x in ("选推荐","最新上线","热门短剧","电影专区","纪录片")) and 'id="dramaCategory"' in html and 'type="hidden"' in html and 'activeUploadCategory="选推荐"' in source and 'category===category' in source and 'category,status:"draft"' in source,
- "episode list has five category filters": all(('data-episode-category="'+x+'">'+x+'上传') in html for x in ("选推荐","最新上线","热门短剧","电影专区","纪录片")) and "renderEpisodeRows();" in source and "activeEpisodeListCategory" in source and "categories.get(e.drama_id)===activeEpisodeListCategory" in source,
+ "episode list has five category filters": all(('data-episode-category="'+x+'"') in html and (x+'上传</button>') in html for x in ("选推荐","最新上线","热门短剧","电影专区","纪录片")) and "renderEpisodeRows();" in source and "activeEpisodeListCategory" in source and "categories.get(e.drama_id)===activeEpisodeListCategory" in source,
  "episode-first workflow hides separate drama list":'<div class="hidden" aria-hidden="true"><table><tbody id="dramaRows"></tbody></table></div>' in html and "逐集上传视频" in html,
  "episode publishing auto-publishes parent drama":'自动发布所属剧名失败' in source and 'parent.status = "published"' in source,
  "catalog readiness check remains":'loadPublicCatalogReadiness' in source and 'id="catalogReadiness"' in html,
