@@ -1,5 +1,5 @@
-window.CCWU_ADMIN_MODULE_VERSION = "2.2.11";
-console.info("[CCWU Admin] ES module 2.2.11 loaded");
+window.CCWU_ADMIN_MODULE_VERSION = "2.2.12";
+console.info("[CCWU Admin] ES module 2.2.12 loaded");
 // CCWU Global Admin module 2.0.9 — explicit ES module entrypoint
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js";
@@ -9,7 +9,7 @@ const isTestProject = (() => {
   try { return new URL(SUPABASE_URL).hostname === "uvtzhzgirgwjzsmcdgej.supabase.co"; }
   catch { return false; }
 })();
-window.CCWU_BUILD_VERSION = "2.2.11";
+window.CCWU_BUILD_VERSION = "2.2.12";
 const $ = (id) => document.getElementById(id);
 const esc = (value) => String(value ?? "").replace(/[&<>"']/g, (char) => ({
   "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
@@ -34,13 +34,26 @@ async function uploadResumable(bucket, path, file, onProgress = () => {}) {
   return path;
 }
 
-async function createPosterBlob(videoBlob) {
+async function createPosterBlob(videoBlob, expectedMimeType = "video/mp4") {
+  // Storage downloads may return a generic MIME type. Restore the known
+  // upload type so the browser selects the correct media demuxer/decoder.
+  const typedVideoBlob = videoBlob.type && videoBlob.type.startsWith("video/")
+    ? videoBlob
+    : new Blob([videoBlob], { type: expectedMimeType });
   return await new Promise((resolve, reject) => {
     const video = document.createElement("video");
     const canvas = document.createElement("canvas");
-    const objectUrl = URL.createObjectURL(videoBlob);
+    const objectUrl = URL.createObjectURL(typedVideoBlob);
     let settled = false;
+    let duration = 0;
+    let targetIndex = 0;
+    let frameRequested = false;
+    const seekTargets = [];
+    const timeout = window.setTimeout(() => {
+      fail(new Error("等待浏览器解码视频画面超时。视频可能使用当前浏览器不支持的编码（例如部分 H.265/HEVC 文件），请改用 H.264 MP4 或 VP9 WebM。"));
+    }, 20000);
     const cleanup = () => {
+      window.clearTimeout(timeout);
       video.removeAttribute("src");
       video.load();
       URL.revokeObjectURL(objectUrl);
@@ -51,45 +64,82 @@ async function createPosterBlob(videoBlob) {
       cleanup();
       reject(error instanceof Error ? error : new Error("无法从已上传视频提取封面画面。"));
     };
+    const captureFrame = () => {
+      if (settled || frameRequested) return;
+      if (video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) return;
+      if (!video.videoWidth || !video.videoHeight) {
+        if (targetIndex < seekTargets.length) {
+          video.currentTime = seekTargets[targetIndex++];
+        } else {
+          fail(new Error("浏览器已读取视频时长，但无法解码出图像画面。可能是视频没有图像轨道，或使用了当前浏览器不支持的编码；请使用 H.264 MP4 或 VP9 WebM。"));
+        }
+        return;
+      }
+      frameRequested = true;
+      const draw = () => {
+        if (settled) return;
+        const width = video.videoWidth;
+        const height = video.videoHeight;
+        if (!width || !height) {
+          frameRequested = false;
+          if (targetIndex < seekTargets.length) video.currentTime = seekTargets[targetIndex++];
+          else fail(new Error("视频画面解码失败，请将视频转换为 H.264 MP4 或 VP9 WebM 后再上传。"));
+          return;
+        }
+        const scale = Math.min(1, 1280 / width);
+        canvas.width = Math.max(1, Math.round(width * scale));
+        canvas.height = Math.max(1, Math.round(height * scale));
+        const context = canvas.getContext("2d");
+        if (!context) {
+          fail(new Error("浏览器无法创建封面画布。"));
+          return;
+        }
+        try {
+          context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        } catch (error) {
+          fail(new Error("读取视频画面失败：" + (error?.message || "浏览器解码异常。")));
+          return;
+        }
+        canvas.toBlob((blob) => {
+          if (!blob) {
+            fail(new Error("封面图片生成失败，请检查视频画面。"));
+            return;
+          }
+          if (settled) return;
+          settled = true;
+          cleanup();
+          resolve(blob);
+        }, "image/jpeg", 0.86);
+      };
+      if (typeof video.requestVideoFrameCallback === "function") {
+        video.requestVideoFrameCallback(() => draw());
+      } else {
+        draw();
+      }
+    };
     video.muted = true;
     video.playsInline = true;
     video.preload = "auto";
-    video.onerror = () => fail(new Error("已上传视频无法解码，不能自动生成封面；请检查原视频格式。"));
-    video.onloadedmetadata = () => {
-      if (!Number.isFinite(video.duration) || video.duration <= 0) {
+    video.addEventListener("error", () => fail(new Error(
+      "已上传视频无法解码（" + (video.error?.message || "媒体格式或编码不受浏览器支持") + "）。请使用 H.264 MP4 或 VP9 WebM。"
+    )));
+    video.addEventListener("loadeddata", captureFrame);
+    video.addEventListener("canplay", captureFrame);
+    video.addEventListener("seeked", captureFrame);
+    video.addEventListener("loadedmetadata", () => {
+      duration = video.duration;
+      if (!Number.isFinite(duration) || duration <= 0) {
         fail(new Error("视频时长无效，无法生成封面。"));
         return;
       }
-      video.currentTime = Math.min(1, video.duration * 0.1);
-    };
-    video.onseeked = () => {
-      if (settled) return;
-      const width = video.videoWidth;
-      const height = video.videoHeight;
-      if (!width || !height) {
-        fail(new Error("视频没有可用画面，无法生成封面。"));
-        return;
-      }
-      const scale = Math.min(1, 1280 / width);
-      canvas.width = Math.max(1, Math.round(width * scale));
-      canvas.height = Math.max(1, Math.round(height * scale));
-      const context = canvas.getContext("2d");
-      if (!context) {
-        fail(new Error("浏览器无法创建封面画布。"));
-        return;
-      }
-      context.drawImage(video, 0, 0, canvas.width, canvas.height);
-      canvas.toBlob((blob) => {
-        if (!blob) {
-          fail(new Error("封面图片生成失败，请检查视频画面。"));
-          return;
-        }
-        if (settled) return;
-        settled = true;
-        cleanup();
-        resolve(blob);
-      }, "image/jpeg", 0.86);
-    };
+      const first = Math.min(Math.max(0.1, duration * 0.1), Math.max(0, duration - 0.05));
+      const middle = Math.min(duration * 0.5, Math.max(0, duration - 0.05));
+      const start = Math.min(0.05, Math.max(0, duration - 0.01));
+      seekTargets.push(first);
+      if (Math.abs(middle - first) > 0.1) seekTargets.push(middle);
+      if (Math.abs(start - seekTargets[seekTargets.length - 1]) > 0.1) seekTargets.push(start);
+      video.currentTime = seekTargets[targetIndex++];
+    }, { once: true });
     video.src = objectUrl;
     video.load();
   });
@@ -334,7 +384,7 @@ async function updateContentStatus(table, id, nextStatus, messageId) {
         }
         let posterBlob;
         try {
-          posterBlob = await createPosterBlob(videoBlob);
+          posterBlob = await createPosterBlob(videoBlob, /\\.webm$/i.test(row.video_path) ? "video/webm" : "video/mp4");
         } catch (error) {
           throw new Error("自动生成所属剧名海报失败：" + (error?.message || "视频封面提取失败。"));
         }
