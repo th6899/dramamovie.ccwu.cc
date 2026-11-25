@@ -36,6 +36,22 @@ function renderCinema(dramas){
    : "<div class=\"cinema-hero-media cinema-hero-media-empty\"><span>CCWU CINEMA</span></div>";
   root.innerHTML="<section class=\"cinema-hero cinema-hero-featured\"><div class=\"cinema-hero-copy\"><span class=\"cinema-eyebrow\">CCWU CINEMA · 精选推荐</span><h1>"+esc(featured.title||featured.title_zh)+"</h1><p>"+esc(featured.synopsis||"发现更多精彩影视内容。").slice(0,150)+"</p><a class=\"cinema-play\" href=\"player.html?drama="+encodeURIComponent(featured.id)+"\">▶ 立即播放</a></div>"+heroMedia+"</section>"+shelfHtml;
  }
+ // Build the featured artwork with DOM APIs so the image is never lost in HTML-string parsing.
+ if(featured){
+  const hero=root.querySelector(".cinema-hero-featured");
+  if(hero){
+   let media=hero.querySelector(".cinema-hero-media");
+   if(!media){media=document.createElement("div");media.className="cinema-hero-media";hero.appendChild(media);}
+   media.replaceChildren();
+   const image=document.createElement("img");
+   image.alt=(featured.title||featured.title_zh||"影视")+"封面";
+   image.loading="eager";image.decoding="async";image.fetchPriority="high";
+   image.src=featured.poster_path?posterUrl(featured.poster_path):"";
+   image.addEventListener("error",()=>{media.classList.add("poster-load-error");media.textContent="CCWU CINEMA · 封面加载失败";},{once:true});
+   image.addEventListener("load",()=>{media.classList.remove("poster-load-error");},{once:true});
+   media.appendChild(image);
+  }
+ }
  if(side)side.innerHTML="<div class=\"sidebar-brand\">CCWU CINEMA</div><a class=\"active\" href=\"#dramas\">⌂　影视首页</a>"+sections.map((s,i)=>"<a href=\"#cinema-shelf-"+i+"\">▣　"+s.name+"</a>").join("")+"<a href=\"#services\">◈　数字服务</a><a href=\"#membership\">♢　会员专区</a><a href=\"#vpn\">⌁　VPN 服务</a><a href=\"#tutorials\">▤　教程中心</a>";
  if(search){search.disabled=false;search.placeholder="搜索影视、剧名";search.oninput=function(){const q=search.value.trim().toLowerCase();root.querySelectorAll(".cinema-card").forEach(el=>{el.hidden=!el.textContent.toLowerCase().includes(q);});root.querySelectorAll("[data-shelf]").forEach(el=>{el.hidden=q.length>0&&!el.querySelector(".cinema-card:not([hidden])");});};}
 }
