@@ -31,8 +31,10 @@ function renderCinema(dramas){
   root.innerHTML="<section class=\"cinema-hero cinema-hero-empty\"><div class=\"cinema-hero-copy\"><span class=\"cinema-eyebrow\">CCWU CINEMA · VIDEO DISCOVERY</span><h1>精彩影视，即将呈现</h1><p>影视作品发布后，精选海报、剧集介绍与播放入口将在这里自动展示。</p><span class=\"cinema-empty-note\">目前暂无已发布影视作品</span></div><div class=\"cinema-hero-art\"><span>CCWU</span><i>▶</i></div></section>"+shelfHtml;
  }else{
   const heroImage=featured.poster_path?posterUrl(featured.poster_path):"";
-  const style=heroImage&&heroImage!=="#"?"--hero-image:url(\""+esc(heroImage)+"\");":"";
-  root.innerHTML="<section class=\"cinema-hero\" style=\""+style+"\"><div class=\"cinema-hero-copy\"><span class=\"cinema-eyebrow\">CCWU CINEMA · 精选推荐</span><h1>"+esc(featured.title||featured.title_zh)+"</h1><p>"+esc(featured.synopsis||"发现更多精彩影视内容。").slice(0,150)+"</p><a class=\"cinema-play\" href=\"player.html?drama="+encodeURIComponent(featured.id)+"\">▶ 立即播放</a></div></section>"+shelfHtml;
+  const heroMedia=heroImage&&heroImage!=="#"
+   ? "<div class=\"cinema-hero-media\"><img src=\""+esc(heroImage)+"\" alt=\""+esc(featured.title||featured.title_zh)+"影视封面\" fetchpriority=\"high\" onerror=\"this.parentElement.remove()\"></div>"
+   : "<div class=\"cinema-hero-media cinema-hero-media-empty\"><span>CCWU CINEMA</span></div>";
+  root.innerHTML="<section class=\"cinema-hero cinema-hero-featured\"><div class=\"cinema-hero-copy\"><span class=\"cinema-eyebrow\">CCWU CINEMA · 精选推荐</span><h1>"+esc(featured.title||featured.title_zh)+"</h1><p>"+esc(featured.synopsis||"发现更多精彩影视内容。").slice(0,150)+"</p><a class=\"cinema-play\" href=\"player.html?drama="+encodeURIComponent(featured.id)+"\">▶ 立即播放</a></div>"+heroMedia+"</section>"+shelfHtml;
  }
  if(side)side.innerHTML="<div class=\"sidebar-brand\">CCWU CINEMA</div><a class=\"active\" href=\"#dramas\">⌂　影视首页</a>"+sections.map((s,i)=>"<a href=\"#cinema-shelf-"+i+"\">▣　"+s.name+"</a>").join("")+"<a href=\"#services\">◈　数字服务</a><a href=\"#membership\">♢　会员专区</a><a href=\"#vpn\">⌁　VPN 服务</a><a href=\"#tutorials\">▤　教程中心</a>";
  if(search){search.disabled=false;search.placeholder="搜索影视、剧名";search.oninput=function(){const q=search.value.trim().toLowerCase();root.querySelectorAll(".cinema-card").forEach(el=>{el.hidden=!el.textContent.toLowerCase().includes(q);});root.querySelectorAll("[data-shelf]").forEach(el=>{el.hidden=q.length>0&&!el.querySelector(".cinema-card:not([hidden])");});};}
