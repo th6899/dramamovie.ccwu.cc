@@ -5,7 +5,7 @@ const $=id=>document.getElementById(id);
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const formatPrice=(amount,currency)=>{const c=String(currency||"USD").toUpperCase();const symbol=c==="CNY"?"¥":c==="USD"?"$":c+" ";return `${symbol}${Number(amount).toFixed(2)} ${c}`};
 const safeUrl=u=>{try{const x=new URL(u);return ["https:","http:"].includes(x.protocol)?x.href:"#"}catch{return "#"}};
-const posterUrl=value=>{const raw=String(value||"").trim();if(!raw||raw.startsWith("/")||raw.split("/").some(part=>part==="."||part===".."))return "#";if(/^https?:\/\//i.test(raw))return safeUrl(raw);const {data}=db.storage.from("ccwu-cinema-posters").getPublicUrl(raw);return safeUrl(data?.publicUrl||"")};
+const posterUrl=value=>{const raw=String(value||"").trim();if(!raw||raw.startsWith("/")||raw.split("/").some(part=>part==="."||part===".."))return "#";if(/^https?:\/\//i.test(raw))return safeUrl(raw);const path=raw.split("/").map(part=>encodeURIComponent(part)).join("/");return safeUrl(SUPABASE_URL+"/storage/v1/object/public/ccwu-cinema-posters/"+path)};
 async function loadList(table,fields,filters={}){let q=db.from(table).select(fields);for(const [k,v] of Object.entries(filters))q=q.eq(k,v);const {data,error}=await q; if(error)throw error;return data||[]}
 function renderCinema(dramas){
  const root=$("dramaGrid"),side=$("cinemaSidebar"),search=$("cinemaSearch");
@@ -19,7 +19,7 @@ function renderCinema(dramas){
  const categoryOf=d=>String(d.category||"").trim();
  const card=d=>{
   const title=d.title||d.title_zh,src=d.poster_path?posterUrl(d.poster_path):"";
-  return "<a class=\"cinema-card\" data-title=\""+esc(title)+"\" href=\"player.html?drama="+encodeURIComponent(d.id)+"\"><div class=\"cinema-poster\">"+(src&&src!=="#"?"<img loading=\"lazy\" src=\""+esc(src)+"\" alt=\""+esc(title)+"海报\">":"<div class=\"poster-placeholder\">CCWU</div>")+"<span class=\"poster-tag\">"+esc(categoryOf(d))+"</span><span class=\"poster-play\">▶</span></div><div class=\"cinema-card-title\">"+esc(title)+"</div><div class=\"cinema-card-meta\">"+esc(d.release_year||"影视剧场")+"</div></a>";
+  return "<a class=\"cinema-card\" data-title=\""+esc(title)+"\" href=\"player.html?drama="+encodeURIComponent(d.id)+"\"><div class=\"cinema-poster\">"+(src&&src!=="#"?"<img loading=\"lazy\" src=\""+esc(src)+"\" alt=\""+esc(title)+"海报\" onerror=\"this.style.display=\'none\';this.parentElement.classList.add(\'poster-load-error\')\">":"<div class=\"poster-placeholder\">CCWU</div>")+"<span class=\"poster-tag\">"+esc(categoryOf(d))+"</span><span class=\"poster-play\">▶</span></div><div class=\"cinema-card-title\">"+esc(title)+"</div><div class=\"cinema-card-meta\">"+esc(d.release_year||"影视剧场")+"</div></a>";
  };
  const shelfHtml=sections.map((s,i)=>{
   const items=dramas.filter(d=>categoryOf(d)===s.name);
