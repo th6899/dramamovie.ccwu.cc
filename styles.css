@@ -264,3 +264,8 @@ body{
  .cinema-hero-featured{padding:30px 18px}
  .cinema-hero-featured .cinema-hero-media{height:260px}
 }
+
+.cinema-hero-featured .cinema-hero-media.poster-load-error,
+.cinema-poster.poster-load-error{background:linear-gradient(135deg,#173e48,#17202b);display:grid;place-items:center}
+.cinema-hero-featured .cinema-hero-media.poster-load-error:after,
+.cinema-poster.poster-load-error:after{content:"CCWU CINEMA";color:#74cbbb;font-size:13px;letter-spacing:.2em}
