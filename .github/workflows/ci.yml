@@ -1,0 +1,91 @@
+name: CCWU portal validation
+
+on:
+  pull_request:
+    branches: [fix/admin-esm-import-v2.0.2]
+  push:
+    branches: [fix/portal-auth-errors-v2.0.3]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ccwu-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  frontend:
+    name: Frontend syntax and deployment isolation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Check browser JavaScript syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          for file in app.js admin-v2.0.1.js config.js player.js payment-result.js account.js; do
+            test -f "$file"
+            node --input-type=module --check < "$file"
+          done
+      - name: Check deployment host isolation and public bundle secrets
+        run: python3 .github/scripts/validate_portal.py
+      - name: Check plan editor and Stripe checkout contract
+        run: python3 .github/scripts/validate_plan_checkout.py
+      - name: Check generated Supabase database types
+        run: python3 .github/scripts/validate_database_types.py
+      - name: Check HTML and JavaScript DOM contracts
+        run: python3 .github/scripts/validate_dom_contract.py
+      - name: Check admin authentication and settings contracts
+        run: python3 .github/scripts/validate_admin_contract.py
+      - name: Check CNY payment QR recovery contract
+        run: python3 .github/scripts/validate_cn_payment_contract.py
+      - name: Check frontend database table and RPC contracts
+        run: python3 .github/scripts/validate_frontend_db_contract.py
+      - name: Check account dashboard auth and ownership contracts
+        run: python3 .github/scripts/validate_account_contract.py
+      - name: Check admin media upload and content publishing workflow
+        run: python3 .github/scripts/validate_media_admin_contract.py
+      - name: Check playback authorization and private media storage contracts
+        run: python3 .github/scripts/validate_playback_security_contract.py
+      - name: Check financial order and VPN plan write permissions
+        run: python3 .github/scripts/validate_financial_write_security.py
+      - name: Check manual payment approval amount and ownership guards
+        run: python3 .github/scripts/validate_manual_payment_approval.py
+      - name: Check private manual payment proof storage
+        run: python3 .github/scripts/validate_payment_proof_storage.py
+      - name: Check authenticated financial RPC ownership and grants
+        run: python3 .github/scripts/validate_financial_rpc_contracts.py
+      - name: Check payment Edge Function signature and test-mode security
+        run: python3 .github/scripts/validate_payment_edge_security.py
+      - name: Check signed ad and promotion tracking security
+        run: python3 .github/scripts/validate_ad_tracking_security.py
+      - name: Check ancillary owner-scoped RLS policies
+        run: python3 .github/scripts/validate_owner_rls_contracts.py
+
+  edge-functions:
+    name: Supabase Edge Function type checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Type-check Edge Functions
+        run: |
+          deno check --no-lock supabase/functions/create-checkout/index.ts
+          deno check --no-lock supabase/functions/stripe-webhook/index.ts
+          deno check --no-lock supabase/functions/get-episode-playback/index.ts
+          deno check --no-lock supabase/functions/cn-payment/index.ts
+          deno check --no-lock supabase/functions/track-episode-promotion/index.ts
+          deno check --no-lock supabase/functions/record-video-ad-events/index.ts
+
+  migrations:
+    name: Migration source integrity
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check migration filenames and duplicate versions
+        run: python3 .github/scripts/validate_migrations.py

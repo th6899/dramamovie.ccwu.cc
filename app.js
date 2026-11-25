@@ -5,9 +5,59 @@ const $=id=>document.getElementById(id);
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const formatPrice=(amount,currency)=>{const c=String(currency||"USD").toUpperCase();const symbol=c==="CNY"?"¥":c==="USD"?"$":c+" ";return `${symbol}${Number(amount).toFixed(2)} ${c}`};
 const safeUrl=u=>{try{const x=new URL(u);return ["https:","http:"].includes(x.protocol)?x.href:"#"}catch{return "#"}};
+const posterUrl=value=>{const raw=String(value||"").trim();if(!raw||raw.startsWith("/")||raw.split("/").some(part=>part==="."||part===".."))return "#";if(/^https?:\/\//i.test(raw))return safeUrl(raw);const path=raw.split("/").map(part=>encodeURIComponent(part)).join("/");return safeUrl(SUPABASE_URL+"/storage/v1/object/public/ccwu-cinema-posters/"+path)};
 async function loadList(table,fields,filters={}){let q=db.from(table).select(fields);for(const [k,v] of Object.entries(filters))q=q.eq(k,v);const {data,error}=await q; if(error)throw error;return data||[]}
+function renderCinema(dramas){
+ const root=$("dramaGrid"),side=$("cinemaSidebar"),search=$("cinemaSearch");
+ const sections=[
+  {name:"选推荐",hint:"为你精选",empty:"影视内容正在筹备中"},
+  {name:"最新上线",hint:"新鲜剧集",empty:"本分区暂无已发布作品"},
+  {name:"热门短剧",hint:"短剧频道",empty:"本分区暂无已发布作品"},
+  {name:"电影专区",hint:"电影频道",empty:"本分区暂无已发布作品"},
+  {name:"纪录片",hint:"纪实频道",empty:"本分区暂无已发布作品"}
+ ];
+ const categoryOf=d=>String(d.category||"").trim();
+ const card=d=>{
+  const title=d.title||d.title_zh,src=d.poster_path?posterUrl(d.poster_path):"";
+  return "<a class=\"cinema-card\" data-title=\""+esc(title)+"\" href=\"player.html?drama="+encodeURIComponent(d.id)+"\"><div class=\"cinema-poster\">"+(src&&src!=="#"?"<img loading=\"lazy\" src=\""+esc(src)+"\" alt=\""+esc(title)+"海报\" onerror=\"this.style.display=\'none\';this.parentElement.classList.add(\'poster-load-error\')\">":"<div class=\"poster-placeholder\">CCWU</div>")+"<span class=\"poster-tag\">"+esc(categoryOf(d))+"</span><span class=\"poster-play\">▶</span></div><div class=\"cinema-card-title\">"+esc(title)+"</div><div class=\"cinema-card-meta\">"+esc(d.release_year||"影视剧场")+"</div></a>";
+ };
+ const shelfHtml=sections.map((s,i)=>{
+  const items=dramas.filter(d=>categoryOf(d)===s.name);
+  const body=items.length?"<div class=\"cinema-row\">"+items.map(card).join("")+"</div>":"<div class=\"cinema-empty-panel\"><div class=\"cinema-empty-icon\">▶</div><b>"+s.empty+"</b><p>后台上传时选择“"+s.name+"”分类，并发布影视作品和至少一集后，海报和播放入口会自动出现在这里。</p></div>";
+  return "<section class=\"cinema-shelf\" data-shelf=\""+s.name+"\" id=\"cinema-shelf-"+i+"\"><div class=\"cinema-shelf-head\"><h2>"+s.name+"</h2><span>"+(items.length?items.length+" 部作品":s.hint)+"</span></div>"+body+"</section>";
+ }).join("");
+ const featured=dramas.find(d=>categoryOf(d)==="选推荐")||dramas.find(d=>categoryOf(d)==="最新上线")||dramas[0];
+ if(!dramas.length){
+  root.innerHTML="<section class=\"cinema-hero cinema-hero-empty\"><div class=\"cinema-hero-copy\"><span class=\"cinema-eyebrow\">CCWU CINEMA · VIDEO DISCOVERY</span><h1>精彩影视，即将呈现</h1><p>影视作品发布后，精选海报、剧集介绍与播放入口将在这里自动展示。</p><span class=\"cinema-empty-note\">目前暂无已发布影视作品</span></div><div class=\"cinema-hero-art\"><span>CCWU</span><i>▶</i></div></section>"+shelfHtml;
+ }else{
+  const heroImage=featured.poster_path?posterUrl(featured.poster_path):"";
+  const heroMedia=heroImage&&heroImage!=="#"
+   ? "<div class=\"cinema-hero-media\"><img src=\""+esc(heroImage)+"\" alt=\""+esc(featured.title||featured.title_zh)+"影视封面\" fetchpriority=\"high\" onerror=\"this.parentElement.remove()\"></div>"
+   : "<div class=\"cinema-hero-media cinema-hero-media-empty\"><span>CCWU CINEMA</span></div>";
+  root.innerHTML="<section class=\"cinema-hero cinema-hero-featured\"><div class=\"cinema-hero-copy\"><span class=\"cinema-eyebrow\">CCWU CINEMA · 精选推荐</span><h1>"+esc(featured.title||featured.title_zh)+"</h1><p>"+esc(featured.synopsis||"发现更多精彩影视内容。").slice(0,150)+"</p><a class=\"cinema-play\" href=\"player.html?drama="+encodeURIComponent(featured.id)+"\">▶ 立即播放</a></div>"+heroMedia+"</section>"+shelfHtml;
+ }
+ // Build the featured artwork with DOM APIs so the image is never lost in HTML-string parsing.
+ if(featured){
+  const hero=root.querySelector(".cinema-hero-featured");
+  if(hero){
+   let media=hero.querySelector(".cinema-hero-media");
+   if(!media){media=document.createElement("div");media.className="cinema-hero-media";hero.appendChild(media);}
+   media.replaceChildren();
+   const image=document.createElement("img");
+   image.alt=(featured.title||featured.title_zh||"影视")+"封面";
+   image.loading="eager";image.decoding="async";image.fetchPriority="high";
+   image.src=featured.poster_path?posterUrl(featured.poster_path):"";
+   image.addEventListener("error",()=>{media.classList.add("poster-load-error");media.textContent="CCWU CINEMA · 封面加载失败";},{once:true});
+   image.addEventListener("load",()=>{media.classList.remove("poster-load-error");},{once:true});
+   media.appendChild(image);
+  }
+ }
+ if(side)side.innerHTML="<div class=\"sidebar-brand\">CCWU CINEMA</div><a class=\"active\" href=\"#dramas\">⌂　影视首页</a>"+sections.map((s,i)=>"<a href=\"#cinema-shelf-"+i+"\">▣　"+s.name+"</a>").join("")+"<a href=\"#services\">◈　数字服务</a><a href=\"#membership\">♢　会员专区</a><a href=\"#vpn\">⌁　VPN 服务</a><a href=\"#tutorials\">▤　教程中心</a>";
+ if(search){search.disabled=false;search.placeholder="搜索影视、剧名";search.oninput=function(){const q=search.value.trim().toLowerCase();root.querySelectorAll(".cinema-card").forEach(el=>{el.hidden=!el.textContent.toLowerCase().includes(q);});root.querySelectorAll("[data-shelf]").forEach(el=>{el.hidden=q.length>0&&!el.querySelector(".cinema-card:not([hidden])");});};}
+}
+
 async function render(){
- try{const dramas=await loadList("dramas","id,title,slug,synopsis,poster_path,release_year,status",{status:"published"});$("dramaGrid").innerHTML=dramas.length?dramas.map(d=>`<article class="media-card"><div class="poster">${d.poster_path?`<img src="${esc(safeUrl(d.poster_path))}" alt="">`:"✦"}</div><div class="media-body"><span class="pill">${d.release_year||"CCWU ORIGINAL"}</span><h3>${esc(d.title)}</h3><p>${esc(d.synopsis||"精彩内容即将呈现。").slice(0,95)}</p><a class="card-action" href="player.html?drama=${encodeURIComponent(d.id)}">查看剧集 →</a></div></article>`).join(""):`<div class="loading">影视内容正在筹备中，敬请期待。</div>`}catch(e){$("dramaGrid").innerHTML='<div class="loading">暂时无法读取影视内容，请稍后再试。</div>'}
+ try{const {data:dramas,error}=await db.from("dramas").select("*,episodes!inner(id)").eq("status","published").eq("episodes.status","published");if(error)throw error;renderCinema(dramas||[])}catch(e){console.error("[CCWU Portal] cinema load failed",e);$("dramaGrid").innerHTML='<div class="loading">影视内容暂时无法加载，请稍后重试。</div>'}
  try{const rows=await loadList("service_catalog","id,title,slug,description,category",{is_published:true});$("serviceGrid").innerHTML=rows.length?rows.map((x,i)=>`<article class="service-card"><div class="service-icon">${["◈","⌘","✧","◎"][i%4]}</div><h3>${esc(x.title)}</h3><p>${esc(x.description||"探索这项数字服务。")}</p><span class="pill">${esc(x.category)}</span></article>`).join(""):`<div class="loading">服务目录正在整理中。</div>`}catch{$("serviceGrid").innerHTML='<div class="loading">暂时无法读取服务目录。</div>'}
  try{const rows=await loadList("membership_plans","id,name,description,price_amount,currency,duration_days",{is_active:true});$("membershipGrid").innerHTML=rows.length?rows.map(x=>`<article class="plan-card"><span class="pill">MEMBERSHIP</span><h3>${esc(x.name)}</h3><div class="price">${esc(formatPrice(x.price_amount,x.currency))} <small>/ ${x.duration_days} 天</small></div><p>${esc(x.description||"会员专属内容与权益")}</p><ul><li>${x.duration_days} 天会员有效期</li><li>会员内容访问权益</li></ul><button class="btn btn-primary" ${ `data-checkout-type="membership" data-plan-id="${esc(x.id)}"`}>立即购买</button></article>`).join(""):`<div class="loading">会员套餐即将开放。</div>`}catch{$("membershipGrid").innerHTML='<div class="loading">暂时无法读取会员套餐。</div>'}
  try{const rows=await loadList("vpn_plans","id,name,description,price_amount,currency,duration_days,device_limit",{is_active:true});$("vpnGrid").innerHTML=rows.length?rows.map(x=>`<article class="plan-card"><span class="pill">VPN PLAN</span><h3>${esc(x.name)}</h3><div class="price">${esc(formatPrice(x.price_amount,x.currency))} <small>/ ${x.duration_days} 天</small></div><p>${esc(x.description||"稳定连接服务")}</p><ul><li>${x.duration_days} 天使用期</li><li>最多 ${x.device_limit} 台设备</li></ul><button class="btn btn-primary" data-checkout-type="vpn" data-plan-id="${esc(x.id)}">立即购买</button></article>`).join(""):`<div class="loading">VPN 套餐即将开放。</div>`}catch{$("vpnGrid").innerHTML='<div class="loading">暂时无法读取 VPN 套餐。</div>'}
@@ -17,15 +67,95 @@ let mode="login";
 function setMode(v){mode=v;$("authTitle").textContent=v==="login"?"登录账户":"创建账户";$("authSubmit").textContent=v==="login"?"登录":"注册";$("nameField").classList.toggle("hidden",v!=="signup");document.querySelectorAll(".tab").forEach(b=>b.classList.toggle("active",b.dataset.mode===v));$("authMessage").textContent=""}
 function showAuth(){ $("authModal").classList.remove("hidden");}
 $("authButton").onclick=showAuth;$("ctaAuth").onclick=showAuth;$("closeAuth").onclick=()=>$("authModal").classList.add("hidden");document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>setMode(b.dataset.mode));
-$("authForm").onsubmit=async e=>{e.preventDefault();$("authSubmit").disabled=true;$("authMessage").textContent="正在处理…";const email=$("authEmail").value.trim(),password=$("authPassword").value;let result;if(mode==="login")result=await db.auth.signInWithPassword({email,password});else result=await db.auth.signUp({email,password,options:{data:{name:$("displayName").value.trim()}}});$("authSubmit").disabled=false;$("authMessage").textContent=result.error?result.error.message:(mode==="signup"?"注册请求已提交，请按邮件提示完成验证。":"登录成功。");if(!result.error&&mode==="login"){$("authModal").classList.add("hidden");await refreshUser()}};
-async function refreshUser(){const {data:{user}}=await db.auth.getUser();$("userLabel").textContent=user?user.email:"访客";$("authButton").textContent=user?"账户 / 退出":"登录 / 注册";$("authButton").onclick=async()=>{if(user){await db.auth.signOut();await refreshUser()}else showAuth()}}
+$("authForm").onsubmit=async e=>{
+ e.preventDefault();
+ const submit=$("authSubmit");
+ submit.disabled=true;
+ $("authMessage").textContent="正在处理…";
+ try{
+  const email=$("authEmail").value.trim(),password=$("authPassword").value;
+  const result=mode==="login"
+   ? await db.auth.signInWithPassword({email,password})
+   : await db.auth.signUp({email,password,options:{data:{name:$("displayName").value.trim()}}});
+  if(result.error)throw result.error;
+  $("authMessage").textContent=mode==="signup"?"注册请求已提交，请按邮件提示完成验证。":"登录成功。";
+  if(mode==="login"){
+   $("authModal").classList.add("hidden");
+   if(new URLSearchParams(location.search).get("return")==="account"){
+    location.href="./account.html";
+    return;
+   }
+   await refreshUser();
+  }
+ }catch(error){
+  console.error("[CCWU Portal] Authentication failed",error);
+  $("authMessage").textContent=error?.message||"认证请求失败，请检查网络后重试。";
+ }finally{
+  submit.disabled=false;
+ }
+};
+function updateUserUI(user){$("userLabel").textContent=user?user.email:"访客";$("authButton").textContent=user?"账户中心":"登录 / 注册";$("authButton").onclick=()=>{if(user){location.href="./account.html";}else showAuth();};}
+async function refreshUser(){const {data:{user},error}=await db.auth.getUser();if(error)throw error;updateUserUI(user);}
 let activeManualOrder = null;
 let manualPaymentSettings = null;
+let nativePaymentMethods = [];
 let pendingCheckout = null;
+let activeNativeOrder = null;
+let nativePaymentPoll = null;
+let nativePollingInFlight = false;
+let nativeQrObjectUrl = null;
 const manualModal = $("manualPayModal");
 const checkoutModal = $("checkoutModal");
+const nativeModal = $("nativePayModal");
 $("closeManualPay").addEventListener("click",()=>manualModal.classList.add("hidden"));
 $("closeCheckout").addEventListener("click",()=>checkoutModal.classList.add("hidden"));
+function stopNativePaymentPolling(){if(nativePaymentPoll){clearInterval(nativePaymentPoll);nativePaymentPoll=null;}nativePollingInFlight=false;}
+$("closeNativePay").addEventListener("click",()=>{stopNativePaymentPolling();activeNativeOrder=null;if(nativeQrObjectUrl){URL.revokeObjectURL(nativeQrObjectUrl);nativeQrObjectUrl=null;}nativeModal.classList.add("hidden");});
+async function pollNativePayment(){
+ if(!activeNativeOrder||nativePollingInFlight)return;
+ nativePollingInFlight=true;
+ try{
+  const {data,error}=await db.rpc("get_my_cn_payment_order",{p_order_no:activeNativeOrder.order_no});
+  if(error||!data)return;
+  const status=String(data.status||"pending").toLowerCase();
+  const expired=data.payment_expires_at&&Date.now()>=new Date(data.payment_expires_at).getTime();
+  if(status==="paid"){
+   stopNativePaymentPolling();
+   $("nativePayStatus").textContent="支付已确认，服务权益正在刷新…";
+   await refreshUser();await render();
+   $("nativePayStatus").textContent="支付成功！您的订单已确认。";
+  }else if(["failed","cancelled","canceled","expired"].includes(status)||expired){
+   stopNativePaymentPolling();
+   $("nativePayStatus").textContent="订单已失效，请关闭窗口后重新创建订单。";
+  }else{
+   $("nativePayStatus").textContent="等待支付确认…请勿重复付款。";
+  }
+ }catch(error){console.warn("[CCWU Portal] payment status poll failed",error);}
+ finally{nativePollingInFlight=false;}
+}
+async function startNativePayment(methodButton){
+ const method=methodButton.dataset.paymentMethod;
+ const provider=method==="alipay"?"alipay":"wechat_pay";
+ const {data,error}=await db.functions.invoke("cn-payment",{body:{
+  provider,item_type:pendingCheckout.itemType,item_id:pendingCheckout.itemId,request_key:crypto.randomUUID()
+ }});
+ if(error)throw new Error("自动扫码支付暂不可用，请检查测试商户配置后重试。");
+ if(!data||!data.ok||!data.qr_code)throw new Error(data?.error||"支付通道未返回有效二维码。");
+ activeNativeOrder={order_no:data.order_no,provider};
+ $("nativePayTitle").textContent=provider==="alipay"?"支付宝扫码支付":"微信支付";
+ $("nativePayDetails").textContent="订单 "+data.order_no+"｜应付 "+formatPrice(data.amount,data.currency);
+ $("nativePayQr").innerHTML="";
+ if(nativeQrObjectUrl){URL.revokeObjectURL(nativeQrObjectUrl);nativeQrObjectUrl=null;}
+ if(typeof data.qr_svg==="string"){
+  nativeQrObjectUrl=URL.createObjectURL(new Blob([data.qr_svg],{type:"image/svg+xml"}));
+  const image=document.createElement("img");image.src=nativeQrObjectUrl;image.alt="支付二维码";image.style.width="240px";image.style.maxWidth="80%";image.style.height="auto";$("nativePayQr").append(image);
+ }else{
+  const link=document.createElement("a");link.href=data.qr_code;link.textContent="打开支付二维码链接";link.target="_blank";link.rel="noopener noreferrer";$("nativePayQr").append(link);
+ }
+ $("nativePayStatus").textContent="请使用对应支付 App 扫码，系统将自动确认到账。";
+ checkoutModal.classList.add("hidden");nativeModal.classList.remove("hidden");
+ stopNativePaymentPolling();nativePaymentPoll=setInterval(()=>{void pollNativePayment();},3000);await pollNativePayment();
+}
 $("manualPayMethod").addEventListener("change",renderManualQr);
 function renderManualQr(){
  const method=$("manualPayMethod").value; const enabled=method==="alipay"?manualPaymentSettings?.alipay_enabled:manualPaymentSettings?.wechat_enabled;
@@ -42,19 +172,45 @@ async function openCheckout(itemType,itemId,button){
  const fields=itemType==="membership"?"id,name,price_amount,currency,duration_days":"id,name,price_amount,currency,duration_days,device_limit";
  const {data:plan,error:planError}=await db.from(table).select(fields).eq("id",itemId).eq("is_active",true).single();if(planError)throw planError;
  const {data:settings,error:settingsError}=await db.from("manual_payment_settings").select("alipay_qr_path,wechat_qr_path,alipay_enabled,wechat_enabled,instructions").eq("id",true).single();
- if(settingsError)throw new Error("支付配置暂不可读取，请管理员检查数据库迁移和权限。");
- manualPaymentSettings=settings;pendingCheckout={itemType,itemId,plan};
- $("checkoutSummary").textContent=`${plan.name}｜${plan.duration_days} 天｜应付 ${formatPrice(plan.price_amount,plan.currency)}`;
- $("alipayState").textContent=settings.alipay_enabled&&settings.alipay_qr_path?"二维码已配置，可选择":"待上传二维码";
- $("wechatState").textContent=settings.wechat_enabled&&settings.wechat_qr_path?"二维码已配置，可选择":"待上传二维码";
- document.querySelectorAll('[data-payment-method="alipay"],[data-payment-method="wechat"]').forEach(b=>{const m=b.dataset.paymentMethod;const ok=m==="alipay"?settings.alipay_enabled&&settings.alipay_qr_path:settings.wechat_enabled&&settings.wechat_qr_path;b.disabled=!ok;});
+ manualPaymentSettings=settingsError?{alipay_qr_path:null,wechat_qr_path:null,alipay_enabled:false,wechat_enabled:false,instructions:""}:settings;
+ const {data:methods,error:methodsError}=await db.from("payment_methods").select("provider,asset,environment,is_enabled").eq("asset","CNY").eq("is_enabled",true);
+ nativePaymentMethods=methodsError?[]:(methods||[]);
+ pendingCheckout={itemType,itemId,plan,requestKey:crypto.randomUUID()};
+ $("checkoutSummary").textContent=plan.name+"｜"+plan.duration_days+" 天｜应付 "+formatPrice(plan.price_amount,plan.currency);
+ const isCny=String(plan.currency).toUpperCase()==="CNY";
+ document.querySelectorAll('[data-payment-method="alipay"],[data-payment-method="wechat"]').forEach(b=>{
+  const m=b.dataset.paymentMethod,provider=m==="alipay"?"alipay":"wechat_pay";
+  const native=nativePaymentMethods.find(x=>x.provider===provider&&x.asset==="CNY"&&x.is_enabled);
+  const nativeAllowed=!!native&&!(provider==="wechat_pay"&&native.environment==="test");
+  const manual=m==="alipay"?!!(manualPaymentSettings.alipay_enabled&&manualPaymentSettings.alipay_qr_path):!!(manualPaymentSettings.wechat_enabled&&manualPaymentSettings.wechat_qr_path);
+  b.dataset.paymentMode=nativeAllowed?"native":manual?"manual":"disabled";
+  b.disabled=!(isCny&&(nativeAllowed||manual));
+  const state=m==="alipay"?$("alipayState"):$("wechatState");
+  state.textContent=nativeAllowed?(native.environment==="test"?"自动扫码（沙箱）":"自动扫码支付"):manual?"人工扫码，提交付款凭证":(provider==="wechat_pay"&&native?.environment==="test"?"API v3 无独立沙箱，暂不开放":"待商户配置");
+ });
+ const stripeButton=$("stripeCheckoutButton");
+ if(stripeButton){stripeButton.disabled=String(plan.currency).toUpperCase()!=="USD";$("stripeState").textContent=String(plan.currency).toUpperCase()==="USD"?"可使用 Stripe 测试结账":"此套餐为人民币计价；Stripe 仅支持美元套餐";}
  $("checkoutMessage").textContent="";checkoutModal.classList.remove("hidden");
 }
 document.addEventListener("click",async e=>{
  const methodButton=e.target.closest("[data-payment-method]");
  if(methodButton&&!methodButton.disabled){
-  if(!pendingCheckout)return;methodButton.setAttribute("aria-busy","true");$("checkoutMessage").textContent="正在创建订单…";
+  if(!pendingCheckout)return;
+  if(methodButton.dataset.paymentMethod==="stripe"){
+   methodButton.setAttribute("aria-busy","true");$("checkoutMessage").textContent="正在连接 Stripe 测试收银台…";
+   try{
+    const {data:{user},error:userError}=await db.auth.getUser();if(userError||!user)throw new Error("请先登录后再购买。");
+    if(String(pendingCheckout.plan.currency).toUpperCase()!=="USD")throw new Error("Stripe 仅支持美元套餐。");
+    const {data,error}=await db.functions.invoke("create-checkout",{body:{itemType:pendingCheckout.itemType,itemId:pendingCheckout.itemId,currency:"USD",region:"international",requestKey:pendingCheckout.requestKey}});
+    if(error)throw new Error("Stripe 测试结账暂不可用，请检查测试密钥、USD 价格 ID 和预览站点配置。");
+    if(!data||typeof data.checkout_url!=="string"||!data.checkout_url.startsWith("https://checkout.stripe.com/"))throw new Error("Stripe 未返回有效的安全收银台地址。");
+    window.location.assign(data.checkout_url);
+   }catch(err){$("checkoutMessage").textContent=err.message||"Stripe 测试结账失败，请稍后重试。";}finally{methodButton.removeAttribute("aria-busy");}
+   return;
+  }
+  methodButton.setAttribute("aria-busy","true");$("checkoutMessage").textContent="正在创建订单…";
   try{
+   if(methodButton.dataset.paymentMode==="native"){await startNativePayment(methodButton);return;}
    const {data:order,error}=await db.rpc("create_manual_payment_order",{p_item_type:pendingCheckout.itemType,p_item_id:pendingCheckout.itemId});if(error)throw error;activeManualOrder=order;
    const method=methodButton.dataset.paymentMethod;$("manualPayMethod").innerHTML=`<option value="${method}">${method==="alipay"?"支付宝":"微信支付"}</option>`;
    $("manualPayDetails").textContent=`订单 ${order.order_no}｜${order.title}｜应付 ${formatPrice(order.amount,order.currency)}`;$("manualPayInstructions").textContent=manualPaymentSettings.instructions||"请扫码付款，并提交付款单号。";
@@ -76,5 +232,7 @@ $("manualPayForm").addEventListener("submit",async e=>{
   $("manualPayMessage").textContent="付款信息已提交，订单进入人工审核。核实到账后将开通服务。";$("manualPayForm").reset();activeManualOrder=null;
  }catch(err){$("manualPayMessage").textContent=err.message||"提交失败，请重试。";}finally{submit.disabled=!activeManualOrder;}
 });
-$("menuBtn").onclick=()=>{const n=document.querySelector(".topbar nav");n.style.display=n.style.display==="flex"?"none":"flex";n.style.position="absolute";n.style.top="76px";n.style.left="0";n.style.right="0";n.style.padding="20px";n.style.background="white";n.style.flexDirection="column"};
-await render();await refreshUser();db.auth.onAuthStateChange(()=>refreshUser());
+$("menuBtn").onclick=()=>{const n=document.querySelector(".topbar nav");n.style.display=n.style.display==="flex"?"none":"flex";n.style.position="absolute";n.style.top=window.matchMedia("(max-width:540px)").matches?"60px":"76px";n.style.left="0";n.style.right="0";n.style.padding="20px";n.style.background="white";n.style.flexDirection="column"};
+db.auth.onAuthStateChange((_event,session)=>{updateUserUI(session?.user??null);});
+if(new URLSearchParams(location.search).get("auth")==="login")showAuth();
+await render();await refreshUser();

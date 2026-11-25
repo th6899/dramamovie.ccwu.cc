@@ -1,0 +1,361 @@
+# CCWU Global v2.0.8 — test acceptance matrix
+
+This matrix records what has been verified in the independent test environment and what remains blocked by missing owner-controlled credentials, accounts, or authorized media. A code check or a rendered page is not equivalent to an end-to-end acceptance test.
+
+## Verified
+
+| ID | Area | Verification | Result |
+|---|---|---|---|
+| ENV-01 | Host isolation | Test Pages hosts resolve to test Supabase; known production hosts resolve to production; unknown hosts fail closed | PASS |
+| ENV-02 | Preview version | Owner confirmed the latest Preview admin page visibly reports `CCWU Global · Admin Build v2.0.8`. The served title/footer version mismatch is resolved. | PASS — OWNER CONFIRMED RUNTIME |
+| ENV-03 | Deployment provenance | Owner-confirmed latest app Preview deployment is commit `e7dfcf3` on `fix/portal-auth-errors-v2.0.3` at `https://53d0dac2.ccwu-global-test.pages.dev`. The owner has since confirmed the rendered admin marker is v2.0.8. This is Preview only; production domain is unchanged. | PASS — OWNER CONFIRMED |
+| ENV-04 | Cloudflare build source | Owner-confirmed app Preview commit `e7dfcf3` serves the v2.0.8 admin runtime marker; the HTML title/footer and JS module label are aligned. Subsequent branch commits are documentation-only checkpoints and are not misrepresented as the deployed app source SHA. | PASS — OWNER CONFIRMED |
+| DB-01 | Schema migrations | 75 source migrations match 75 applied test database versions, including Stripe/CNY idempotency and Auth profile-trigger search_path hardening | PASS (source filename/version set compared with the test database migration ledger) |
+| DB-02 | RLS baseline | All public tables have RLS enabled; private ledgers are RLS default-deny | PASS |
+| DB-03 | Owner reads | Orders, profiles, membership subscriptions, and VPN subscriptions have owner-scoped read policies | PASS |
+| DB-04 | Profile editing | Authenticated users can update only profiles.display_name; role-column UPDATE remains denied | PASS |
+| DB-05 | Financial write isolation | Browser roles cannot INSERT/UPDATE/DELETE service_orders; VPN plan writes require admin/editor | PASS |
+| AUTH-01 | Staff admin | Owner-created and verified test account `tianhon027@gmail.com`; `private.user_roles` role is `admin`; JWT-context checks return `is_staff() = true` and `is_ccwu_admin() = true` | PASS |
+| AUTH-04 | Profile column permissions | Legacy column-level UPDATE grants on `username` and `avatar_url` revoked; `display_name` UPDATE retained; RLS remains owner-scoped | PASS (test DB privilege catalog and rollback-only authenticated-role UPDATE checks verified: username/avatar_url denied, display_name allowed; migration assertions and account CI contract active) |
+| AUTH-05 | Ancillary owner-scoped data | Manual payment submissions and proofs, refunds, notifications, and VPN device bindings are owner-scoped; staff read access is explicitly limited to admin/support where applicable | PASS (live test DB policy catalog reviewed; CI migration-source guard added; additional runtime fixtures remain optional) |
+| AUTH-06 | Notification field permissions | Anonymous notification access revoked; authenticated users retain SELECT and may update only `read_at`; title/body/category/user ownership/dedupe fields are not customer-writable | PASS (test DB ACL catalog and rollback-only authenticated UPDATE checks verified; migration fail-closed assertions and CI contract added) |
+| AUTH-07 | Auxiliary table SQL grants | Anonymous access removed from manual payment submissions, refunds, email orders and VPN device bindings; customer grants narrowed to actual RLS workflows (manual submission insert/read, refund owner/staff actions, email-order and device read-only) | PASS (test DB ACL catalog verified; migration fail-closed assertions and CI contract added) |
+| AUTH-08 | Anonymous access to private user rows | Anonymous SELECT privileges revoked from profiles, membership/VPN subscriptions, watch progress and VPN access configs; authenticated owner/staff access retained | PASS (test DB ACL catalog verified; migration fail-closed assertion and CI contract added) |
+| AUTH-09 | Profile row creation | Profile rows are provisioned by trusted Auth user triggers; authenticated clients have no INSERT privilege on profile identity/username/avatar columns, and only `display_name` can be updated | PASS (test DB column ACL catalog and rollback-only authenticated INSERT denial verified; migration fail-closed assertion and account CI contract added) |
+| AUTH-10 | Account error privacy | Account center shows generic profile, subscription, order, sign-out and authentication errors; raw database/Auth details are logged only to the browser console | PASS (CI regression contract added) |
+| UI-03 | Operations privacy | Operations console no longer queries other users' profiles; displays shortened user IDs without broadening profile access | PASS |
+| DB-06 | Public table RLS audit | All 27 public business tables have RLS enabled; order reads are owner/admin/support scoped; privileged approval RPC requires explicit admin role | PASS |
+| DB-07 | Private schema grants | 28 private tables; anon has no SELECT grants; authenticated can SELECT only `private.user_roles`; no other private table grants detected | PASS |
+| DB-08 | High-privilege RPC review | Five advisor-flagged public SECURITY DEFINER RPCs reviewed: all deny anon execution, use empty search_path, and enforce authenticated identity; payment approval additionally requires explicit admin role; order lookup is owner-scoped | PASS (code review; adversarial runtime tests pending) |
+| DB-11 | SECURITY DEFINER trigger hardening | Legacy `public.handle_new_ccwu_profile()` Auth trigger uses an empty search_path; relation references are schema-qualified; postgres-only EXECUTE ACL and enabled Auth trigger preserved | PASS (test DB function config, ACL and trigger catalog verified) |\n| DB-10 | Client table-wide privilege hardening | Revoked TRUNCATE on all 27 public tables from anon/authenticated; verified both roles have no TRUNCATE privilege on any current public table | PASS |
+| DB-11 | Anonymous SQL privilege hardening | Revoked anonymous INSERT/UPDATE/DELETE/TRUNCATE/REFERENCES/TRIGGER on all public tables and all sequence privileges; removed postgres-owned default grants for future public tables/sequences; migration includes a fail-closed assertion | PASS (test DB verified by migration assertions; supabase_admin default privilege alteration is attempted only when permitted) |
+| DB-12 | Subscription write boundary | `membership_subscriptions` and `vpn_subscriptions` UPDATE policies are admin-only (USING and WITH CHECK); ordinary account UI performs reads only; CI checks both policy definitions and forbids direct browser subscription mutations | PASS (rollback-only authenticated customer JWT attempted UPDATE of its own membership and VPN subscription; both affected 0 rows; no fixture data persisted) |
+| DB-09 | Content readiness snapshot | Test DB currently has 1 drama and 1 episode, 0 ad configs, 0 promotions, 0 active membership/VPN plans, 0 orders, and 0 subscriptions | BLOCKED (requires authorized test media/content and test plans) |
+| SEC-01 | Security advisor follow-up | 27 private tables report RLS enabled without policies (private-schema default-deny design); leaked-password protection remains disabled and must be enabled before launch | BLOCKED (test-project Auth dashboard setting) |
+| STORAGE-01 | Media bucket privacy | Video, subtitles, and payment proofs are private; proof upload/read is scoped to owner or staff; posters and QR images are intentionally public | PASS |
+| STORAGE-02 | Upload constraints | Video 50 MB, subtitles 2 MB WebVTT-only, payment proofs 8 MB image/PDF, posters 10 MB image-only, QR images 5 MB image-only | PASS |
+| MEDIA-03 | Signed playback authorization | Playback function validates optional user JWT, requires active membership for premium episodes, and issues 5-minute signed URLs for private video/subtitles | PASS |
+| MEDIA-04 | Storage and publish guards | Verified private video/subtitle buckets, admin/editor-only media object read/upload policies, WebVTT-only subtitle bucket, RLS on dramas/episodes/subtitle_tracks, and database publish triggers that require the referenced poster/video/subtitle object to exist; playback and ad-event deployed source matches the test branch byte-for-byte | PASS (configuration, trigger, and source parity review; real asset playback remains blocked) |
+| FN-03 | Payment endpoint authorization | `cn-payment` validates user JWT for checkout/status; provider notifications require Alipay RSA2 or WeChat Pay signature verification; service-only settlement RPCs are not executable by browser roles | PASS |
+| FN-04 | Edge Function RPC boundary | Reviewed all six deployed test Edge Functions and sensitive RPC grants; ad-event and promotion tracking writes are service-role-only, payment settlement and Stripe webhook RPCs are service-role-only, and browser-executable SECURITY DEFINER RPCs are limited to authenticated user/admin workflows | PASS (grant and code review; provider end-to-end tests remain blocked) |
+| FN-05 | Signed ad and promotion event security | Playback issues HMAC-bound ad-event/promotion tokens; endpoints validate token type, expiry, UUID scope and event allowlists; promotion redirects reject unsafe targets; nonce/event uniqueness prevents duplicate ingestion; tracking RPCs are service-role-only | PASS (CI source contract and test DB grant catalog; live Google IMA test tag remains unavailable) |
+| FN-06 | Player ad-event delivery resilience | Player serializes event batches, retains queued events until server acceptance, and retries transient ingestion failures; server-side token/config/event deduplication protects retries | PASS (CI regression contract; live IMA delivery remains blocked pending authorized test tag) |
+| FN-01 | Edge Function parity | All six deployed test functions match the current branch source byte-for-byte; create-checkout v4, stripe-webhook v3, get-episode-playback v7, cn-payment v8, track-episode-promotion v5, record-video-ad-events v4 | PASS (latest TEST runtime inventory; no redeploy in this checkpoint) |
+| FN-02 | Function checks | All six Edge Functions pass Deno 2 type checking | PASS |
+| PAY-01 | Stripe mode | Checkout function requires sk_test_ and validates recurring USD Price ID/amount/currency/interval | PASS |
+| PAY-02 | Stripe return route | Success and cancellation return to existing payment-result.html with the server-created order ID | PASS |
+| PAY-03 | CNY QR retry | Owner-scoped order lookup returns the stored provider QR/session values for retry recovery | PASS |
+| PAY-04 | Test payment fence | Test cn-payment rejects live CNY methods before order creation; admin blocks live CNY enablement and manual QR toggles; both Alipay/WeChat test methods are currently disabled and no manual QR settings are configured | PASS (test DB state verified; no live payment channel enabled) |
+| PAY-05 | Stripe privileged RPC boundary | Checkout state changes, webhook settlement, refund/dispute processing, invoice lifecycle, and subscription mapping RPCs are executable only by service_role; browser roles have no EXECUTE grant | PASS (grant and code review; Stripe sandbox lifecycle remains blocked) |
+| PAY-06 | Subscription entitlement expiry | Corrected both deployed `process_stripe_subscription_event` overloads: `customer.subscription.updated` checks the latest failed invoice's `grace_until` before expiring an elapsed paid-through period; grace extension now updates both membership and VPN `ends_at` only for an elapsed `customer.subscription.updated` event, never for `customer.subscription.deleted`; both overloads remain service-role-only | PASS (SQL definition, membership/VPN grace-period boundary, deleted-event guard, and EXECUTE grants verified; Stripe sandbox lifecycle regression remains blocked pending test credentials/orders) |
+| PAY-07 | Manual QR approval consistency | Admin-only approval locks submission/order/transaction rows, checks submission owner equals order owner, verifies positive CNY order and transaction amount/currency plus a non-null CNY asset, and asserts each state transition updates exactly one row | PASS (test DB migration applied; CI source contract added; ordinary-customer JWT negative test confirmed `admin_only`; no real payment or approval executed) |
+| PAY-08 | Manual payment proof storage | Proofs are stored in a private 8 MiB bucket restricted to PNG/JPEG/WebP/PDF; customers upload and read only their own UID folder; staff may review; no customer update/delete policy | PASS (test bucket and live RLS policy inspection; CI source contract added) |
+| PAY-09 | Financial RPC ownership and execution grants | Stripe/CNY/manual order creation checks the authenticated owner and active plan; Stripe retries use a unique request key bound to owner/item/currency and pending-order state; order recovery is owner-scoped; provider session attachment, CNY settlement and reconciliation remain service-role-only; reconciliation checks amount/currency | PASS (rollback-only authenticated-customer tests confirmed Stripe and CNY same-key retries return the same order ID with `duplicate=true`, while changed item IDs are rejected as `request_key_conflict`; no fixture rows persisted; two-user adversarial provider lifecycle testing remains pending) |
+| PAY-10 | Payment Edge Function signature and test-mode guards | CI asserts Stripe timestamped HMAC verification precedes JSON parsing, Stripe test-key and Price checks, Alipay RSA2/app identity, WeChat Pay serial/timestamp/RSA/AES-GCM verification, service-role settlement, the test-project live-payment fence, and sanitized database errors at the browser boundary | PASS (source contract; `create-checkout` v4 deployed and source-parity verified; provider sandbox lifecycle remains blocked) |
+| UI-01 | Public routes | Homepage, membership/VPN anchors, player shell, payment result, and admin login shell render in read-only smoke tests | PASS |
+| UI-02 | Account access | Logged-out account visitors see only the login prompt; login return URL opens the login modal and preserves the account return | PASS |
+| MEDIA-00 | Admin media workflow | Poster upload, TUS resumable video upload, VTT upload, SRT-to-WebVTT conversion, explicit publish/unpublish, and published-subtitle-only playback contracts | PASS |
+| MEDIA-01 | Free storage limit | Admin uploader and private Storage bucket both enforce 50 MB per file; subtitle bucket accepts private WebVTT only; free Storage quota remains 1 GB total | PASS |
+| CI-01 | Automated validation | Frontend syntax, DOM IDs, DB table/RPC/column contracts, admin/account/media/playback-security/financial-write/subscription-write/manual-payment/proof-storage/financial-RPC/payment-edge-security/signed-ad-tracking/owner-RLS/notification-field/anonymous-access/WebVTT contracts, Deno checks, and migration integrity | PASS |
+
+
+- **AD-02 | Ad frequency cap behavior — IMPLEMENTED IN BRANCH SOURCE; NOT DEPLOYED/DB-VERIFIED:** added a service-role-only eligibility RPC that filters ad slots against recent `impression` events per authenticated `viewer_id` or persistent random anonymous `viewer_session_id`; signed event tokens bind the same identity, and event ingestion persists it. The player stores the anonymous session UUID in localStorage where available (private/storage-restricted contexts fall back to page-session scope). Playback also fails closed by suppressing ad slots if the event-signing secret is unavailable, preventing untracked ad delivery from bypassing the cap. Migration `20261120100000_enforce_server_side_video_ad_frequency_caps.sql`; CI source contracts added. Read-only test DB inspection confirmed the base config/event schema and existing dedupe index; the viewer identity columns are not present until this migration is applied. Impression writes now take a per-viewer/config transaction advisory lock and recheck the cap inside the write transaction. This is not operational in the test/production database until the migration and matching Edge Functions are deployed and runtime tests pass. Live IMA delivery remains separately blocked pending an authorized test ad tag.
+
+## Blocked pending owner-controlled test inputs
+
+| ID | Area | Required input/action | Safe test condition |
+|---|---|---|---|
+| AUTH-02 | Ownership isolation | A confirmed ordinary customer account (`18129290870@163.com`) has no staff role; designated admin remains `tianhon027@gmail.com`. Under `SET LOCAL ROLE authenticated` with the real customer UID, rollback-only fixtures returned own profile/orders/membership/VPN counts 1/2/1/1 and other-user counts 0/0/0/0; customer UPDATE attempts against own membership/VPN subscriptions affected 0 rows; all fixtures rolled back | PASS for profile/order/subscription ownership and customer write denial; published premium entitlement E2E remains blocked by absence of published test media |
+| CATALOG-01 | Test plan catalog | One inactive CNY monthly membership plan, zero VPN plans, zero active payment methods, and no manual QR settings; admin plan forms and post-save resets now default to inactive drafts; owner-approved product names, prices, durations, currency, device limits and Stripe test Price IDs are required before activation | BLOCKED — no plan/pricing assumptions or real payment methods will be invented |
+| AUTH-03 | Leaked password protection | Enable Supabase Auth leaked-password protection in the test project's dashboard | BLOCKED — dashboard-only Auth setting; test project only |
+| STRIPE-01 | Stripe checkout | Configure test-only STRIPE_SECRET_KEY, test STRIPE_WEBHOOK_SECRET, exact test APP_ORIGIN, and test recurring Price IDs | sk_test_ only; no live keys or transactions |
+| STRIPE-02 | Stripe lifecycle | Run checkout, success/failure, duplicate webhook, renewal, refund, and dispute test events | Stripe test mode only |
+| ALIPAY-01 | Alipay | Configure genuine Alipay sandbox app ID/private key/public key and official sandbox gateway | Sandbox only; test method disabled until credentials are verified |
+| WECHAT-01 | WeChat Pay | No independent no-money sandbox is available for this Native API v3 flow | Keep disabled; no live merchant calls from test |
+| MANUAL-01 | Manual QR | Merchant-owned static QR is a real-money collection path | Locked off in test; do not upload real collection QR codes |
+| MEDIA-02 | Video playback | Upload a real, authorized test video/subtitle asset to private test storage and complete signed playback | No fake media or unlicensed content; Free plan upload ceiling is 50 MB per file |
+| ADS-01 | Google IMA | Authorized test ad tag and published test episode | No live ad claims or unauthorized ad tags |
+| VPN-01 | VPN provisioning | Provider API credentials and provisioning contract | Subscription records alone are not proof of a live VPN account |
+| RELEASE-01 | Production release | Separate explicit authorization for PR merge and production deployment | Production remains read-only until separately approved |
+
+## Secret handling
+
+- Configure secrets only in the independent test Supabase project's Edge Functions → Secrets.
+- Never paste secrets into chat, GitHub, issue comments, screenshots, or browser-delivered files.
+- See test-environment-secrets.md for the exact secret names and environment rules.
+- The test project hard-blocks live CNY automatic providers; Stripe checkout requires a test-mode key. Manual real-merchant QR is locked off in the test admin UI.
+| ENV-05 | Preview redeployment trigger | Owner-confirmed Preview deployment of the application commit and visible v2.0.8 runtime marker demonstrate the Git-to-Pages Preview path is functioning. Later documentation-only commits are CI-validated; no new app deployment is required for this acceptance item. | PASS — OWNER CONFIRMED |
+
+
+## 2026-11-20 verification corrections and current state
+
+- **ENV-02 / ENV-03 superseded:** Cloudflare deployment details were inspected directly. Preview deployment ID `61e6e8eb-834a-4637-9da8-8638a49608b8` is a successful deployment of branch commit `f55a4cf` at `https://61e6e8eb.ccwu-global-test.pages.dev/`. Its build log reports 136 uploaded/published files. The previous 404 smoke test used a mistyped hostname and must not be treated as deployment failure.
+- Read-only browser smoke test of the exact hostname confirmed `/admin.html` loads, and the Digital Services and Tutorials form/list sections are present. It was not authenticated; catalog data loading and authenticated save/publish behavior remain unverified. No records were created or changed.
+- GitHub Actions run `44712280363` for documentation commit `139f2f5` completed successfully. This CI run validates code but is not a Cloudflare deployment.
+- Migration reconciliation: repository contains 75 SQL migration files; the test database ledger contains 75 applied versions; latest version is `20261120064221`. This corrects stale README count/version references.
+- Test project organization plan is **Free**. Supabase's current Password Security documentation says leaked-password protection is available on Pro Plan and above. Therefore AUTH-03 cannot be enabled on the current Free plan; no dashboard toggle or upgrade was attempted. Since the owner requires free services, retain this as an explicit security limitation/release risk rather than asking for an upgrade or repeatedly asking the owner to find an unavailable toggle. Documentation: https://supabase.com/docs/guides/auth/password-security
+- Latest test Security Advisor: 5 authenticated-executable SECURITY DEFINER functions (reviewed: empty search_path, no anon EXECUTE, authenticated identity checks; manual approval additionally enforces admin role; payment order creation validates the caller's own order; order recovery is owner-scoped); 27 private-schema RLS-without-policy INFO notices (intentional default-deny); leaked-password protection disabled. Health Advisor returned no lints. No database configuration or grants were changed.
+
+
+- **UI-04 | Authenticated admin catalog read-only check — PASS (render/load only):** The connected browser's existing test-admin session shows `tianhon027@gmail.com` logged in, overview reports database connection normal and data refreshed, and both Digital Services and Tutorials forms/list tables render. No save/publish action was invoked.
+- **CATALOG-02 | Test catalog data state — EMPTY BY DESIGN:** Live read-only test DB counts: `service_catalog` 0 total / 0 published; `tutorials` 0 total / 0 published; `dramas` 1 total / 0 published; `episodes` 1 total / 0 published. Do not add placeholder records; owner must supply authorized real content before publication.
+- **CI-01 current HEAD:** Documentation commit `8c60fae` run `44712672939` completed successfully across all three jobs: frontend syntax/deployment isolation, Edge Function type checks, and migration source integrity.
+
+
+- **RLS-01 | Public catalog access policy audit — PASS (policy/privilege inspection):** RLS is enabled on `service_catalog`, `tutorials`, `dramas`, `episodes`, `membership_plans`, and `vpn_plans`. Anonymous role has SELECT only (no INSERT) and no write privileges; anonymous SELECT policies constrain visibility to published/active records. Authenticated role has table CRUD grants, with writes constrained by staff-role RLS policies. Episode anonymous reads additionally require published episode, free status, and published parent drama. No policies or grants were modified.
+- **CI-01 | Latest code HEAD:** `c58a22c`; run `44712828657` completed successfully with all three jobs green (frontend syntax/deployment isolation, Edge Function type checks, migration source integrity).
+
+
+- **CI-01 | Current branch code gate — PASS:** HEAD `942efc12c54270f67497fd21fb6b84343fbfbb13`; Actions run `44713275646` passed all three jobs (frontend syntax/deployment isolation, Edge Function type checks, migration source integrity). Documentation validation run `44713267306` also passed.
+- **ENV-04 | Latest app-code Preview deployment — SUPERSEDED:** owner subsequently confirmed the latest Cloudflare Preview deployment includes commit `e7dfcf3` at `https://53d0dac2.ccwu-global-test.pages.dev`; see the latest deployment record below. Do not use the earlier `f55a4cf` status as current.
+- **Release gate remains:** no production release until the visible v2.0.8 runtime marker is verified, authenticated save/publish is tested with genuine authorized content, and owner explicitly approves production release.
+
+
+## 2026-11-20 — Latest Preview deployment confirmed by owner
+
+- Owner confirmed Cloudflare's latest successful `ccwu-global-test` Preview deployment includes commit `607b0e3` from `fix/portal-auth-errors-v2.0.3`.
+- This deployment includes the version-label fixes: admin HTML title/footer changed in `f5c8ac9`; JavaScript module marker/banner/comment changed in `0197e8a`; CI assertions added in `46ae11f`; all three CI jobs passed for `46ae11f` (run `44721960491`) and documentation checkpoint `cf49b17` (run `44722046291`).
+- Preview branch alias previously visible in Cloudflare details: `https://fix-portal-auth-errors-v-2-0.ccwu-global-test.pages.dev`. The deployment is not production.
+- Remaining acceptance items are actual browser-visible confirmation that the served admin footer/title reads 2.0.8, plus owner-authorized real catalog/media/payment-provider inputs for their respective end-to-end tests. No placeholder content or live payment configuration will be invented.
+- No production changes, database mutations, credentials changes, paid services, or additional authorizations.
+
+
+## 2026-11-20 — Current CI and acceptance matrix cleanup
+
+- Current branch HEAD at this check: `a5c39c0a34dfa7783845416fd08bd0c66ffec87b`.
+- GitHub Actions run `44723885965` for the latest development-log commit completed successfully; all three jobs passed: frontend syntax/deployment isolation, Supabase Edge Function type checks, and migration source integrity.
+- Replaced the stale historical ENV-04 pending statement with an explicit superseded note pointing to the owner-confirmed latest Preview deployment `e7dfcf3` at `https://53d0dac2.ccwu-global-test.pages.dev`. The runtime footer check and real-content E2E release gates remain open.
+- No production changes, database writes, credentials changes, or paid services.
+
+
+### Test database ad inventory check — 2026-11-20
+
+- Read-only query against test project `uvtzhzgirgwjzsmcdgej`: `video_ad_configs` currently has 0 total rows, 0 active rows, 0 active rows with an ad tag, and 0 rows with a positive frequency cap.
+- Therefore no real IMA slot can be exercised in the test environment yet. Do not create placeholder or fabricated ad inventory. Runtime acceptance requires a real authorized test ad tag and an actual test configuration.
+- No data was inserted or changed.
+
+## 2026-11-20 — Server-side ad frequency cap implementation checkpoint
+
+- Added migration `20261120100000_enforce_server_side_video_ad_frequency_caps.sql`: nullable authenticated viewer ID and anonymous viewer-session UUID columns, impression lookup indexes, a service-role-only eligibility RPC, and a service-role-only event-ingestion RPC that persists the identity bound in the signed playback token.
+- Updated `get-episode-playback` to require an opaque viewer-session UUID, call the eligibility RPC before returning ad slots, and bind authenticated user ID plus anonymous session ID into the HMAC event token.
+- Updated `record-video-ad-events` to validate the signed viewer identity and call the v2 service-role RPC. Client-supplied identity fields are not trusted for frequency-cap attribution.
+- Updated `player.js` to persist a random UUID in localStorage across episodes when browser storage is available; storage-restricted/private contexts fall back to a page-session UUID. This is pseudonymous continuity, not an anti-abuse identity or device fingerprint.
+- Added CI source-contract assertions for the new eligibility, token-binding, event persistence, and session persistence behavior.
+- **Status remains NOT DEPLOYED / NOT RUNTIME VERIFIED:** no test or production database migration was applied; no Edge Function deployment was triggered. CI and SQL/type/runtime validation must pass before AD-02 can be marked operational. Authenticated users are keyed by account ID; anonymous visitors are keyed by their browser session UUID. Clearing storage or using another browser can reset an anonymous cap.
+- No secrets, paid services, production changes, or real ad/media content used.
+
+
+### Database compatibility review — 2026-11-20
+
+- Read-only test DB schema inspection: required `video_ad_configs` fields and `video_ad_events.event_token_id` exist; dedupe index exists; viewer identity columns do not yet exist, as expected before migration application.
+- PostgreSQL advisory lock functions referenced by the migration are available.
+- No rows were present in test `private.video_ad_events` at inspection time. No DDL or data writes were performed.
+- Concurrent event-ingestion writes for the same viewer/config are serialized and the cap is rechecked before storing a new impression. This prevents duplicate qualifying impression records; it cannot retract an ad already started in a concurrent browser tab.
+
+
+### CNY payment retry idempotency review — 2026-11-20
+
+- Portal checkout already sends a fresh UUID `request_key` for each new payment attempt.
+- The Edge Function previously substituted a random UUID when the key was missing or malformed, which made retries non-idempotent. It now rejects malformed/missing keys before creating an order.
+- The SQL order-creation RPC independently validates the key and handles unique-key collisions; existing request keys cannot be reused for a different plan/item.
+- CI passed for Edge Function + frontend + migration source checks on `c0d2064` (Push `44729893567`, PR `44729885991`). The subsequent documentation-only checkpoint is running separately.
+- No payment credentials, orders, or database records were changed; provider E2E remains gated on real sandbox credentials.
+
+
+### Atomic ad-slot frequency reservation — 2026-11-20
+
+- Supersedes the earlier concurrency limitation note above: capped slots are now reserved atomically inside the server-side eligibility RPC before ad configuration is returned to the player.
+- Reservations are keyed by ad config plus authenticated-user UUID or anonymous browser-session UUID, expire after two minutes, and are released transactionally when a qualifying impression is ingested.
+- Concurrent playback requests for the same capped config/viewer serialize on an advisory transaction lock; only the request that successfully creates the reservation receives that capped slot.
+- CI Push run `44732327460` and PR run `44732338138` both passed all three jobs at HEAD `f92a98f4591676e8b5216e57ce91be5e7acf2e87`.
+- **Still NOT DEPLOYED / NOT RUNTIME VERIFIED:** migration remains branch-only. Test DB has no real ad inventory, so behavioral IMA acceptance remains blocked until an authorized real test ad configuration exists.
+- A browser that obtains a reservation but never emits an impression can temporarily suppress that slot for up to two minutes. This is a conservative fail-closed tradeoff.
+
+
+### CNY request-key canonical format hardening — 2026-11-20
+
+- Found and closed a validation mismatch: the Edge Function required canonical RFC-style UUIDs while the SQL RPC accepted any 36-character hex/hyphen string.
+- Added a forward migration to enforce canonical UUID version and variant bits in `public.create_cn_payment_order`; idempotent duplicate detection and item-conflict checks remain intact.
+- Added CI contract assertion for the SQL-level guard.
+- **NOT APPLIED / NOT RUNTIME VERIFIED:** migration remains on the development branch. Payment provider sandbox credentials and real provider E2E remain unavailable/unverified.
+
+
+### CNY canonical request UUID hardening — CI checkpoint
+
+- Commit `0474fda2a120f8a5dc42bca1f2032b066e60250c`: Push run `44733261243` and PR run `44733270649` both passed all three CI jobs.
+- Cloudflare Preview build succeeded at `https://cb02ef7f.ccwu-global-test.pages.dev` for commit `0474fda`.
+- **NOT RUNTIME VERIFIED:** the forward migration remains unapplied; no provider credentials or payment records were used. Real Alipay/WeChat callback settlement remains a separate external E2E gate.
+
+
+### Ad reservation with missing signing secret — source hardening
+
+- Playback now checks for a sufficiently long `CCWU_EVENT_SIGNING_SECRET` before calling the reservation RPC. When absent, no capped slot is reserved and no ad is delivered; this avoids wasting the two-minute reservation window while preserving fail-closed behavior.
+- Added CI contract coverage. Source-only change; runtime behavior remains NOT VERIFIED until a test ad inventory and secret are configured in the test project.
+
+
+### Anonymous ad-session UUID compatibility
+
+- Player now reuses a stored viewer-session ID only if it matches the canonical UUID structure required by the playback Edge Function. A malformed legacy value is replaced automatically instead of causing a playback 400 response.
+- CI contract added. Runtime verification still depends on an authorized test catalog/media setup.
+
+
+### Ad reservation guard — CI correction pending rerun
+
+- Initial CI correctly caught a duplicate TypeScript declaration and an invalid Python contract assertion after the guard refactor. Both source issues were corrected in follow-up commits `0d1e0a4` and `b9a6403`.
+- Previous CI run is not accepted as a pass. Awaiting a fresh full CI run on the corrected branch HEAD.
+
+
+### Ad reservation and anonymous viewer-session source validation
+
+- Corrected CI-detected source-contract and duplicate declaration issues.
+- Push CI run `44734066839` passed all three jobs at source commit `93040d314db2fddd1635a909b5f05cd28f53c753`; Cloudflare Preview build also succeeded.
+- **NOT RUNTIME VERIFIED:** no test ad inventory was present/configured and the migration/Edge Functions remain unapplied/undeployed to Supabase. Browser IMA E2E still requires authorized test content and event-signing configuration.
+
+
+### CNY callback settlement audit — 2026-11-20
+
+- Read-only review of the test DB settlement function and branch Edge Function: order-row locking, provider/event validation, amount/currency checks, webhook event deduplication with payload-hash mismatch rejection, and entitlement source-order uniqueness are present.
+- Alipay decimal CNY and WeChat fen-to-yuan conversion both reach the same CNY amount comparison.
+- **SOURCE / TEST-DB REVIEW PASS; PROVIDER E2E NOT VERIFIED:** no signed sandbox callback was run and no provider credentials or payment data were changed.
+
+
+### Stripe settlement and RPC privilege audit — 2026-11-20
+
+- **SOURCE REVIEW PASS:** webhook HMAC/timestamp validation precedes JSON parsing; provider minor amounts are normalized by currency exponent; settlement is delegated to server-side RPCs.
+- **TEST DATABASE PRIVILEGE REVIEW PASS:** anon/authenticated cannot execute payment settlement, subscription event, refund/dispute, or CNY settlement RPCs. Authenticated can invoke only the idempotent order-creation RPC; anon cannot.
+- **NOT VERIFIED:** no signed Stripe sandbox event was sent. Production payment configuration and database were not changed.
+
+
+### Test DB migration drift — 2026-11-20
+
+- Branch has 77 migration source files; test DB ledger has 75 applied through `20261120064221`.
+- Two branch-only migrations remain unapplied: server-side video ad frequency caps (`20261120100000`) and canonical CNY request UUID validation (`20261120120000`).
+- **SOURCE INTEGRITY PASS / DB APPLY PENDING AUTHORIZATION.** No DDL was executed.
+
+
+### Video ad pipeline audit — 2026-11-20
+
+- **SOURCE REVIEW PASS:** IMA stale-callback guards, request-scoped loader errors, post-roll-safe fallback, retry-preserving event queue, signed viewer identity, server-side eligibility, and fail-closed behavior reviewed.
+- **TEST INVENTORY BLOCKER:** test DB contains 0 ad configurations (0 active / 0 capped) and 0 event rows. The frequency reservation table is absent because the corresponding branch migration is pending. IMA insertion and frequency-cap E2E cannot be demonstrated without migration plus approved real test ad inventory/tag.
+- **CI PASS:** HEAD `21f96878bb56d0dbd8d1e9033b5d2ee95e01ef02`, Push `44735193264` and PR `44735204262`, all 3 jobs passed.
+- No database writes, migrations, or inventory seeding performed.
+
+
+### End-of-day checkpoint — 2026-11-20
+
+- Branch HEAD: `aa63abede5b5a9b215b9af4f70a73911cb8eaa5c`; exact-HEAD CI Push `44735598429`: **3/3 passed**.
+- Remaining: test-only migration application/compatibility verification (awaiting explicit authorization); real media + IMA + frequency-cap E2E (requires actual test media/ad inventory/tag and signing secret); payment provider sandbox callback E2E; final whole-site acceptance. Production rollout requires separate explicit approval.
+- No ad inventory, migration, payment data, or production state was modified in this checkpoint. Test ad inventory remains empty.
+- Resume tomorrow from this checkpoint; do not repeat completed auth/OAuth/Cloudflare work or passed source audits without new evidence.
+
+
+### 2026-11-21 — Resume CI and CNY migration SQL repair
+
+- **CI PASS at resume HEAD:** branch checkpoint `24ef0d1ce56163679f6896fb722332824ed05f85`, Push run `44735912761` and PR run `44735921264`, both 3/3 jobs passed.
+- **SOURCE DEFECT FOUND AND FIXED:** canonical CNY request-key migration had duplicated SQL fragments after its first `COMMIT`. File repaired to one complete transaction and one terminal `COMMIT`, retaining canonical UUID validation. Fix commit `e6f8b4e1877eb2410f91150a87b06c44c2d49bc7`. Fresh CI for this repair is pending; do not count it as passed until the new head's run completes.
+- **TEST DB READ-ONLY CHECK:** ad-event viewer identity columns and reservation table remain unapplied; existing partial unique event-dedup index is present. No DDL or data writes performed.
+- **NOT VERIFIED:** migration application/compatibility (requires explicit authorization for test DB DDL); IMA insertion/frequency-cap runtime E2E (requires approved real test media, ad inventory/tag, and signing secret); payment provider sandbox callback E2E. Production deployment remains separately gated.
+
+
+### 2026-11-21 — Test database migrations applied
+
+- **PASS — Test-only migrations applied:** `20261120100000_enforce_server_side_video_ad_frequency_caps.sql` (DB ledger `20261121072701`) and `20261120120000_validate_canonical_cn_payment_request_keys.sql` (DB ledger `20261121072723`). Explicit user authorization received. Production DB untouched.
+- **PASS — Post-migration schema:** ad-event viewer UUID columns, reservation table, reservation PK/expiry indexes, and user/session impression indexes verified by read-only catalog queries.
+- **PASS — Security contracts:** ad reservation table has no direct SELECT grant to anon/authenticated/service_role; ad eligibility and event ingestion functions are SECURITY DEFINER with empty search_path and service_role-only EXECUTE; CNY order RPC retains SECURITY DEFINER/empty search_path, anon EXECUTE denied, authenticated/service_role permitted.
+- **PASS — Canonical UUID SQL:** installed function definition contains canonical UUID version/variant regex and closes the request-key guard correctly.
+- **PASS — CI at contract commit** `0bf810b8c96c1f4fc1cd7d0626503a05220cedce`: Push `44880377388` and PR `44880380769`, both 3/3 jobs passed.
+- **NOT VERIFIED — IMA runtime E2E:** test DB remains empty (0 ad configs, 0 active configs, 0 event rows, 0 reservations); requires approved real test media, ad inventory/tag, and signing configuration.
+- **NOT VERIFIED — payment sandbox callback E2E:** requires actual provider sandbox credentials/callback environment; no test orders created.
+- **Production:** no migration, deployment, or data change performed.
+
+- **RUNTIME BLOCKER FOUND:** deployed TEST Edge Functions are stale: `get-episode-playback` v6 and `record-video-ad-events` v3 do not call the newly migrated viewer/session-aware frequency-cap RPCs; the event function still calls the legacy RPC. Branch source type-checks, but TEST deployment has not been authorized as part of the database-migration approval. Require explicit TEST-only Edge Function deployment before IMA E2E. Production Edge Functions unchanged.
+- **CI PASS at documentation checkpoint** `6ef5b9b3a9f23d7f39188f91e44fb417ad5a74a0`: Push `44880445963` and PR `44880450708`, both 3/3 jobs passed.
+
+
+### 2026-11-21 — TEST Edge Functions deployment
+
+- **PASS — TEST deploy:** `get-episode-playback` ACTIVE v7, SHA256 `bf409637834bdaba87e589168bf84b99e4e345577e1c8ee359da146b1c1aef8e`; `record-video-ad-events` ACTIVE v4, SHA256 `7e93ba3fd42df8adfc643ca6cb3c16505ef6a272c02fb69d481b7d4226d0f6ed`. Explicit user authorization received. Production unchanged.
+- **PASS — deployed source contract:** playback calls viewer/session-aware eligibility RPC and signs viewer/session into event token; ingestion validates those token claims and calls `record_video_ad_events_v2`; player sends the persistent browser session UUID.
+- **PASS — database permissions:** new ad RPCs are service_role-only; anon/authenticated EXECUTE denied.
+- **PASS — CI checkpoint** `3dc0f787e4647db3f92b53df917a4ce2f8d99b46`: Push `44880511267` and PR `44880515739`, both 3/3 jobs passed.
+- **NOT VERIFIED — live IMA / frequency-cap E2E:** no ad inventory (0 configs), no impressions, and no approved test media/ad tag. Do not report ad delivery as tested.
+- **Production:** no Edge Function deployment, database migration, or data change performed.
+
+
+### 2026-11-21 — TEST acceptance readiness/security review
+
+- **PASS — CI:** latest function deployment + documentation checkpoint `48a75cbba9d8d653ba2f4212272a1622b252b081`, Push `44880685519` and PR `44880689603`, both 3/3.
+- **BLOCKED — IMA live E2E:** TEST DB has 0 dramas, 0 episodes, 0 ad configs. No test media/ad tag exists in DB; no fake seed rows or events were inserted.
+- **PASS — player event wiring by source inspection:** browser session UUID sent to playback endpoint; IMA events batched to ingestion endpoint; queue retained on server error.
+- **SECURITY REVIEW — reservation table RLS:** Supabase linter flags RLS disabled. Direct grants are only to postgres; anon has no private schema USAGE; anon/authenticated/service_role have no table SELECT. No automatic RLS change made. Finding is recorded for deliberate remediation review.
+- **REVIEW — SECURITY DEFINER advisor warnings:** five authenticated-executable public RPCs inspected; each uses empty search_path and auth.uid checks, with admin-role check for manual-payment approval. No permission changes made.
+- **NOT VERIFIED — payment sandbox callback E2E.** No orders or provider transactions created.
+- **Production remains untouched.**
+
+
+### 2026-11-21 — payment/promotion runtime drift
+
+- **PASS — source/runtime match:** TEST `create-checkout` v4 and `stripe-webhook` v3 exactly match current branch source.
+- **DEPLOYMENT DRIFT — TEST `cn-payment` v7:** deployed code silently generates a random request key for missing/invalid client keys; current branch requires a canonical UUID. Pending explicit TEST-only deployment authorization.
+- **DEPLOYMENT DRIFT — TEST `track-episode-promotion` v4:** deployed parser accepts a loose UUID-like format; current branch requires canonical UUID version/variant. Pending explicit TEST-only deployment authorization.
+- The previous authorization applied only to `get-episode-playback` and `record-video-ad-events`; neither additional function was changed.
+- Production remains untouched.
+
+
+## 2026-11-21 — TEST function deployment verification
+
+| Function | TEST version | Status | Verification |
+|---|---:|---|---|
+| `cn-payment` | v8 | ACTIVE | Read-back confirmed strict canonical UUID `request_key` validation and test-project payment gateway fences; existing `verify_jwt=false` retained. |
+| `track-episode-promotion` | v5 | ACTIVE | Read-back confirmed strict canonical UUID validation for signed promotion-click payloads; existing `verify_jwt=false` retained. |
+
+Scope was TEST project `uvtzhzgirgwjzsmcdgej` only. Production was not changed. No real or synthetic payment/promotion events were generated. Provider E2E remains pending valid test fixtures and provider sandbox configuration.
+
+
+## 2026-11-21 — post-deployment acceptance recheck
+
+- **PASS — CI:** Push `44881193710` and PR `44881195438` for `7cb6915d02575ab32e3e33cf3d11baed9917e2f4` completed successfully; all 3 jobs passed in each run.
+- **TEST content status (corrected read-only count):** 1 draft drama and 1 draft episode exist. Drama `锦绣归来` and episode 1 `Episode 1` are both draft. Episode has no video asset ID or video path. Video ad configs=0, ad events=0, frequency reservations=0.
+- **NOT VERIFIED — playback/IMA E2E:** no published media asset or ad inventory; do not mark playback, ad delivery, or frequency caps as end-to-end tested.
+- **SECURITY WARNING — OPEN:** Supabase advisor still reports RLS disabled on `private.video_ad_frequency_reservations` (critical). Direct table grants were previously checked and are absent for anon/authenticated/service_role, and anon lacks private-schema USAGE; nevertheless do not describe this as resolved. RLS remediation requires explicit policy and SECURITY DEFINER owner-path review.
+- No content or events were inserted/modified; no secret values inspected or changed. Production untouched.
+
+
+## 2026-11-21 — TEST security advisor follow-up
+
+- **OPEN — CRITICAL RLS:** `private.video_ad_frequency_reservations` has RLS disabled. Direct privilege recheck: anon has no private-schema USAGE; anon/authenticated/service_role have no SELECT or INSERT grants on the table. This is not marked resolved; explicit RLS/policy and SECURITY DEFINER owner-path review is required.
+- **REVIEW — 27 private tables:** RLS enabled but no policies; review service-only design and grants, do not auto-create broad policies.
+- **REVIEW — 5 SECURITY DEFINER RPCs:** authenticated EXECUTE advisor findings remain. Previously reviewed for empty search_path and auth.uid/ownership/admin checks; no grant changes made.
+- **WARN — TEST Auth leaked-password protection disabled.** No Auth configuration changed.
+- Supabase suggested candidate statement: `ALTER TABLE private.video_ad_frequency_reservations ENABLE ROW LEVEL SECURITY;`. Not applied pending explicit security design review.
+
+
+## 2026-11-21 — TEST reservation-table RLS remediation
+
+- **PASS — RLS enabled:** migration `20261121100000_enable_rls_video_ad_frequency_reservations.sql` applied to TEST only for `private.video_ad_frequency_reservations`.
+- **PASS — no client policy:** table owner postgres; `FORCE ROW LEVEL SECURITY=false`; zero policies; no anon/authenticated/service_role direct SELECT or INSERT; anon has no private-schema USAGE.
+- **PASS — service function design review:** `get_eligible_video_ad_config_ids` and `record_video_ad_events_v2` are postgres-owned SECURITY DEFINER functions with empty search_path; EXECUTE is service_role-only.
+- **Advisor status:** critical RLS-disabled finding cleared; table now appears as one of 28 INFO private RLS-enabled/no-policy findings. Five authenticated SECURITY DEFINER RPC warnings and TEST Auth leaked-password protection warning remain open.
+- Production untouched; no data/event rows created. End-to-end playback and ad frequency behavior remain unverified without published media and ad inventory.
+
+
+## 2026-11-21 — authenticated SECURITY DEFINER RPC review
+
+- Reviewed definitions and ACLs for all 5 advisor-flagged RPCs. Each is postgres-owned SECURITY DEFINER with empty search_path; anon EXECUTE denied; authenticated EXECUTE is intentional.
+- `approve_manual_payment`: explicit admin role guard plus submission/order ownership, state, CNY amount/currency, and transaction checks.
+- `create_cn_payment_order`: auth required, canonical request UUID, active CNY plan/channel checks, user-scoped idempotency.
+- `create_manual_payment_order`: auth required, enabled manual QR channel and active CNY plan checks; order owner is auth.uid().
+- `create_stripe_subscription_order_idempotent`: auth required, USD/plan/Stripe price checks, UUID idempotency bound to caller and order attributes.
+- `get_my_cn_payment_order`: auth required and order filtered to auth.uid().
+- No ACL changes. Authenticated EXECUTE retained for intended customer workflows; advisor notices remain visible until product/API exposure review is signed off.
+
+
+## 2026-11-21 — latest verified runtime and acceptance correction (supersedes older snapshots above)
+
+- **CI-01 PASS — current HEAD:** Push run `44881675622` and PR run `44881679808` for `defe39c088dba6d54708076af63030d7e12bc17f` both completed successfully.
+- **FN-01 PASS — deployed TEST runtime:** `create-checkout` v4 ACTIVE; `stripe-webhook` v3 ACTIVE; `get-episode-playback` v7 ACTIVE; `cn-payment` v8 ACTIVE; `track-episode-promotion` v5 ACTIVE; `record-video-ad-events` v4 ACTIVE.
+- **DB-09 / MEDIA E2E BLOCKED — exact current read-only counts:** dramas 1 total/0 published; episodes 1 total/0 published/0 with video_path; ad configs 0; promotions 0; active membership plans 0; active VPN plans 0; enabled payment methods 0; orders 0; membership subscriptions 0; VPN subscriptions 0; ad events 0; ad reservations 0. The existing drama and episode remain drafts and were not modified.
+- **DB-07 current private schema:** 28 private tables; anon has no private-schema USAGE and no direct table SELECT/INSERT; the newly added frequency reservation table has RLS enabled, FORCE RLS disabled, zero policies and no direct client grants.
+- **DB-08 / SEC-01:** 5 authenticated-executable SECURITY DEFINER RPCs remain flagged; source review confirms empty search_path and authenticated identity checks; `approve_manual_payment` also requires admin role. ACLs unchanged. 28 private RLS-enabled/no-policy INFO notices are intentional server-only/default-deny tables. TEST leaked-password protection remains disabled; current Free plan limitation is documented and no paid upgrade is permitted.
+- **Ad frequency-cap scope:** signed-in viewers are keyed by authenticated user ID. Anonymous viewers are keyed by a client-generated localStorage UUID; clearing/replacing browser storage resets this identity. Therefore anonymous caps are best-effort per browser identity, not durable anti-abuse enforcement. Strong anonymous identity would require a separately approved design; no code or identity tracking change made.
+- No secret values read/changed, no real/sandbox payment order created, no ad/media fixtures inserted, no production changes.

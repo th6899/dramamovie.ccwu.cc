@@ -1,0 +1,1 @@
+CREATE INDEX IF NOT EXISTS refund_requests_reviewed_by_idx ON public.refund_requests USING btree (reviewed_by) WHERE reviewed_by IS NOT NULL;
