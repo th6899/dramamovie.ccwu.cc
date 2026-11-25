@@ -234,3 +234,33 @@ body{
 .admin-shell .form-message.error-message{color:#b42318!important}
 .admin-shell .status{color:#075f53;background:#d5f3eb;font-weight:700}
 .admin-shell .btn-secondary{background:#e8f3f0;color:#174f48;border:1px solid #b8d8d0}
+
+
+/* Featured cinema stage: display the uploaded artwork clearly */
+.cinema-hero-featured{
+  min-height:430px;display:grid;
+  grid-template-columns:minmax(0,1.1fr) minmax(280px,.9fr);
+  align-items:center;gap:clamp(18px,4vw,56px);
+  background:radial-gradient(ellipse at 78% 50%,#173f49 0%,#101b22 48%,#090d11 100%);
+  padding:48px clamp(24px,5vw,76px);
+}
+.cinema-hero-featured:after{display:none}
+.cinema-hero-featured .cinema-hero-copy{z-index:2;max-width:620px}
+.cinema-hero-featured .cinema-hero-media{
+  min-width:0;height:340px;display:flex;align-items:center;justify-content:center;
+  overflow:hidden;border-radius:12px;background:linear-gradient(145deg,#1c2c36,#11171d);
+  box-shadow:0 22px 65px #0009,0 0 0 1px #ffffff18;
+}
+.cinema-hero-featured .cinema-hero-media img{
+  display:block;width:100%;height:100%;object-fit:contain;object-position:center;filter:none;
+}
+.cinema-hero-featured .cinema-hero-media-empty{color:#6ecbbb;font-size:14px;letter-spacing:.24em}
+.cinema-hero-featured h1{line-height:1.2}
+@media(max-width:850px){
+ .cinema-hero-featured{grid-template-columns:1fr;gap:22px;min-height:0}
+ .cinema-hero-featured .cinema-hero-media{height:clamp(220px,48vw,340px)}
+}
+@media(max-width:540px){
+ .cinema-hero-featured{padding:30px 18px}
+ .cinema-hero-featured .cinema-hero-media{height:260px}
+}
